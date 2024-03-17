@@ -1,10 +1,8 @@
 import math
 
-class node:
+class Node:
     def __init__(self,coordinate_1,coordinate_2,coordinate_3):
         self.coordinates = [coordinate_1,coordinate_2,coordinate_3]  # (x,y,z) currently
-        self.visited     = False
-
 
     def calculate_distance(self,other):
         sum_square = 0
