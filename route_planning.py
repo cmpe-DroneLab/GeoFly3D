@@ -56,7 +56,7 @@ def create_route(start_node,height,vertex_list):
     # The vertical displacement will be alternating at every turn
     while counter_horizontal <= Dh:
         while counter_vertical <= Dv:
-            altitude        = 1 
+            altitude        = height 
             new_coordinates = [start_horizontal,start_vertical + Sv * increment, altitude]
             route.append(Node(new_coordinates))
             counter_vertical += increment
