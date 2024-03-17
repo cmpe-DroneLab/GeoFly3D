@@ -5,10 +5,12 @@ HFOV_degree   = 75.5                            # Check https://www.parrot.com/e
 HFOV_rad      = (HFOV_degree*math.pi)/180
      
 
+# Calculate the increment value 
 def calculate_increment(height):
     increment = math.tan(HFOV_rad/2) * height * 2 * 0.75 * 0.2  # Increment by 0.2 of the height of the taken picture
     return abs(increment)
 
+# Calculate the closest boundary vertex to the start point
 def calculate_start_vertex(start_node,vertex_list):
     min_dist             = 10000000000
     closest_vertex_index = 0
@@ -19,6 +21,7 @@ def calculate_start_vertex(start_node,vertex_list):
             closest_vertex_index = i
     return vertex_list[closest_vertex_index]
 
+# Calculate the horizontal and vertical displacements with respect to the closest vertex
 def calculate_boundaries(start_vertex,vertex_list):
     distance_horizontal = 0
     distance_vertical   = 0
@@ -35,8 +38,9 @@ def calculate_boundaries(start_vertex,vertex_list):
                 sign_horizontal = 1
             else:
                 sign_horizontal = -1
-    return sign_horizontal,sign_vertical,distance_horizontal,distance_vertical
+    return sign_horizontal,sign_vertical,abs(distance_horizontal),abs(distance_vertical)
 
+# Create a route as a list of nodes with a given height and vertex list
 def create_route(start_node,height,vertex_list):
     route           = []
     increment       = calculate_increment(height)
@@ -49,6 +53,7 @@ def create_route(start_node,height,vertex_list):
     counter_vertical   = 0
     start_horizontal   = start_vertex.coordinates[0]
     start_vertical     = start_vertex.coordinates[1]
+    # The vertical displacement will be alternating at every turn
     while counter_horizontal <= Dh:
         while counter_vertical <= Dv:
             altitude        = 1 
