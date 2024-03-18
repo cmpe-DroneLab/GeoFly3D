@@ -1,9 +1,11 @@
 import math
 from node import Node
+import matplotlib.pyplot as plt
 
 HFOV_degree   = 75.5                            # Check https://www.parrot.com/en/drones/anafi/technical-specifications
 HFOV_rad      = (HFOV_degree*math.pi)/180
      
+counter = 0
 
 # Calculate the increment value 
 def calculate_increment(height):
@@ -44,27 +46,42 @@ def calculate_boundaries(start_vertex,vertex_list):
 def create_route(start_node,height,vertex_list):
     route           = []
     increment       = calculate_increment(height)
+    print(increment)
     start_vertex    = calculate_start_vertex(start_node,vertex_list)
     Sh, Sv, Dh, Dv  = calculate_boundaries(start_vertex,vertex_list)
-    start_node      = Node([start_node.coordinates[0],start_node.coordinates[1],start_vertex.coordinates[2]])
+    start_node      = Node(start_node.coordinates[0],start_node.coordinates[1],start_vertex.coordinates[2])
     route.append(start_node)
     route.append(start_vertex)
     counter_horizontal = 0
     counter_vertical   = 0
     start_horizontal   = start_vertex.coordinates[0]
     start_vertical     = start_vertex.coordinates[1]
+
     # The vertical displacement will be alternating at every turn
     while counter_horizontal <= Dh:
         while counter_vertical <= Dv:
-            altitude        = height 
-            new_coordinates = [start_horizontal,start_vertical + Sv * increment, altitude]
-            route.append(Node(new_coordinates))
+            altitude          = height
+            start_vertical    = start_vertical + Sv * increment 
+            new_coordinates   = [start_horizontal,start_vertical, altitude]
+            route.append(Node(new_coordinates[0],new_coordinates[1],new_coordinates[2]))
             counter_vertical += increment
         counter_horizontal = counter_horizontal + increment
         start_horizontal   = start_horizontal + Sh * increment
-        start_vertical     = start_vertical   + Sv * counter_vertical
+        start_vertical    = start_vertical + Sv * increment
         counter_vertical   = 0
-        Sv                 = Sv * -1      
+        Sv                 = Sv * -1
     return route
 
+corner_list = [Node(5,5,0), Node(15,5,0), Node(5,15,0), Node(15,15,0)]
+route = create_route(Node(0,0,0), 2, corner_list)
+x_list = []
+y_list = []
+for node in route:
+    x_list.append(node.coordinates[0])
+    y_list.append(node.coordinates[1])
+plt.title("Route")
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.scatter(x_list, y_list)
+plt.show()
 
