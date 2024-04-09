@@ -14,6 +14,8 @@ edge_3              = [node_1,node_2]
 edge_4              = [node_2,node_3]
 edges               = [edge_1,edge_2,edge_3,edge_4]
 
-area  = Scan_area(edges=edges)
+
+area  = Scan_area(edges)
+#print("Area is", area.edges)
 route = area.create_route(take_off_node,height,intersection_ratio)
 print("Route",route)

@@ -31,3 +31,5 @@ class Node:
 			if self.coordinates[i] != other.coordinates[i]:
 				return False
 		return True
+	def __hash__(self):
+		return hash((self.coordinates[0], self.coordinates[1], self.coordinates[2]))

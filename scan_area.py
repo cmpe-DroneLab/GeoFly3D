@@ -3,11 +3,9 @@ import math
 class Scan_area:
 	def __init__(self,edges=None):
 		self.edges = []
-		if edges is None: 
-			self.nodes = {}
-		else:
+		self.nodes = {}
+		if edges is not None:
 			self.check_edges(edges)
-
 
 	# Calculate the increment value 
 	def calculate_increment(height,intersection_ratio):
@@ -21,11 +19,11 @@ class Scan_area:
 			return False
 		if (edge[0] != edge[1]):
 			self.edges.append(edge)
-			if edge[0] not in self.nodes:
+			if edge[0] not in list(self.nodes.keys()):
 				self.nodes[edge[0]] = [edge[1]]
 			else:
 				self.nodes[edge[0]].append(edge[1])
-			if edge[1] not in self.nodes:
+			if edge[1] not in list(self.nodes.keys()):
 				self.nodes[edge[1]] = [edge[0]]
 			else:
 				self.nodes[edge[1]].append(edge[0])
@@ -50,6 +48,7 @@ class Scan_area:
 		first_node    = list(self.nodes.keys())[0]
 		visited_nodes = []
 		queue         = [first_node]
+		n             = 3
 		while len(queue) > 0:
 			node = queue.pop()
 			visited_nodes.append(node)
