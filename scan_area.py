@@ -66,6 +66,31 @@ class scan_area:
 			elif direction != current_direction:
 				return False  
 		return True
+
+	def create_route(self,start_point):
+		if self.is_convex() == False:
+			print("Please Check the Polygon")
+			return []
+		route = []
+		longest_edge   = None
+		biggest_length = 0
+		for edge in self.edges:
+			distance = edge[0].calculate_distance(edge[1])
+			if distance > biggest_length:
+				biggest_length = distance
+				longest_edge = edge.copy()
+		p1      = longest_edge[0]
+		p2      = longest_edge[1]
+		vector  = []
+		dist_1  = start_point.calculate_distance(p1)
+		dist_2  = start_point.calculate_distance(p2)
+		if dist_1 < dist_2:
+			route.append(p1)
+			for i in range(len(p1.coordinates)-1):
+				vector
+		else:
+			route.append(p2)
+		return 0
 	 
 			
 		
