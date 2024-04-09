@@ -1,4 +1,6 @@
 import math
+import haversine as hs
+from haversine import Unit, Direction
 
 class Node:
 	def __init__(self, coordinate_1,coordinate_2,coordinate_3):
@@ -17,6 +19,13 @@ class Node:
 			sum_square += (self.coordinates[i]-other.coordinates[i])**2
 		return math.sqrt(sum_square)
 
+	def calculate_geographic_distance(self, other):
+		loc_other = (other.coordinates[0], other.coordinates[1])
+		return hs.haversine(self.geoloc, loc_other,unit=Unit.METERS)
+
+	def calculate_next_node(self, displacement, direction):
+		return Node(hs.inverse_haversine(self.geoloc, displacement, direction), 0)
+	
 	def __eq__(self,other):
 		for i in range(len(self.coordinates)):
 			if self.coordinates[i] != other.coordinates[i]:
