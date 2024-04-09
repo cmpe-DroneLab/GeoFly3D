@@ -67,6 +67,18 @@ class scan_area:
 				return False  
 		return True
 
+	def get_polygon_center(self):
+		point_count         = len(list(self.nodes.keys()))
+		coordinates_center  = []
+		coordinate_count    = len(list(self.nodes.keys())[0].coordinates)
+		for i in range(coordinate_count):
+			sub_sum = 0
+			for j in range(point_count):
+				sub_sum = list(self.nodes.keys())[j][i]
+			coordinates_center.append(sub_sum/point_count)
+		return coordinates_center
+
+
 	def create_route(self,start_point):
 		if self.is_convex() == False:
 			print("Please Check the Polygon")
@@ -79,18 +91,28 @@ class scan_area:
 			if distance > biggest_length:
 				biggest_length = distance
 				longest_edge = edge.copy()
-		p1      = longest_edge[0]
-		p2      = longest_edge[1]
-		vector  = []
-		dist_1  = start_point.calculate_distance(p1)
-		dist_2  = start_point.calculate_distance(p2)
+		p1            = longest_edge[0]
+		p2            = longest_edge[1]
+		convex_center = self.get_polygon_center()
+
+		vector_1      = []
+		vector_2      = []
+		dist_1        = start_point.calculate_distance(p1)
+		dist_2        = start_point.calculate_distance(p2)
 		if dist_1 < dist_2:
 			route.append(p1)
 			for i in range(len(p1.coordinates)-1):
-				vector
+				vector_1.append(p2.coordinates[i] - p1.coordinates[i])
+				vector_2.append(convex_center.coordinates[i] - p1.coordinates[i])
 		else:
 			route.append(p2)
-		return 0
+			for i in range(len(p1.coordinates)-1):
+				vector_1.append(p1.coordinates[i] - p2.coordinates[i])
+				vector_2.append(convex_center.coordinates[i] - p2.coordinates[i])
+		cross_multiple = (vector_1[0]*vector_2[1])-(vector_1[1]*vector_2[0])
+		if cross_multiple = 
+		
+
 	 
 			
 		
