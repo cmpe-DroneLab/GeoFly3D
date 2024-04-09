@@ -14,7 +14,8 @@ edge_2              = [node_4,node_1]
 edge_3              = [node_1,node_2]
 edge_4              = [node_2,node_3]
 edges               = [edge_1,edge_2,edge_3,edge_4]
-
+x_vertices          = [1,2,4,0]
+y_vertices          = [3,4,4,0]
 
 area  = Scan_area(edges)
 #print("Area is", area.edges)
@@ -28,4 +29,5 @@ for i in range(len(route)):
         y_list.append(route[i][1][j].coordinates[1])
 
 plt.scatter(x_list,y_list)
+plt.scatter(x_vertices,y_vertices)
 plt.show() 
