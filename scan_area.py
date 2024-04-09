@@ -166,7 +166,7 @@ class scan_area:
 					coordinate_3 = ((i/(limit-1)) * true_vector[2]) + start_vertex.coordinates[2]
 					new_node     = Node(coordinate_1,coordinate_2,coordinate_3)       
 					route.append(new_node)
-			
+		
 
 				
 		
