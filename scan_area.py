@@ -82,7 +82,7 @@ class Scan_area:
 		for i in range(coordinate_count):
 			sub_sum = 0
 			for j in range(point_count):
-				sub_sum = list(self.nodes.keys())[j][i]
+				sub_sum = list(self.nodes.keys())[j].coordinates[i]
 			coordinates_center.append(sub_sum/point_count)
 		return coordinates_center
 
@@ -112,12 +112,12 @@ class Scan_area:
 			#route.append(p1)
 			for i in range(len(p1.coordinates)-1):
 				vector_1.append(p2.coordinates[i] - p1.coordinates[i])
-				vector_2.append(convex_center.coordinates[i] - p1.coordinates[i])
+				vector_2.append(convex_center[i] - p1.coordinates[i])
 		else:
 			route.append(p2)
 			for i in range(len(p1.coordinates)-1):
 				vector_1.append(p1.coordinates[i] - p2.coordinates[i])
-				vector_2.append(convex_center.coordinates[i] - p2.coordinates[i])
+				vector_2.append(convex_center[i] - p2.coordinates[i])
 		angle            = math.atan2(vector_1[1],vector_1[0])
 		angle_orthogonal = None
 		cross_multiple = (vector_1[0]*vector_2[1])-(vector_1[1]*vector_2[0])
@@ -126,9 +126,9 @@ class Scan_area:
 		else:
 			angle_orthogonal = angle - (math.pi/2)
 		direction_vector = [math.cos(angle_orthogonal),math.sin(angle_orthogonal)] 
-		edge_point       = {}
+		edge_point       = []
 		for edge in self.edges:
-			edge_point[edge]    = []
+			edge_point.append([edge,[]])
 			true_angle          = None
 			true_vector         = None
 			start_vertex        = None
@@ -149,29 +149,31 @@ class Scan_area:
 				true_vector  = direction_1.copy()
 				start_vertex = vertex_2
 				end_vertex   = vertex_1
+				true_vector.append(end_vertex.coordinates[2]-start_vertex.coordinates[2])
 			elif dot_2 > 0:
 				true_angle   = angle_2
 				true_vector  = direction_2.copy()
 				start_vertex = vertex_1
 				end_vertex   = vertex_2
+				true_vector.append(end_vertex.coordinates[2]-start_vertex.coordinates[2])
 			else:
 				is_orthogonal = True
 			if (is_orthogonal == True):
 				#edge_point[edge] = [start_vertex,end_vertex]
-				edge_point[edge].append(start_vertex)
-				edge_point[edge].append(end_vertex)
+				edge_point[-1][1].append(start_vertex)
+				edge_point[-1][1].append(end_vertex)
 			else:
 				angle_edge  = true_angle - angle_orthogonal
 				edge_inc    = abs(increment / math.cos(angle_edge))
 				edge_length = vertex_1.calculate_distance(vertex_2)
-				limit       = ceil(edge_length/edge_inc)
+				limit       = int((edge_length//edge_inc) + 1)
 				for i in range(limit):
 					coordinate_1 = true_vector[0]+(edge_inc*i*math.cos(true_angle))
 					coordinate_2 = true_vector[1]+(edge_inc*i*math.sin(true_angle))
-					coordinate_3 = ((i/(limit-1)) * true_vector[2]) + start_vertex.coordinates[2]
+					coordinate_3 = ((i/(limit)) * true_vector[2]) + start_vertex.coordinates[2]
 					new_node     = Node(coordinate_1,coordinate_2,coordinate_3)       
-					edge_point[edge].append(new_node)
-		print(edge_point)
+					edge_point[-1][1].append(new_node)
+		return edge_point
 		
 
 				
