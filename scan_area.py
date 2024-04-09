@@ -168,13 +168,15 @@ class Scan_area:
 				is_orthogonal = True
 			if (is_orthogonal == True):
 				#edge_point[edge] = [start_vertex,end_vertex]
-				print(start_vertex.coordinates[0],start_vertex.coordinates[1])
+				#print(start_vertex.coordinates[0],start_vertex.coordinates[1])
 				node_start = Node(start_vertex.coordinates[0],start_vertex.coordinates[1],start_vertex.coordinates[2])
 				node_end   = Node(end_vertex.coordinates[0],end_vertex.coordinates[1],end_vertex.coordinates[2])
 				edge_point[-1][1].append(node_start)
 				edge_point[-1][1].append(node_end)
+				edge_point[-1].append(math.pi/2)
 				#print(len(edge_point[-1][1]))
 			else:
+				edge_point[-1].append(true_angle)
 				angle_edge  = true_angle - angle_orthogonal
 				edge_inc    = abs(increment / math.cos(angle_edge))
 				edge_length = vertex_1.calculate_distance(vertex_2)
@@ -186,6 +188,7 @@ class Scan_area:
 					coordinate_3 = ((i/(limit)) * true_vector[2]) + start_vertex.coordinates[2]
 					new_node     = Node(coordinate_1,coordinate_2,coordinate_3)       
 					edge_point[-1][1].append(new_node)
+		
 		return edge_point
 		
 

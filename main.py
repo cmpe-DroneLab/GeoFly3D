@@ -21,6 +21,8 @@ y_vertices          = [3,4,4,0]
 area  = Scan_area(edges)
 #print("Area is", area.edges)
 route  = area.create_route(take_off_node,height,intersection_ratio)
+for i in range(len(route)):
+    print("Angle:",route[i][2])
 x_list = []
 y_list = []
 
