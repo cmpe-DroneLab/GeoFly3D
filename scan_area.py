@@ -1,5 +1,5 @@
 from node import Node
-
+import math
 class scan_area:
 	def __init__(self,edges=None):
 		if edges is None: 
@@ -94,8 +94,8 @@ class scan_area:
 		p1            = longest_edge[0]
 		p2            = longest_edge[1]
 		convex_center = self.get_polygon_center()
-
 		vector_1      = []
+		angle         = None
 		vector_2      = []
 		dist_1        = start_point.calculate_distance(p1)
 		dist_2        = start_point.calculate_distance(p2)
@@ -109,8 +109,14 @@ class scan_area:
 			for i in range(len(p1.coordinates)-1):
 				vector_1.append(p1.coordinates[i] - p2.coordinates[i])
 				vector_2.append(convex_center.coordinates[i] - p2.coordinates[i])
+		angle            = math.atan2(vector_1[1],vector_1[0])
+		angle_orthogonal = None
 		cross_multiple = (vector_1[0]*vector_2[1])-(vector_1[1]*vector_2[0])
-		if cross_multiple = 
+		if cross_multiple > 0:
+			angle_orthogonal = angle + (math.pi/2)
+		else:
+			angle_orthogonal = angle - (math.pi/2)
+
 		
 
 	 
