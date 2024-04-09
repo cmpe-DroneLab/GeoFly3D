@@ -7,13 +7,13 @@ class Scan_area:
 		if edges is not None:
 			self.check_edges(edges)
 
-	# Calculate the increment value 
+	# Calculate the base increment value. The increment is adapted to fit the slope of every edge 
 	def calculate_increment(self,height,intersection_ratio):
 		HFOV_degree   = 75.5                            # Check https://www.parrot.com/en/drones/anafi/technical-specifications
 		HFOV_rad      = (HFOV_degree*math.pi)/180
 		increment     = math.tan(HFOV_rad/2) * height * 2 * (1-intersection_ratio)  # Increment by variable intersection rates of the height of the taken picture
 		return abs(increment)
-
+	# Add a single edge to the shape
 	def add_edge(self,edge):
 		if (len(edge) != 2):
 			return False
@@ -30,18 +30,19 @@ class Scan_area:
 				return True
 		else:
 			return False
-		
+
+	# Add a list of edges
 	def check_edges(self,edges):
 		for edge in edges:
 			self.add_edge(edge)
-			
+	# Check if the edges form a closed polygon. Every unique node should have a degree of 2		
 	def is_closed(self):
 		for node in self.nodes:
 			if (len(self.nodes[node]) != 2):
 				return False
 		return True
 	
-
+	# We support convex shapes. Concav shapes are out of question
 	def is_convex(self):
 		if self.is_closed() == False:
 			return False
@@ -75,6 +76,7 @@ class Scan_area:
 				return False  
 		return True
 
+	# It's necessary to determine the direction of incrementing
 	def get_polygon_center(self):
 		point_count         = len(list(self.nodes.keys()))
 		coordinates_center  = []
@@ -86,7 +88,7 @@ class Scan_area:
 			coordinates_center.append(sub_sum/point_count)
 		return coordinates_center
 
-
+	# A Route is created given that the polygon is closed and convex
 	def create_route(self,start_point,height,intersection_ratio):
 		if self.is_convex() == False:
 			print("Please Check the Polygon")
