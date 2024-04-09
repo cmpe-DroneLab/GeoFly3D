@@ -1,9 +1,9 @@
 from node import Node
 import math
-class scan_area:
+class Scan_area:
 	def __init__(self,edges=None):
+		self.edges = []
 		if edges is None: 
-			edges = []
 			self.nodes = {}
 		else:
 			self.check_edges(edges)
@@ -96,7 +96,7 @@ class scan_area:
 		biggest_length = 0
 		increment = self.calculate_increment(height,intersection_ratio)
 		for edge in self.edges:
-			distance = edge[0].calculate_geographic_distance(edge[1])
+			distance = edge[0].calculate_distance(edge[1])
 			if distance > biggest_length:
 				biggest_length = distance
 				longest_edge = edge.copy()
@@ -106,8 +106,8 @@ class scan_area:
 		vector_1      = []
 		angle         = None
 		vector_2      = []
-		dist_1        = start_point.calculate_geographic_distance(p1)
-		dist_2        = start_point.calculate_geographic_distance(p2)
+		dist_1        = start_point.calculate_distance(p1)
+		dist_2        = start_point.calculate_distance(p2)
 		if dist_1 < dist_2:
 			#route.append(p1)
 			for i in range(len(p1.coordinates)-1):
@@ -126,11 +126,13 @@ class scan_area:
 		else:
 			angle_orthogonal = angle - (math.pi/2)
 		direction_vector = [math.cos(angle_orthogonal),math.sin(angle_orthogonal)] 
-		edge_angle       = {}
+		edge_point       = {}
 		for edge in self.edges:
+			edge_point[edge]    = []
 			true_angle          = None
 			true_vector         = None
 			start_vertex        = None
+			end_vertex          = None
 			vertex_1            = edge[0]
 			vertex_2            = edge[1]
 			direction_1         = [vertex_1.coordinates[0]-vertex_2.coordinates[0],vertex_1.coordinates[1]-vertex_2.coordinates[1]] 
@@ -146,26 +148,30 @@ class scan_area:
 				true_angle   = angle_1
 				true_vector  = direction_1.copy()
 				start_vertex = vertex_2
+				end_vertex   = vertex_1
 			elif dot_2 > 0:
-				true_angle = angle_2
-				true_vector= direction_2.copy()
+				true_angle   = angle_2
+				true_vector  = direction_2.copy()
 				start_vertex = vertex_1
+				end_vertex   = vertex_2
 			else:
 				is_orthogonal = True
 			if (is_orthogonal == True):
-				route.append(vertex_1)
-				route.append(vertex_2)
+				#edge_point[edge] = [start_vertex,end_vertex]
+				edge_point[edge].append(start_vertex)
+				edge_point[edge].append(end_vertex)
 			else:
 				angle_edge  = true_angle - angle_orthogonal
 				edge_inc    = abs(increment / math.cos(angle_edge))
-				edge_length = vertex_1.calculate_geographic_distance(vertex_2)
+				edge_length = vertex_1.calculate_distance(vertex_2)
 				limit       = ceil(edge_length/edge_inc)
 				for i in range(limit):
 					coordinate_1 = true_vector[0]+(edge_inc*i*math.cos(true_angle))
 					coordinate_2 = true_vector[1]+(edge_inc*i*math.sin(true_angle))
 					coordinate_3 = ((i/(limit-1)) * true_vector[2]) + start_vertex.coordinates[2]
 					new_node     = Node(coordinate_1,coordinate_2,coordinate_3)       
-					route.append(new_node)
+					edge_point[edge].append(new_node)
+		print(edge_point)
 		
 
 				
