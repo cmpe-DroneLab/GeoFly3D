@@ -125,6 +125,8 @@ class Scan_area:
 			angle_orthogonal = angle + (math.pi/2)
 		else:
 			angle_orthogonal = angle - (math.pi/2)
+		#print("Angle of the longest edge:",180*angle/math.pi)
+		#print("Angle of the normal edge:",180*angle_orthogonal/math.pi)
 		direction_vector = [math.cos(angle_orthogonal),math.sin(angle_orthogonal)] 
 		edge_point       = []
 		for edge in self.edges:
@@ -143,33 +145,42 @@ class Scan_area:
 			direction_vector_2  = [math.cos(angle_2),math.sin(angle_2)]
 			dot_1               = (direction_vector_1[0]*direction_vector[0])+(direction_vector_1[1]*direction_vector[1])
 			dot_2               = (direction_vector_2[0]*direction_vector[0])+(direction_vector_2[1]*direction_vector[1])
-			is_orthogonal       = False 
-			if dot_1 > 0:
+			is_orthogonal       = False
+			#print("Dot_1:",dot_1)
+			#print("Dot_2:",dot_2) 
+			if dot_1 > 0.00001:
 				true_angle   = angle_1
 				true_vector  = direction_1.copy()
 				start_vertex = vertex_2
 				end_vertex   = vertex_1
 				true_vector.append(end_vertex.coordinates[2]-start_vertex.coordinates[2])
-			elif dot_2 > 0:
+			elif dot_2 > 0.00001:
 				true_angle   = angle_2
 				true_vector  = direction_2.copy()
 				start_vertex = vertex_1
 				end_vertex   = vertex_2
 				true_vector.append(end_vertex.coordinates[2]-start_vertex.coordinates[2])
 			else:
+				start_vertex = vertex_1
+				end_vertex   = vertex_2
 				is_orthogonal = True
 			if (is_orthogonal == True):
 				#edge_point[edge] = [start_vertex,end_vertex]
-				edge_point[-1][1].append(start_vertex)
-				edge_point[-1][1].append(end_vertex)
+				print(start_vertex.coordinates[0],start_vertex.coordinates[1])
+				node_start = Node(start_vertex.coordinates[0],start_vertex.coordinates[1],start_vertex.coordinates[2])
+				node_end   = Node(end_vertex.coordinates[0],end_vertex.coordinates[1],end_vertex.coordinates[2])
+				edge_point[-1][1].append(node_start)
+				edge_point[-1][1].append(node_end)
+				#print(len(edge_point[-1][1]))
 			else:
 				angle_edge  = true_angle - angle_orthogonal
 				edge_inc    = abs(increment / math.cos(angle_edge))
 				edge_length = vertex_1.calculate_distance(vertex_2)
+				#print("Edge Length:",edge_length)
 				limit       = int((edge_length//edge_inc) + 1)
 				for i in range(limit):
-					coordinate_1 = true_vector[0]+(edge_inc*i*math.cos(true_angle))
-					coordinate_2 = true_vector[1]+(edge_inc*i*math.sin(true_angle))
+					coordinate_1 = start_vertex.coordinates[0]+(edge_inc*i*math.cos(true_angle))
+					coordinate_2 = start_vertex.coordinates[1]+(edge_inc*i*math.sin(true_angle))
 					coordinate_3 = ((i/(limit)) * true_vector[2]) + start_vertex.coordinates[2]
 					new_node     = Node(coordinate_1,coordinate_2,coordinate_3)       
 					edge_point[-1][1].append(new_node)

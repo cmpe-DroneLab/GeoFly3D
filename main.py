@@ -24,10 +24,12 @@ x_list = []
 y_list = []
 
 for i in range(len(route)):
-    for j in range(1,len(route[i][1])):
+    for j in range(len(route[i][1])):
         x_list.append(route[i][1][j].coordinates[0])
         y_list.append(route[i][1][j].coordinates[1])
 
+#print("X:",x_list)
+#print("Y:",y_list)
 plt.scatter(x_list,y_list)
 plt.scatter(x_vertices,y_vertices)
 plt.show() 
