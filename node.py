@@ -25,7 +25,7 @@ class Node:
 
 	def calculate_next_node(self, displacement, direction):
 		return Node(hs.inverse_haversine(self.geoloc, displacement, direction), 0)
-	
+	## eq and hash are necessary for the functionalities of the 
 	def __eq__(self,other):
 		for i in range(len(self.coordinates)):
 			if self.coordinates[i] != other.coordinates[i]:
