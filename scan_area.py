@@ -8,7 +8,7 @@ class Scan_area:
 			self.check_edges(edges)
 
 	# Calculate the increment value 
-	def calculate_increment(height,intersection_ratio):
+	def calculate_increment(self,height,intersection_ratio):
 		HFOV_degree   = 75.5                            # Check https://www.parrot.com/en/drones/anafi/technical-specifications
 		HFOV_rad      = (HFOV_degree*math.pi)/180
 		increment     = math.tan(HFOV_rad/2) * height * 2 * (1-intersection_ratio)  # Increment by variable intersection rates of the height of the taken picture
@@ -56,6 +56,7 @@ class Scan_area:
 				if neighbor not in visited_nodes and neighbor not in queue:
 				    queue.append(neighbor)
 		current_direction = None
+		direction         = None
 		for i in range(len(visited_nodes)):    
 			p1 = visited_nodes[i]
 			p2 = visited_nodes[(i + 1) % n]
