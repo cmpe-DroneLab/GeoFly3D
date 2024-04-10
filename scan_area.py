@@ -96,7 +96,9 @@ class Scan_area:
 		route = []
 		longest_edge   = None
 		biggest_length = 0
-		increment = self.calculate_increment(height,intersection_ratio)
+		increment      = self.calculate_increment(height,intersection_ratio)
+		first_point    = None
+		second_point   = None
 		for edge in self.edges:
 			distance = edge[0].calculate_distance(edge[1])
 			if distance > biggest_length:
@@ -111,12 +113,14 @@ class Scan_area:
 		dist_1        = start_point.calculate_distance(p1)
 		dist_2        = start_point.calculate_distance(p2)
 		if dist_1 < dist_2:
-			#route.append(p1)
+			first_point  = p1
+			second_point = p2
 			for i in range(len(p1.coordinates)-1):
 				vector_1.append(p2.coordinates[i] - p1.coordinates[i])
 				vector_2.append(convex_center[i] - p1.coordinates[i])
 		else:
-			#route.append(p2)
+			first_point  = p2
+			second_point = p1
 			for i in range(len(p1.coordinates)-1):
 				vector_1.append(p1.coordinates[i] - p2.coordinates[i])
 				vector_2.append(convex_center[i] - p2.coordinates[i])
@@ -189,25 +193,28 @@ class Scan_area:
 					new_node     = Node(coordinate_1,coordinate_2,coordinate_3)       
 					edge_point[-1][1].append(new_node)
 		
-		sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle)
+		sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle,first_point,second_point)
 		return sorted_nodes
 
 
-	def sort_points(self,edge_point,orthogonal_angle,start_angle):
+	def sort_points(self,edge_point,orthogonal_angle,start_angle,first_point,second_point):
 		initial_direction   = None   # 1 down to up  -1 Up to down
+		sorted_list = []
 		if (orthogonal_angle>start_angle):
 			initial_direction = 1
 		else:
 			initial_direction = -1
-		points = []
+		points       = []
+		pointmid     = [(first_point.coordinates[0]+second_point.coordinates[0])/2,(first_point.coordinates[1]+second_point.coordinates[1])/2]
+		vector_orth  = [pointmid[0]+math.cos(orthogonal_angle),pointmid[1]+math.sin(orthogonal_angle)]
 		for i in range(len(edge_point)):
 			angle        = edge_point[i][2] 
 			net_angle    = angle - orthogonal_angle
-			vector_orth  = [math.cost(orthogonal_angle),math.sin(orthogonal_angle)]
 			for k in range(len(edge_point[i][1])):
-				dist             = math.sqrt((edge_point[i][1][k].coordinates[0]**2)+(edge_point[i][1][k].coordinates[1]**2))
+				vector_point     = [edge_point[i][1][k].coordinates[0]-pointmid[0],edge_point[i][1][k].coordinates[1]-pointmid[1]]
+				dist             = math.sqrt(((edge_point[i][1][k].coordinates[0])**2)+((edge_point[i][1][k].coordinates[1])**2))
 				dist_transformed = dist * math.cos(net_angle)
-				cross            = (vector_orth[0]*edge_point[i][1][k].coordinates[1]) - (vector_orth[1]*edge_point[i][1][k].coordinates[0])
+				cross            = (vector_point[0]*vector_orth[1]) - (vector_orth[0]*vector_point[1])
 				sign             = None
 				if cross > 0.0001:
 					sign = 1
@@ -216,10 +223,31 @@ class Scan_area:
 				else:
 					sign = 0
 				points.append([edge_point[i][1][k],dist_transformed,sign])
-
-		sorted_list = []
-
-
+		index        = 0
+		current_side = initial_direction
+		for i in range(len(points)):
+			if points[i][0] == first_point:
+				index = i
+		sorted_list.append(points[index][0])
+		points.pop(index)
+		index = 0
+		for i in range(len(points)):
+			if points[i][0] == second_point:
+				index = i
+		sorted_list.append(points[index][0])
+		points.pop(index)
+		while True:
+			min_dist  = 100000
+			min_index = 0
+			for i in range(len(points)):
+				if points[i][1] < min_dist and points[i][2] == current_side:
+					min_dist  = points[i][1]
+					min_index = i
+			current_side = current_side * -1
+			sorted_list.append(points[min_index][0])
+			points.pop(min_index)
+			if (len(points) == 0):
+				break
 		return sorted_list
 		
 

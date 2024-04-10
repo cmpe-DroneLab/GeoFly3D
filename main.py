@@ -21,20 +21,19 @@ y_vertices          = [3,4,4,0]
 area  = Scan_area(edges)
 #print("Area is", area.edges)
 route  = area.create_route(take_off_node,height,intersection_ratio)
-for i in range(len(route)):
-    print("Angle:",route[i][2])
+#for i in range(len(route)):
+#    print("Angle:",route[i][2])
 x_list = []
 y_list = []
 
 
 ### Plot the route: Not sorted yet
 for i in range(len(route)):
-    for j in range(len(route[i][1])):
-        x_list.append(route[i][1][j].coordinates[0])
-        y_list.append(route[i][1][j].coordinates[1])
+    x_list.append(route[i].coordinates[0])
+    y_list.append(route[i].coordinates[1])
 
-#print("X:",x_list)
-#print("Y:",y_list)
+print("X:",x_list)
+print("Y:",y_list)
 plt.scatter(x_list,y_list)
 plt.scatter(x_vertices,y_vertices)
 plt.show() 
