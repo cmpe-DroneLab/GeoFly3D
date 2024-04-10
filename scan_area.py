@@ -208,11 +208,12 @@ class Scan_area:
 		pointmid     = [(first_point.coordinates[0]+second_point.coordinates[0])/2,(first_point.coordinates[1]+second_point.coordinates[1])/2]
 		vector_orth  = [pointmid[0]+math.cos(orthogonal_angle),pointmid[1]+math.sin(orthogonal_angle)]
 		for i in range(len(edge_point)):
-			angle        = edge_point[i][2] 
-			net_angle    = angle - orthogonal_angle
+			
 			for k in range(len(edge_point[i][1])):
 				vector_point     = [edge_point[i][1][k].coordinates[0]-pointmid[0],edge_point[i][1][k].coordinates[1]-pointmid[1]]
-				dist             = math.sqrt(((edge_point[i][1][k].coordinates[0])**2)+((edge_point[i][1][k].coordinates[1])**2))
+				dist             = math.sqrt(((edge_point[i][1][k].coordinates[0]-pointmid[0])**2)+((edge_point[i][1][k].coordinates[1]-pointmid[1])**2))	
+				angle            = math.atan2(vector_point[1],vector_point[0])
+				net_angle        = angle - orthogonal_angle
 				dist_transformed = dist * math.cos(net_angle)
 				cross            = (vector_point[0]*vector_orth[1]) - (vector_orth[0]*vector_point[1])
 				sign             = None
@@ -228,26 +229,31 @@ class Scan_area:
 		for i in range(len(points)):
 			if points[i][0] == first_point:
 				index = i
+				break
 		sorted_list.append(points[index][0])
 		points.pop(index)
 		index = 0
 		for i in range(len(points)):
 			if points[i][0] == second_point:
 				index = i
+				break
 		sorted_list.append(points[index][0])
 		points.pop(index)
+		counter = 1
 		while True:
-			min_dist  = 100000
+			if (len(points) == 0):
+				break
+			min_dist  = 10000000
 			min_index = 0
 			for i in range(len(points)):
 				if points[i][1] < min_dist and points[i][2] == current_side:
 					min_dist  = points[i][1]
 					min_index = i
-			current_side = current_side * -1
+			if counter % 2 != 0:
+				current_side = current_side * -1			
 			sorted_list.append(points[min_index][0])
-			points.pop(min_index)
-			if (len(points) == 0):
-				break
+			points.pop(min_index)	
+			counter = counter + 1	
 		return sorted_list
 		
 

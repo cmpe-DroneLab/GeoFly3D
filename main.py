@@ -32,8 +32,8 @@ for i in range(len(route)):
     x_list.append(route[i].coordinates[0])
     y_list.append(route[i].coordinates[1])
 
-print("X:",x_list)
-print("Y:",y_list)
-plt.scatter(x_list,y_list)
-plt.scatter(x_vertices,y_vertices)
+#print("X:",x_list)
+#print("Y:",y_list)
+plt.plot(x_list,y_list)
+#plt.scatter(x_vertices,y_vertices)
 plt.show() 
