@@ -198,34 +198,38 @@ class Scan_area:
 
 
 	def sort_points(self,edge_point,orthogonal_angle,start_angle,first_point,second_point):
-		initial_direction   = None   # 1 down to up  -1 Up to down
-		sorted_list = []
+		initial_direction   = None   # 1 right  -1 left relative to the orthogonal vector cutting mid point of the longest edge
+		sorted_list         = []
 		if (orthogonal_angle>start_angle):
 			initial_direction = 1
 		else:
 			initial_direction = -1
 		points       = []
 		pointmid     = [(first_point.coordinates[0]+second_point.coordinates[0])/2,(first_point.coordinates[1]+second_point.coordinates[1])/2]
-		vector_orth  = [pointmid[0]+math.cos(orthogonal_angle),pointmid[1]+math.sin(orthogonal_angle)]
-		for i in range(len(edge_point)):
-			
+		vector_orth  = [math.cos(orthogonal_angle),math.sin(orthogonal_angle)]
+		#print(vector_orth)
+		for i in range(len(edge_point)):		
 			for k in range(len(edge_point[i][1])):
 				vector_point     = [edge_point[i][1][k].coordinates[0]-pointmid[0],edge_point[i][1][k].coordinates[1]-pointmid[1]]
 				dist             = math.sqrt(((edge_point[i][1][k].coordinates[0]-pointmid[0])**2)+((edge_point[i][1][k].coordinates[1]-pointmid[1])**2))	
 				angle            = math.atan2(vector_point[1],vector_point[0])
 				net_angle        = angle - orthogonal_angle
-				dist_transformed = dist * math.cos(net_angle)
+				dist_transformed = abs(dist * math.cos(net_angle))
 				cross            = (vector_point[0]*vector_orth[1]) - (vector_orth[0]*vector_point[1])
 				sign             = None
-				if cross > 0.0001:
+				if cross > 0.000001:
 					sign = 1
-				elif cross < -0.0001:
+				elif cross < -0.0000001:
 					sign = -1
 				else:
 					sign = 0
-				points.append([edge_point[i][1][k],dist_transformed,sign])
-		index        = 0
-		current_side = initial_direction
+				points.append([edge_point[i][1][k],dist_transformed,sign,cross])
+		#points.pop(0)
+		#points.pop(0)
+		#for i in range(len(points)):
+		#	print("Point:",points[i][0].coordinates[0]," , ",points[i][0].coordinates[1])
+		#print("Length before popping:", len(points))
+		index        = 0 
 		for i in range(len(points)):
 			if points[i][0] == first_point:
 				index = i
@@ -238,22 +242,26 @@ class Scan_area:
 				index = i
 				break
 		sorted_list.append(points[index][0])
+		current_side = points[index][2]
 		points.pop(index)
 		counter = 1
+		#print("Length before popping:", len(points))
 		while True:
 			if (len(points) == 0):
 				break
 			min_dist  = 10000000
 			min_index = 0
 			for i in range(len(points)):
-				if points[i][1] < min_dist and points[i][2] == current_side:
-					min_dist  = points[i][1]
-					min_index = i
-			if counter % 2 != 0:
-				current_side = current_side * -1			
+				if points[i][2] == current_side:
+					if points[i][1] < min_dist:
+						min_dist  = points[i][1]
+						min_index = i
+			#print("Counter:",counter," Index:",min_index," Side:",current_side,"Coordinates: (",points[min_index][0].coordinates[0],",",points[min_index][0].coordinates[1],")","Cross:",points[min_index][3])				
 			sorted_list.append(points[min_index][0])
-			points.pop(min_index)	
-			counter = counter + 1	
+			points.pop(min_index)
+			if counter % 2 != 0:
+				current_side = current_side * -1		
+			counter = counter + 1
 		return sorted_list
 		
 

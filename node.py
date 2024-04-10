@@ -4,7 +4,7 @@ from haversine import Unit, Direction
 
 class Node:
 	def __init__(self, coordinate_1,coordinate_2,coordinate_3):
-		self.coordinates = [coordinate_1,coordinate_2,coordinate_3]  # (x,y,z) currently
+		self.coordinates = [float(coordinate_1),float(coordinate_2),float(coordinate_3)]  # (x,y,z) currently
 		self.geoloc = (self.coordinates[0], self.coordinates[1])
 
 	def calculate_distance(self,other):

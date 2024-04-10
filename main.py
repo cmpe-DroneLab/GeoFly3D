@@ -6,7 +6,7 @@ height              = 0.5            # Scanning resolution
 intersection_ratio  = 0.8            # The intersection_ratio is configurable
 #################################### Sample polygon
 node_1              = Node(1,3,0)   
-node_2              = Node(3,4,0)
+node_2              = Node(2,4,0)
 node_3              = Node(4,4,0)
 node_4              = Node(0,0,0)
 take_off_node       = Node(-1,-1,0)
@@ -15,25 +15,25 @@ edge_2              = [node_4,node_1]
 edge_3              = [node_1,node_2]
 edge_4              = [node_2,node_3]
 edges               = [edge_1,edge_2,edge_3,edge_4]
-x_vertices          = [1,3,4,0]
-y_vertices          = [3,4,4,0]
+x_vertices          = [node_1.coordinates[0],node_2.coordinates[0],node_3.coordinates[0],node_4.coordinates[0]]
+y_vertices          = [node_1.coordinates[1],node_2.coordinates[1],node_3.coordinates[1],node_4.coordinates[1]]
 ####################################
-area  = Scan_area(edges)
+area    = Scan_area(edges)
 #print("Area is", area.edges)
-route  = area.create_route(take_off_node,height,intersection_ratio)
+route   = area.create_route(take_off_node,height,intersection_ratio)
 #for i in range(len(route)):
 #    print("Angle:",route[i][2])
-x_list = []
-y_list = []
+x_list       = []
+y_list       = []
 
-
-### Plot the route: Not sorted yet
+### Plot the route: sorted now
 for i in range(len(route)):
     x_list.append(route[i].coordinates[0])
     y_list.append(route[i].coordinates[1])
 
 #print("X:",x_list)
 #print("Y:",y_list)
-plt.plot(x_list,y_list)
-#plt.scatter(x_vertices,y_vertices)
+plt.plot(x_list,y_list,color='green')
+plt.scatter(x_list,y_list,color='purple')
+plt.scatter(x_vertices,y_vertices,color='red')
 plt.show() 
