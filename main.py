@@ -6,7 +6,7 @@ height              = 0.5            # Scanning resolution
 intersection_ratio  = 0.8            # The intersection_ratio is configurable
 #################################### Sample polygon
 node_1              = Node(1,3,0)   
-node_2              = Node(2,4,0)
+node_2              = Node(3,4,0)
 node_3              = Node(4,4,0)
 node_4              = Node(0,0,0)
 take_off_node       = Node(-1,-1,0)
