@@ -35,6 +35,12 @@ class Scan_area:
 	def check_edges(self,edges):
 		for edge in edges:
 			self.add_edge(edge)
+		#for node in self.nodes:
+		#	print("Main Node: (",node.coordinates[0],",",node.coordinates[1],")")
+		#	for const in self.nodes[node]:
+		#		print("Node: (",const.coordinates[0],",",const.coordinates[1],")")
+		#print("*******************")
+
 	# Check if the edges form a closed polygon. Every unique node should have a degree of 2		
 	def is_closed(self):
 		for node in self.nodes:
@@ -49,7 +55,6 @@ class Scan_area:
 		first_node    = list(self.nodes.keys())[0]
 		visited_nodes = []
 		queue         = [first_node]
-		n             = 3
 		while len(queue) > 0:
 			node = queue.pop()
 			visited_nodes.append(node)
@@ -58,17 +63,25 @@ class Scan_area:
 				    queue.append(neighbor)
 		current_direction = None
 		direction         = None
+		n                 = len(visited_nodes)
+		#for const in visited_nodes:
+		#		print("Node: (",const.coordinates[0],",",const.coordinates[1],")")
+		
 		for i in range(len(visited_nodes)):    
 			p1 = visited_nodes[i]
 			p2 = visited_nodes[(i + 1) % n]
 			p3 = visited_nodes[(i + 2) % n]
-			cross_product = (p2.coordinates[0] - p1.coordinates[0]) * (p3.coordinates[1] - p2.coordinates[1]) - (p2.coordinates[1] - p1.coordinates[1]) * (p3.coordinates[0] - p2.coordinates[0])	
+			#("P1:",p1.coordinates[0],p1.coordinates[1],p1.coordinates[2])
+			#print("P2:",p2.coordinates[0],p2.coordinates[1],p2.coordinates[2])
+			#print("P3:",p3.coordinates[0],p3.coordinates[1],p3.coordinates[2])
+			cross_product = ((p2.coordinates[0] - p1.coordinates[0]) * (p3.coordinates[1] - p1.coordinates[1])) - ((p2.coordinates[1] - p1.coordinates[1]) * (p3.coordinates[0] - p1.coordinates[0]))
 			if cross_product == 0:
 				continue  
-			elif cross_product > 0:
+			elif cross_product > 0.0001:
 				current_direction = 1  
 			else:
-				current_direction = -1  
+				current_direction = -1
+			#print(current_direction,"-",cross_product)
 			# Check if the direction changes
 			if direction is None:
 				direction = current_direction
