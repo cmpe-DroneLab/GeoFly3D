@@ -37,5 +37,6 @@ for i in range(len(route)):
 #print("Y:",y_list)
 plt.plot(x_list,y_list,color='green')
 plt.scatter(x_list,y_list,color='purple')
+plt.scatter(take_off_node.coordinates[0],take_off_node.coordinates[1],color="blue")
 plt.scatter(x_vertices,y_vertices,color='red')
 plt.show() 

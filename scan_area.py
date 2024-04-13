@@ -282,7 +282,7 @@ class Scan_area:
 	def sort_points_alt(self,edge_point,first_point,second_point):
 		initial_direction   = None   # 1 right  -1 left relative to the orthogonal vector cutting mid point of the longest edge
 		sorted_list         = []
-		points       = []
+		points              = []
 		for i in range(len(edge_point)):		
 			for k in range(len(edge_point[i][1])):
 				points.append(edge_point[i][1][k])
@@ -298,33 +298,36 @@ class Scan_area:
 				index = i
 				break
 		sorted_list.append(points[index])
-		current_side = 1
 		points.pop(index)
+		current_side = 1	
 		counter = 1
-		#print("Length before popping:", len(points))
+		points_two = []
+		for point in points:
+			if point not in self.nodes:
+				points_two.append(point)
 		while True:
-			if (len(points) == 0):
+			if (len(points_two) == 0):
 				break
-			min_dist  = 10000000
+			min_dist  = float("inf")
 			min_index = 0
 			if current_side == 1:
-				for i in range(len(points)):
-					dist = second_point.calculate_distance(points[i])
+				for i in range(len(points_two)):
+					dist = second_point.calculate_distance(points_two[i])
 					if  dist < min_dist:
 						min_dist  = dist
 						min_index = i
-				second_point = points[min_index]
+				second_point = points_two[min_index]
 			elif current_side == -1:
-				for i in range(len(points)):
-					dist = first_point.calculate_distance(points[i])
+				for i in range(len(points_two)):
+					dist = first_point.calculate_distance(points_two[i])
 					if  dist < min_dist:
 						min_dist  = dist
 						min_index = i
-				first_point = points[min_index]
+				first_point = points_two[min_index]
 			else:
 				pass
-			sorted_list.append(points[min_index])
-			points.pop(min_index)
+			sorted_list.append(points_two[min_index])
+			points_two.pop(min_index)
 			if counter % 2 != 0:
 				current_side = current_side * -1		
 			counter = counter + 1
