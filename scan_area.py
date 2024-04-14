@@ -102,7 +102,7 @@ class Scan_area:
 		return coordinates_center
 
 	# A Route is created given that the polygon is closed and convex
-	def create_route(self,start_point,height,intersection_ratio):
+	def create_route(self,start_point,height,intersection_ratio,angle_rotation):
 		if self.is_convex() == False:
 			print("Please Check the Polygon")
 			return []
@@ -208,7 +208,7 @@ class Scan_area:
 		
 		#sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle,first_point,second_point)
 		sorted_nodes      = self.sort_points_alt(edge_point,first_point,second_point)
-		transformed_nodes = self.route_transformation(sorted_nodes)
+		transformed_nodes = self.route_transformation(sorted_nodes,angle_rotation)
 		return sorted_nodes,transformed_nodes
 
 
@@ -334,8 +334,8 @@ class Scan_area:
 			counter = counter + 1
 		return sorted_list
 		
-	def route_transformation(self,sorted_nodes):
-		rotation_angle   = 20*math.pi/180
+	def route_transformation(self,sorted_nodes,angle_rotation):
+		rotation_angle   = angle_rotation*math.pi/180
 		#base_vector     = [math.cos(base_angle),math.sin(base_angle)]
 		#normal_vector   = [math.cos(normal_angle),math.sin(normal_angle)]
 		#base_coordinate = [sorted_nodes[0].coordinates[0],sorted_nodes[0].coordinates[1]]

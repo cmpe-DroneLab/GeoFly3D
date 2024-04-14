@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 height              = 0.5            # Scanning resolution
 intersection_ratio  = 0.8            # The intersection_ratio is configurable
+angle               = 5
 #################################### Sample polygon
 node_1 = Node(0, 0, 0)
 node_2 = Node(6, 0, 0)
@@ -22,7 +23,7 @@ y_vertices          = [node_1.coordinates[1],node_2.coordinates[1],node_3.coordi
 ####################################
 area                  = Scan_area(edges)
 #print("Area is", area.edges)
-route,rotated_route   = area.create_route(take_off_node,height,intersection_ratio)
+route,rotated_route   = area.create_route(take_off_node,height,intersection_ratio,angle)
 #for i in range(len(route)):
 #    print("Angle:",route[i][2])
 x_list       = []
