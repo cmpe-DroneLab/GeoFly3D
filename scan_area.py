@@ -207,8 +207,9 @@ class Scan_area:
 					edge_point[-1][1].append(new_node)
 		
 		#sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle,first_point,second_point)
-		sorted_nodes = self.sort_points_alt(edge_point,first_point,second_point)
-		return sorted_nodes
+		sorted_nodes      = self.sort_points_alt(edge_point,first_point,second_point)
+		transformed_nodes = self.route_transformation(sorted_nodes)
+		return sorted_nodes,transformed_nodes
 
 
 	def sort_points(self,edge_point,orthogonal_angle,start_angle,first_point,second_point):
@@ -333,6 +334,23 @@ class Scan_area:
 			counter = counter + 1
 		return sorted_list
 		
+	def route_transformation(self,sorted_nodes):
+		rotation_angle   = 20*math.pi/180
+		#base_vector     = [math.cos(base_angle),math.sin(base_angle)]
+		#normal_vector   = [math.cos(normal_angle),math.sin(normal_angle)]
+		#base_coordinate = [sorted_nodes[0].coordinates[0],sorted_nodes[0].coordinates[1]]
+		new_node_list   = []
+		for node in sorted_nodes:
+			first_coordinate   = node.coordinates[0]
+			second_coordinate  = node.coordinates[1]
+			#transformed_first  = base_vector[0] * first_coordinate + normal_vector[0] * second_coordinate
+			#transformed_second = base_vector[1] * first_coordinate + normal_vector[1] * second_coordinate
+			rotated_first      = math.cos(rotation_angle) * first_coordinate - math.sin(rotation_angle) * second_coordinate
+			rotated_second     = math.sin(rotation_angle) * first_coordinate + math.cos(rotation_angle) * second_coordinate
+			new_node           = Node(rotated_first,rotated_second,node.coordinates[2])
+			new_node_list.append(new_node)
+		return new_node_list
+
 
 	 
 			
