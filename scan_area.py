@@ -132,7 +132,7 @@ class Scan_area:
 		if cross_multiple > 0:
 			angle_orthogonal = angle + (math.pi/2)
 		else:
-			angle_orthogonal = angle - (math.pi/2)
+			angle_orthogonal = angle - (math.pi/2)		
 		direction_vector = [math.cos(angle_orthogonal),math.sin(angle_orthogonal)] 
 		edge_point       = []
 		for edge in self.edges:
@@ -189,8 +189,8 @@ class Scan_area:
 		
 		#sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle,first_point,second_point)
 		sorted_nodes      = self.sort_points_alt(edge_point,first_point,second_point)
-		transformed_nodes = self.route_transformation(sorted_nodes,angle_rotation)
-		return sorted_nodes,transformed_nodes
+		#transformed_nodes = self.route_transformation(sorted_nodes,angle_rotation)
+		return sorted_nodes
 
 
 	def sort_points(self,edge_point,orthogonal_angle,start_angle,first_point,second_point):
