@@ -35,11 +35,6 @@ class Scan_area:
 	def check_edges(self,edges):
 		for edge in edges:
 			self.add_edge(edge)
-		#for node in self.nodes:
-		#	print("Main Node: (",node.coordinates[0],",",node.coordinates[1],")")
-		#	for const in self.nodes[node]:
-		#		print("Node: (",const.coordinates[0],",",const.coordinates[1],")")
-		#print("*******************")
 
 	# Check if the edges form a closed polygon. Every unique node should have a degree of 2		
 	def is_closed(self):
@@ -64,16 +59,11 @@ class Scan_area:
 		current_direction = None
 		direction         = None
 		n                 = len(visited_nodes)
-		#for const in visited_nodes:
-		#		print("Node: (",const.coordinates[0],",",const.coordinates[1],")")
 		
 		for i in range(len(visited_nodes)):    
 			p1 = visited_nodes[i]
 			p2 = visited_nodes[(i + 1) % n]
 			p3 = visited_nodes[(i + 2) % n]
-			#("P1:",p1.coordinates[0],p1.coordinates[1],p1.coordinates[2])
-			#print("P2:",p2.coordinates[0],p2.coordinates[1],p2.coordinates[2])
-			#print("P3:",p3.coordinates[0],p3.coordinates[1],p3.coordinates[2])
 			cross_product = ((p2.coordinates[0] - p1.coordinates[0]) * (p3.coordinates[1] - p1.coordinates[1])) - ((p2.coordinates[1] - p1.coordinates[1]) * (p3.coordinates[0] - p1.coordinates[0]))
 			if cross_product == 0:
 				continue  
@@ -81,7 +71,6 @@ class Scan_area:
 				current_direction = 1  
 			else:
 				current_direction = -1
-			#print(current_direction,"-",cross_product)
 			# Check if the direction changes
 			if direction is None:
 				direction = current_direction
@@ -144,8 +133,6 @@ class Scan_area:
 			angle_orthogonal = angle + (math.pi/2)
 		else:
 			angle_orthogonal = angle - (math.pi/2)
-		#print("Angle of the longest edge:",180*angle/math.pi)
-		#print("Angle of the normal edge:",180*angle_orthogonal/math.pi)
 		direction_vector = [math.cos(angle_orthogonal),math.sin(angle_orthogonal)] 
 		edge_point       = []
 		for edge in self.edges:
@@ -165,8 +152,6 @@ class Scan_area:
 			dot_1               = (direction_vector_1[0]*direction_vector[0])+(direction_vector_1[1]*direction_vector[1])
 			dot_2               = (direction_vector_2[0]*direction_vector[0])+(direction_vector_2[1]*direction_vector[1])
 			is_orthogonal       = False
-			#print("Dot_1:",dot_1)
-			#print("Dot_2:",dot_2) 
 			if dot_1 > 0.00001:
 				true_angle   = angle_1
 				true_vector  = direction_1.copy()
@@ -184,20 +169,16 @@ class Scan_area:
 				end_vertex   = vertex_2
 				is_orthogonal = True
 			if (is_orthogonal == True):
-				#edge_point[edge] = [start_vertex,end_vertex]
-				#print(start_vertex.coordinates[0],start_vertex.coordinates[1])
 				node_start = Node(start_vertex.coordinates[0],start_vertex.coordinates[1],start_vertex.coordinates[2])
 				node_end   = Node(end_vertex.coordinates[0],end_vertex.coordinates[1],end_vertex.coordinates[2])
 				edge_point[-1][1].append(node_start)
 				edge_point[-1][1].append(node_end)
 				edge_point[-1].append(math.pi/2)
-				#print(len(edge_point[-1][1]))
 			else:
 				edge_point[-1].append(true_angle)
 				angle_edge  = true_angle - angle_orthogonal
 				edge_inc    = abs(increment / math.cos(angle_edge))
 				edge_length = vertex_1.calculate_distance(vertex_2)
-				#print("Edge Length:",edge_length)
 				limit       = int((edge_length//edge_inc) + 1)
 				for i in range(limit):
 					coordinate_1 = start_vertex.coordinates[0]+(edge_inc*i*math.cos(true_angle))
@@ -222,7 +203,6 @@ class Scan_area:
 		points       = []
 		pointmid     = [(first_point.coordinates[0]+second_point.coordinates[0])/2,(first_point.coordinates[1]+second_point.coordinates[1])/2]
 		vector_orth  = [math.cos(orthogonal_angle),math.sin(orthogonal_angle)]
-		#print(vector_orth)
 		for i in range(len(edge_point)):		
 			for k in range(len(edge_point[i][1])):
 				vector_point     = [edge_point[i][1][k].coordinates[0]-pointmid[0],edge_point[i][1][k].coordinates[1]-pointmid[1]]
@@ -239,11 +219,6 @@ class Scan_area:
 				else:
 					sign = 0
 				points.append([edge_point[i][1][k],dist_transformed,sign,cross])
-		#points.pop(0)
-		#points.pop(0)
-		#for i in range(len(points)):
-		#	print("Point:",points[i][0].coordinates[0]," , ",points[i][0].coordinates[1])
-		#print("Length before popping:", len(points))
 		index        = 0 
 		for i in range(len(points)):
 			if points[i][0] == first_point:
@@ -260,7 +235,6 @@ class Scan_area:
 		current_side = points[index][2]
 		points.pop(index)
 		counter = 1
-		#print("Length before popping:", len(points))
 		while True:
 			if (len(points) == 0):
 				break
@@ -271,7 +245,6 @@ class Scan_area:
 					if points[i][1] < min_dist:
 						min_dist  = points[i][1]
 						min_index = i
-			#print("Counter:",counter," Index:",min_index," Side:",current_side,"Coordinates: (",points[min_index][0].coordinates[0],",",points[min_index][0].coordinates[1],")","Cross:",points[min_index][3])				
 			sorted_list.append(points[min_index][0])
 			points.pop(min_index)
 			if counter % 2 != 0:
@@ -336,15 +309,10 @@ class Scan_area:
 		
 	def route_transformation(self,sorted_nodes,angle_rotation):
 		rotation_angle   = angle_rotation*math.pi/180
-		#base_vector     = [math.cos(base_angle),math.sin(base_angle)]
-		#normal_vector   = [math.cos(normal_angle),math.sin(normal_angle)]
-		#base_coordinate = [sorted_nodes[0].coordinates[0],sorted_nodes[0].coordinates[1]]
 		new_node_list   = []
 		for node in sorted_nodes:
 			first_coordinate   = node.coordinates[0]
 			second_coordinate  = node.coordinates[1]
-			#transformed_first  = base_vector[0] * first_coordinate + normal_vector[0] * second_coordinate
-			#transformed_second = base_vector[1] * first_coordinate + normal_vector[1] * second_coordinate
 			rotated_first      = math.cos(rotation_angle) * first_coordinate - math.sin(rotation_angle) * second_coordinate
 			rotated_second     = math.sin(rotation_angle) * first_coordinate + math.cos(rotation_angle) * second_coordinate
 			new_node           = Node(rotated_first,rotated_second,node.coordinates[2])
