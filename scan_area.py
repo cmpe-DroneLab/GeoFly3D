@@ -1,5 +1,6 @@
 from node import Node
 import math
+import matplotlib.pyplot as plt
 class Scan_area:
 	def __init__(self,edges=None):
 		self.edges = []
@@ -91,41 +92,50 @@ class Scan_area:
 		return coordinates_center
 
 	# A Route is created given that the polygon is closed and convex
-	def create_route(self,start_point,height,intersection_ratio,angle_rotation):
+	def create_route(self,start_point,height,intersection_ratio,enable_rotate,angle_rotation,n1,n2):
 		if self.is_convex() == False:
 			print("Please Check the Polygon")
 			return []
 		route = []
-		longest_edge   = None
-		biggest_length = 0
-		increment      = self.calculate_increment(height,intersection_ratio)
-		first_point    = None
-		second_point   = None
-		for edge in self.edges:
-			distance = edge[0].calculate_distance(edge[1])
-			if distance > biggest_length:
-				biggest_length = distance
-				longest_edge = edge.copy()
-		p1            = longest_edge[0]
-		p2            = longest_edge[1]
+		increment     = self.calculate_increment(height,intersection_ratio)
+		first_point   = None
+		second_point  = None
+		angle         = None
 		convex_center = self.get_polygon_center()
 		vector_1      = []
-		angle         = None
 		vector_2      = []
-		dist_1        = start_point.calculate_distance(p1)
-		dist_2        = start_point.calculate_distance(p2)
-		if dist_1 < dist_2:
-			first_point  = p1
-			second_point = p2
-			for i in range(len(p1.coordinates)-1):
-				vector_1.append(p2.coordinates[i] - p1.coordinates[i])
-				vector_2.append(convex_center[i] - p1.coordinates[i])
+		transformed_list    = []
+		if enable_rotate:
+			longest_edge   = None
+			biggest_length = 0
+			for edge in self.edges:
+				distance = edge[0].calculate_distance(edge[1])
+				if distance > biggest_length:
+					biggest_length = distance
+					longest_edge = edge.copy()
+			p1            = longest_edge[0]
+			p2            = longest_edge[1]	
+			dist_1        = start_point.calculate_distance(p1)
+			dist_2        = start_point.calculate_distance(p2)				
+			if dist_1 < dist_2:
+				first_point  = p1
+				second_point = p2
+				for i in range(len(p1.coordinates)-1):
+					vector_1.append(p2.coordinates[i] - p1.coordinates[i])
+					vector_2.append(convex_center[i] - p1.coordinates[i])
+			else:
+				first_point  = p2
+				second_point = p1
+				for i in range(len(p1.coordinates)-1):
+					vector_1.append(p1.coordinates[i] - p2.coordinates[i])
+					vector_2.append(convex_center[i] - p2.coordinates[i])
 		else:
-			first_point  = p2
-			second_point = p1
-			for i in range(len(p1.coordinates)-1):
-				vector_1.append(p1.coordinates[i] - p2.coordinates[i])
-				vector_2.append(convex_center[i] - p2.coordinates[i])
+			first_point = n1
+			second_point= n2
+			for i in range(len(n1.coordinates)-1):
+				vector_1.append(n2.coordinates[i] - n1.coordinates[i])
+				vector_2.append(convex_center[i] - n1.coordinates[i])
+		
 		angle            = math.atan2(vector_1[1],vector_1[0])
 		angle_orthogonal = None
 		cross_multiple = (vector_1[0]*vector_2[1])-(vector_1[1]*vector_2[0])
@@ -189,74 +199,17 @@ class Scan_area:
 		
 		#sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle,first_point,second_point)
 		sorted_nodes      = self.sort_points_alt(edge_point,first_point,second_point)
-		#transformed_nodes = self.route_transformation(sorted_nodes,angle_rotation)
-		return sorted_nodes
+		if enable_rotate:
+			transformed_list = self.route_transformation(first_point,second_point,angle_rotation,start_point,height,intersection_ratio)
+		return sorted_nodes,transformed_list
 
-
-	def sort_points(self,edge_point,orthogonal_angle,start_angle,first_point,second_point):
-		initial_direction   = None   # 1 right  -1 left relative to the orthogonal vector cutting mid point of the longest edge
-		sorted_list         = []
-		if (orthogonal_angle>start_angle):
-			initial_direction = 1
-		else:
-			initial_direction = -1
-		points       = []
-		pointmid     = [(first_point.coordinates[0]+second_point.coordinates[0])/2,(first_point.coordinates[1]+second_point.coordinates[1])/2]
-		vector_orth  = [math.cos(orthogonal_angle),math.sin(orthogonal_angle)]
-		for i in range(len(edge_point)):		
-			for k in range(len(edge_point[i][1])):
-				vector_point     = [edge_point[i][1][k].coordinates[0]-pointmid[0],edge_point[i][1][k].coordinates[1]-pointmid[1]]
-				dist             = math.sqrt(((edge_point[i][1][k].coordinates[0]-pointmid[0])**2)+((edge_point[i][1][k].coordinates[1]-pointmid[1])**2))	
-				angle            = math.atan2(vector_point[1],vector_point[0])
-				net_angle        = angle - orthogonal_angle
-				dist_transformed = abs(dist * math.cos(net_angle))
-				cross            = (vector_point[0]*vector_orth[1]) - (vector_orth[0]*vector_point[1])
-				sign             = None
-				if cross > 0.000001:
-					sign = 1
-				elif cross < -0.0000001:
-					sign = -1
-				else:
-					sign = 0
-				points.append([edge_point[i][1][k],dist_transformed,sign,cross])
-		index        = 0 
-		for i in range(len(points)):
-			if points[i][0] == first_point:
-				index = i
-				break
-		sorted_list.append(points[index][0])
-		points.pop(index)
-		index = 0
-		for i in range(len(points)):
-			if points[i][0] == second_point:
-				index = i
-				break
-		sorted_list.append(points[index][0])
-		current_side = points[index][2]
-		points.pop(index)
-		counter = 1
-		while True:
-			if (len(points) == 0):
-				break
-			min_dist  = 10000000
-			min_index = 0
-			for i in range(len(points)):
-				if points[i][2] == current_side:
-					if points[i][1] < min_dist:
-						min_dist  = points[i][1]
-						min_index = i
-			sorted_list.append(points[min_index][0])
-			points.pop(min_index)
-			if counter % 2 != 0:
-				current_side = current_side * -1		
-			counter = counter + 1
-		return sorted_list
 		
 
 	def sort_points_alt(self,edge_point,first_point,second_point):
 		initial_direction   = None   # 1 right  -1 left relative to the orthogonal vector cutting mid point of the longest edge
 		sorted_list         = []
 		points              = []
+		index               = 0
 		for i in range(len(edge_point)):		
 			for k in range(len(edge_point[i][1])):
 				points.append(edge_point[i][1][k])
@@ -307,17 +260,68 @@ class Scan_area:
 			counter = counter + 1
 		return sorted_list
 		
-	def route_transformation(self,sorted_nodes,angle_rotation):
-		rotation_angle   = angle_rotation*math.pi/180
-		new_node_list   = []
-		for node in sorted_nodes:
-			first_coordinate   = node.coordinates[0]
-			second_coordinate  = node.coordinates[1]
-			rotated_first      = math.cos(rotation_angle) * first_coordinate - math.sin(rotation_angle) * second_coordinate
-			rotated_second     = math.sin(rotation_angle) * first_coordinate + math.cos(rotation_angle) * second_coordinate
-			new_node           = Node(rotated_first,rotated_second,node.coordinates[2])
-			new_node_list.append(new_node)
-		return new_node_list
+	def route_transformation(self,first_node,second_node,angle_rotation,start_point,height,intersection_ratio):
+		third_node  = None
+		target_edge = None
+		for edge in self.edges:
+			if second_node in edge and first_node not in edge:
+				target_edge = edge
+				break
+		for node in target_edge:
+			if node != second_node:
+				third_node = node
+				break
+		length_A   = first_node.calculate_distance(third_node)
+		length_1   = first_node.calculate_distance(second_node)
+		length_2   = second_node.calculate_distance(third_node)
+		vector_1   = [second_node.coordinates[0]-first_node.coordinates[0],second_node.coordinates[1]-first_node.coordinates[1]]
+		vector_2   = [second_node.coordinates[0]-third_node.coordinates[0],second_node.coordinates[1]-third_node.coordinates[1]]
+		dot_pro    = (vector_1[0]*vector_2[0])+(vector_1[1]*vector_2[1])
+		angle_A    = math.acos(dot_pro/(length_1*length_2))
+		distance   = math.sin(angle_rotation)*length_A/math.sin(angle_A)
+		if (distance>length_2):
+			max_angle = math.asin(length_2*length_A/math.sin(angle_A))
+			ang_deg   = 180*max_angle/math.pi
+			print("The angle should be smaller than",ang_deg)
+			return []
+		portion          = distance/length_2
+		new_coordinates  = []
+		for i in range(len(second_node.coordinates)):
+			new_coordinates.append(second_node.coordinates[i] + portion*(third_node.coordinates[i]-second_node.coordinates[i]))
+		new_node    = Node(new_coordinates[0],new_coordinates[1],new_coordinates[2])
+		new_edges   = []
+		for edge in self.edges:
+			if (first_node in edge and second_node in edge) or (second_node in edge and third_node in edge):
+				pass
+			else:
+				new_edges.append(edge) 
+		self.edges.clear()
+		self.edges = new_edges.copy()
+		self.edges.append([first_node,new_node])
+		self.edges.append([third_node,new_node])
+		self.nodes[first_node].remove(second_node)
+		self.nodes[third_node].remove(second_node)
+		self.nodes[first_node].append(new_node)
+		self.nodes[third_node].append(new_node)
+		self.nodes.pop(second_node)
+		self.nodes[new_node] = [first_node,third_node]
+		new_route_1,_        = self.create_route(start_point,height,intersection_ratio,False,angle_rotation,first_node,new_node)
+		self.nodes.clear()
+		self.edges.clear()
+		self.edges.append([first_node,new_node])
+		self.edges.append([new_node,second_node])
+		self.edges.append([second_node,first_node])
+		self.nodes[first_node]  = [second_node,new_node]
+		self.nodes[second_node] = [first_node,new_node]
+		self.nodes[new_node]    = [first_node,second_node]
+		new_route_2,_           = self.create_route(start_point,height,intersection_ratio,False,angle_rotation,first_node,new_node)
+		back_up_route           = []
+		for node in new_route_2:
+			if node not in new_route_1:
+				back_up_route.append(node)	
+		back_up_route.reverse()
+		new_route = back_up_route + new_route_1[1:]
+		return new_route
 
 
 	 
