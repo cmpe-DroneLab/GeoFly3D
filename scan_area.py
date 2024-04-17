@@ -1,6 +1,7 @@
 from node import Node
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 class Scan_area:
 	def __init__(self,edges=None):
 		self.edges = []
@@ -261,16 +262,67 @@ class Scan_area:
 		return sorted_list
 		
 	def route_transformation(self,first_node,second_node,angle_rotation,start_point,height,intersection_ratio):
-		third_node  = None
-		target_edge = None
-		for edge in self.edges:
-			if second_node in edge and first_node not in edge:
-				target_edge = edge
-				break
-		for node in target_edge:
-			if node != second_node:
-				third_node = node
-				break
+		e1,d1,e2,d2          =self.divide_shape(first_node,second_node,angle_rotation)
+		self.edges.clear()
+		self.nodes.clear()
+		self.edges           = e1
+		self.nodes           = d1
+		new_route_1,_        = self.create_route(start_point,height,intersection_ratio,False,angle_rotation,e1[0][0],e1[0][1])
+		self.edges.clear()
+		self.nodes.clear()
+		self.edges           = e2
+		self.nodes           = d2
+		new_route_2,_        = self.create_route(start_point,height,intersection_ratio,False,angle_rotation,e2[0][0],e2[0][1])
+		back_up_route        = []
+		for node in new_route_2:
+			if node not in new_route_1:
+				back_up_route.append(node)	
+		back_up_route.reverse()
+		new_route = back_up_route + new_route_1[1:]
+		return new_route
+
+	def divide_shape(self,first_node,second_node,angle_rotation):
+		visited_nodes = []
+		queue         = [first_node]
+		sorted_queue  = [] 
+		while len(queue) > 0:
+			node = queue.pop()
+			visited_nodes.append(node)
+			if node == first_node:
+					queue.append(second_node)
+			else:
+				for neighbor in self.nodes[node]:
+					if neighbor not in visited_nodes and neighbor not in queue:
+						queue.append(neighbor)
+		selected_index = 0
+		for i in range(len(visited_nodes)-2):
+			first_coordinates  = visited_nodes[i+1].coordinates[:2]
+			second_coordinates = visited_nodes[i+2].coordinates[:2]
+			x_values = np.linspace(first_coordinates[0],second_coordinates[0], 1000)
+			y_values = np.interp(x_values,first_coordinates,second_coordinates)
+			sampled_points = [(x, y) for x, y in zip(x_values, y_values)]
+			for point in sampled_points:
+				temp  = Node(point[0],point[1],visited_nodes[0].coordinates[2])
+				angle = self.get_angle(visited_nodes[0],visited_nodes[1],temp)
+				if -0.001 <= angle - angle_rotation <=0.001:
+					visited_nodes.insert(i+2,Node(point[0],point[1],visited_nodes[i+1].coordinates[2]))
+					selected_index = i + 3
+					break
+		node_split_1     = visited_nodes[:selected_index]
+		node_split_2     = [first_node]+visited_nodes[selected_index:]
+		first_edge_set   = []
+		second_edge_set  = []
+		first_node_dict  = {}
+		second_node_dict = {}
+		for i in range(len(node_split_1)):
+			first_edge_set.append([node_split_1[i],node_split_1[(i+1)%len(node_split_1)]])
+			first_node_dict[node_split_1[i]] = [node_split_1[i-1],node_split_1[(i+1)%len(node_split_1)]]
+		for i in range(len(node_split_2)):
+			second_edge_set.append([node_split_2[i],node_split_2[(i+1)%len(node_split_2)]])
+			second_node_dict[node_split_2[i]] = [node_split_2[i-1],node_split_2[(i+1)%len(node_split_2)]]
+		return first_edge_set,first_node_dict,second_edge_set,second_node_dict
+	
+	def get_angle(self,first_node,second_node,third_node):
 		length_A   = first_node.calculate_distance(third_node)
 		length_1   = first_node.calculate_distance(second_node)
 		length_2   = second_node.calculate_distance(third_node)
@@ -278,50 +330,7 @@ class Scan_area:
 		vector_2   = [second_node.coordinates[0]-third_node.coordinates[0],second_node.coordinates[1]-third_node.coordinates[1]]
 		dot_pro    = (vector_1[0]*vector_2[0])+(vector_1[1]*vector_2[1])
 		angle_A    = math.acos(dot_pro/(length_1*length_2))
-		distance   = math.sin(angle_rotation)*length_A/math.sin(angle_A)
-		if (distance>length_2):
-			max_angle = math.asin(length_2*length_A/math.sin(angle_A))
-			ang_deg   = 180*max_angle/math.pi
-			print("The angle should be smaller than",ang_deg)
-			return []
-		portion          = distance/length_2
-		new_coordinates  = []
-		for i in range(len(second_node.coordinates)):
-			new_coordinates.append(second_node.coordinates[i] + portion*(third_node.coordinates[i]-second_node.coordinates[i]))
-		new_node    = Node(new_coordinates[0],new_coordinates[1],new_coordinates[2])
-		new_edges   = []
-		for edge in self.edges:
-			if (first_node in edge and second_node in edge) or (second_node in edge and third_node in edge):
-				pass
-			else:
-				new_edges.append(edge) 
-		self.edges.clear()
-		self.edges = new_edges.copy()
-		self.edges.append([first_node,new_node])
-		self.edges.append([third_node,new_node])
-		self.nodes[first_node].remove(second_node)
-		self.nodes[third_node].remove(second_node)
-		self.nodes[first_node].append(new_node)
-		self.nodes[third_node].append(new_node)
-		self.nodes.pop(second_node)
-		self.nodes[new_node] = [first_node,third_node]
-		new_route_1,_        = self.create_route(start_point,height,intersection_ratio,False,angle_rotation,first_node,new_node)
-		self.nodes.clear()
-		self.edges.clear()
-		self.edges.append([first_node,new_node])
-		self.edges.append([new_node,second_node])
-		self.edges.append([second_node,first_node])
-		self.nodes[first_node]  = [second_node,new_node]
-		self.nodes[second_node] = [first_node,new_node]
-		self.nodes[new_node]    = [first_node,second_node]
-		new_route_2,_           = self.create_route(start_point,height,intersection_ratio,False,angle_rotation,first_node,new_node)
-		back_up_route           = []
-		for node in new_route_2:
-			if node not in new_route_1:
-				back_up_route.append(node)	
-		back_up_route.reverse()
-		new_route = back_up_route + new_route_1[1:]
-		return new_route
+		return angle_A
 
 
 	 
