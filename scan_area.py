@@ -262,6 +262,9 @@ class Scan_area:
 		
 	def route_transformation(self,first_node,second_node,angle_rotation,start_point,height,intersection_ratio):
 		e1,d1,e2,d2          =self.divide_shape(first_node,second_node,angle_rotation)
+		if len(e1) == 0 and len(e2) == 0:
+			print("The angle",angle_rotation*180/math.pi,"isn't valid!")
+			return [] 
 		self.edges.clear()
 		self.nodes.clear()
 		self.edges           = e1
@@ -295,8 +298,6 @@ class Scan_area:
 						queue.append(neighbor)
 		selected_index = 0
 		is_found       = False
-		#for node in visited_nodes:
-		#	print(node.coordinates)
 		for i in range(len(visited_nodes)-2):
 			first_coordinates  = visited_nodes[i+1].coordinates[0:2]
 			second_coordinates = visited_nodes[i+2].coordinates[0:2]
@@ -304,15 +305,17 @@ class Scan_area:
 			for point in sampled_points:
 				temp  = Node(point[0],point[1],visited_nodes[0].coordinates[2])
 				angle = self.get_angle(visited_nodes[0],visited_nodes[1],temp)
-				if -0.0001 <= angle - angle_rotation <=0.0001:
+				if  abs(angle - angle_rotation)/angle <0.01:
 					visited_nodes.insert(i+2,Node(point[0],point[1],visited_nodes[i+1].coordinates[2]))
 					selected_index = i + 3
 					is_found = True
 					break
 			if is_found:
 				break
-		node_split_1     = visited_nodes[:selected_index]
-		node_split_2     = [first_node]+visited_nodes[selected_index:]
+		if is_found == False:
+			return [],[],[],[]
+		node_split_1     = [first_node]+[visited_nodes[selected_index-1]]+visited_nodes[1:selected_index-1]
+		node_split_2     = [first_node]+visited_nodes[selected_index-1:]
 		first_edge_set   = []
 		second_edge_set  = []
 		first_node_dict  = {}
@@ -328,15 +331,13 @@ class Scan_area:
 	def get_angle(self,first_node,second_node,third_node):
 		#plt.scatter([first_node.coordinates[0],second_node.coordinates[0],third_node.coordinates[0]],[first_node.coordinates[1],second_node.coordinates[1],third_node.coordinates[1]])
 		#plt.show()
-		length_A   = first_node.calculate_distance(third_node)
 		length_1   = first_node.calculate_distance(second_node)
-		length_2   = second_node.calculate_distance(third_node)
-		vector_1   = [first_node.coordinates[0]-second_node.coordinates[0],first_node.coordinates[1]-second_node.coordinates[1]]
-		vector_2   = [third_node.coordinates[0]-second_node.coordinates[0],third_node.coordinates[1]-second_node.coordinates[1]]
+		length_2   = first_node.calculate_distance(third_node)
+		vector_1   = [second_node.coordinates[0]-first_node.coordinates[0],second_node.coordinates[1]-first_node.coordinates[1]]
+		vector_2   = [third_node.coordinates[0]-first_node.coordinates[0],third_node.coordinates[1]-first_node.coordinates[1]]
 		dot_pro    = (vector_1[0]*vector_2[0])+(vector_1[1]*vector_2[1])
-		angle_A    = math.acos(dot_pro/(length_1*length_2+0.0001))
-		fin_ang    = math.asin(length_2*math.sin(angle_A)/length_A)
-		return fin_ang
+		angle_A    = math.acos(dot_pro/(length_1*length_2+0.0000001))
+		return angle_A
 	
 	def interpolate(self,fc,sc):
 		x1, y1 = fc
@@ -345,6 +346,8 @@ class Scan_area:
 		x_values = np.linspace(min(x1,x2), max(x1,x2), 100)
 		y_values = y1 + slope * (x_values - x1)
 		sampled_points = np.column_stack((x_values[1:-1], y_values[1:-1]))
+		#plt.scatter(sampled_points[:,0],sampled_points[:,1])
+		#plt.show()
 		return sampled_points
 
 
