@@ -200,7 +200,7 @@ class Scan_area:
 		#sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle,first_point,second_point)
 		sorted_nodes      = self.sort_points_alt(edge_point,first_point,second_point)
 		if enable_rotate:
-			transformed_list = self.route_transformation(first_point,second_point,angle_rotation,start_point,height,intersection_ratio)
+			transformed_list = self.route_transformation(first_point,second_point,angle_rotation,start_point,height,intersection_ratio,angle)
 		return sorted_nodes,transformed_list
 
 		
@@ -260,8 +260,8 @@ class Scan_area:
 			counter = counter + 1
 		return sorted_list
 		
-	def route_transformation(self,first_node,second_node,angle_rotation,start_point,height,intersection_ratio):
-		e1,d1,e2,d2          =self.divide_shape(first_node,second_node,angle_rotation)
+	def route_transformation(self,first_node,second_node,angle_rotation,start_point,height,intersection_ratio,base_angle):
+		e1,d1,e2,d2          =self.divide_shape(first_node,second_node,angle_rotation,base_angle)
 		if len(e1) == 0 and len(e2) == 0:
 			print("The angle",angle_rotation*180/math.pi,"isn't valid!")
 			return [] 
@@ -283,7 +283,8 @@ class Scan_area:
 		new_route = back_up_route + new_route_1[1:]
 		return new_route
 
-	def divide_shape(self,first_node,second_node,angle_rotation):
+	def divide_shape(self,first_node,second_node,angle_rotation,base_angle):
+		""""
 		visited_nodes = []
 		queue         = [first_node]
 		sorted_queue  = [] 
@@ -327,27 +328,142 @@ class Scan_area:
 			second_edge_set.append([node_split_2[i],node_split_2[(i+1)%len(node_split_2)]])
 			second_node_dict[node_split_2[i]] = [node_split_2[i-1],node_split_2[(i+1)%len(node_split_2)]]
 		return first_edge_set,first_node_dict,second_edge_set,second_node_dict
-	
-	def get_angle(self,first_node,second_node,third_node):
+		"""
+		visited_nodes = []
+		queue         = [first_node]
+		sorted_queue  = [] 
+		while len(queue) > 0:
+			node = queue.pop()
+			visited_nodes.append(node)
+			if node == first_node:
+					queue.append(second_node)
+			else:
+				for neighbor in self.nodes[node]:
+					if neighbor not in visited_nodes and neighbor not in queue:
+						queue.append(neighbor)
+		edge_sample = []
+		for edge in self.edges:
+			temp = []
+			temp.append(edge)
+			samples = self.interpolate(edge[0].coordinates[0:2],edge[1].coordinates[0:2])
+			temp.append(samples)
+			edge_sample.append(temp)
+		is_found               = False
+		start_coordinates_edge = []
+		end_coordinates_edge   = []
+		#print(edge_sample)
+		for i in range(len(edge_sample)):
+			for k in range(len(edge_sample[i][1])):
+				for j in range (len(edge_sample)):
+					if j == i:
+						break
+					for l in range(len(edge_sample[j][1])):
+						point_1 = edge_sample[i][1][k]
+						point_2 = edge_sample[j][1][l]
+						#print(point_1)
+						#print(point_2)
+						angle   = self.get_angle(point_1,point_2)
+						if (-0.01<(angle-(angle_rotation+base_angle))/angle < 0.01):
+							#print("Base Angle:",base_angle*180/math.pi)
+							#print("Rotation Angle:",angle_rotation*180/math.pi)
+							#print("Angle:",angle*180/math.pi)
+							#plt.plot([point_1[0],point_2[0]],[point_1[1],point_2[1]])
+							#plt.show()
+							#print(point_1)
+							#print(point_2)
+							start_coordinates_edge.append(edge_sample[i][0])
+							start_coordinates_edge.append(edge_sample[i][1][k])
+							end_coordinates_edge.append(edge_sample[j][0])
+							end_coordinates_edge.append(edge_sample[j][1][l])
+							is_found = True
+							break
+				if is_found == True:
+					break
+			if is_found == True:
+				break
+		if is_found == False:
+			return [],[],[],[]
+		else:
+			first_edge_set   = []
+			second_edge_set  = []
+			first_node_dict  = {}
+			second_node_dict = {}
+			start_node = Node(start_coordinates_edge[1][0],start_coordinates_edge[1][1],0)
+			end_node   = Node(end_coordinates_edge[1][0],end_coordinates_edge[1][1],0)
+			for node in self.nodes:
+				if node.calculate_distance(start_node) < 0.5:
+					start_node = node
+				if node.calculate_distance(end_node) < 0.5:
+					end_node = node
+			new_visited = []
+			for i in range(len(visited_nodes)):
+				new_visited.append(visited_nodes[i])
+				if visited_nodes[i] in start_coordinates_edge[0] and visited_nodes[int((i+1)%len(visited_nodes))] in start_coordinates_edge[0] and visited_nodes[i] != start_node:
+					new_visited.append(start_node)
+				if visited_nodes[i] in end_coordinates_edge[0] and visited_nodes[int((i+1)%len(visited_nodes))] in end_coordinates_edge[0] and visited_nodes[i] != end_node:
+					new_visited.append(end_node)
+			index_one        = new_visited.index(start_node)
+			index_two        = new_visited.index(end_node)
+			first_node_list  = []
+			second_node_list = []
+			for i in range(index_one, index_one + len(new_visited)):
+				first_node_list.append(new_visited[int(i%len(new_visited))])
+				if new_visited[int(i%len(new_visited))] == end_node:
+					break
+			for i in range(len(new_visited)):
+				second_node_list.append(new_visited[index_one-i])
+				if new_visited[index_one-i] == end_node:		
+					break
+			if first_node_list[-1] == end_node:
+				temp = []
+				for i in range(len(first_node_list)):
+					temp.append(first_node_list[i*-1])
+				first_node_list.clear()
+				first_node_list = temp.copy()
+			if second_node_list[-1] == end_node:
+				temp = []
+				for i in range(len(second_node_list)):
+					temp.append(second_node_list[i*-1])
+				second_node_list.clear()
+				second_node_list = temp.copy()
+			for i in range(len(first_node_list)):
+				first_edge_set.append([first_node_list[i],first_node_list[(i+1)%len(first_node_list)]])
+				first_node_dict[first_node_list[i]] = [first_node_list[i-1],first_node_list[(i+1)%len(first_node_list)]]
+			for i in range(len(second_node_list)):
+				second_edge_set.append([second_node_list[i],second_node_list[(i+1)%len(second_node_list)]])
+				second_node_dict[second_node_list[i]] = [second_node_list[i-1],second_node_list[(i+1)%len(second_node_list)]]
+			return first_edge_set,first_node_dict,second_edge_set,second_node_dict 
+			
+		
+
+
+	def get_angle(self,first_pair,second_pair):
 		#plt.scatter([first_node.coordinates[0],second_node.coordinates[0],third_node.coordinates[0]],[first_node.coordinates[1],second_node.coordinates[1],third_node.coordinates[1]])
 		#plt.show()
-		length_1   = first_node.calculate_distance(second_node)
-		length_2   = first_node.calculate_distance(third_node)
-		vector_1   = [second_node.coordinates[0]-first_node.coordinates[0],second_node.coordinates[1]-first_node.coordinates[1]]
-		vector_2   = [third_node.coordinates[0]-first_node.coordinates[0],third_node.coordinates[1]-first_node.coordinates[1]]
-		dot_pro    = (vector_1[0]*vector_2[0])+(vector_1[1]*vector_2[1])
-		angle_A    = math.acos(dot_pro/(length_1*length_2+0.0000001))
+		#length_1   = first_node.calculate_distance(second_node)
+		#length_2   = first_node.calculate_distance(third_node)
+		#vector_1   = [second_node.coordinates[0]-first_node.coordinates[0],second_node.coordinates[1]-first_node.coordinates[1]]
+		#vector_2   = [third_node.coordinates[0]-first_node.coordinates[0],third_node.coordinates[1]-first_node.coordinates[1]]
+		#dot_pro    = (vector_1[0]*vector_2[0])+(vector_1[1]*vector_2[1])
+		#angle_A    = math.acos(dot_pro/(length_1*length_2+0.0000001))
+		angle_A     = math.atan2(second_pair[1]-first_pair[1],second_pair[0]-first_pair[0])
 		return angle_A
 	
 	def interpolate(self,fc,sc):
 		x1, y1 = fc
 		x2, y2 = sc
-		slope = (y2 - y1) / (x2 - x1)
-		x_values = np.linspace(min(x1,x2), max(x1,x2), 100)
-		y_values = y1 + slope * (x_values - x1)
-		sampled_points = np.column_stack((x_values[1:-1], y_values[1:-1]))
-		#plt.scatter(sampled_points[:,0],sampled_points[:,1])
-		#plt.show()
+		sampled_points = np.array([])
+		if x2 == x1:
+			x_values = np.repeat(x1, 100)
+			y_values = np.linspace(min(y1,y2), max(y1,y2), 100)
+			sampled_points = np.column_stack((x_values[1:-1], y_values[1:-1]))
+		else:
+			slope = (y2 - y1) / (x2 - x1)
+			x_values = np.linspace(min(x1,x2), max(x1,x2), 100)
+			y_values = y1 + slope * (x_values - x1)
+			sampled_points = np.column_stack((x_values[1:-1], y_values[1:-1]))
+			#plt.scatter(sampled_points[:,0],sampled_points[:,1])
+			#plt.show()
 		return sampled_points
 
 
