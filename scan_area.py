@@ -331,7 +331,7 @@ class Scan_area:
                         point_2 = edge_sample[j][1][l]
                         # print(point_1)
                         # print(point_2)
-                        angle = self.get_angle(point_1, point_2)
+                        angle = self.get_angle(point_1, point_2) + 0.001
                         if (-0.01 < (angle - (angle_rotation + base_angle)) / angle < 0.01):
                             # print("Base Angle:",base_angle*180/math.pi)
                             # print("Rotation Angle:",angle_rotation*180/math.pi)
