@@ -199,6 +199,9 @@ class Scan_area:
                 edge_length = vertex_1.calculate_geographic_distance(vertex_2)
                 limit = int((edge_length // edge_inc) + 1)
 
+                if not n1 and not n2:
+                    limit -= 1
+
                 bearing_angle = start_vertex.calculate_bearing_angle(end_vertex)
 
                 for i in range(limit):
@@ -208,6 +211,8 @@ class Scan_area:
                     coordinate_3 = ((i / (limit)) * true_vector[2]) + start_vertex.coordinates[2]
                     new_node = Node(coordinate_1, coordinate_2, coordinate_3)
                     edge_point[-1][1].append(new_node)
+
+                # edge_point[-1][1].append(end_vertex)
 
         # sorted_nodes = self.sort_points(edge_point,angle_orthogonal,angle,first_point,second_point)
         sorted_nodes = self.sort_points_alt(edge_point, first_point, second_point)
@@ -241,10 +246,10 @@ class Scan_area:
         counter = 1
         points_two = []
         for point in points:
-            if point not in self.nodes:
-                points_two.append(point)
+            # if point != first_point and point != second_point:
+            points_two.append(point)
         while True:
-            if (len(points_two) == 0):
+            if len(points_two) == 0:
                 break
             min_dist = float("inf")
             min_index = 0
@@ -262,8 +267,7 @@ class Scan_area:
                         min_dist = dist
                         min_index = i
                 first_point = points_two[min_index]
-            else:
-                pass
+
             sorted_list.append(points_two[min_index])
             points_two.pop(min_index)
             if counter % 2 != 0:
