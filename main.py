@@ -27,7 +27,8 @@ class GeoFly3D(QMainWindow):
         self.load_map(41.085974, 29.044456)
         self.pf_ui.v_lay_right.addWidget(self.webView)
 
-        self.pf_ui.slider_altitude.valueChanged.connect(self.resolution_changed)
+        self.pf_ui.slider_altitude.valueChanged.connect(self.slider_altitude_changed)
+        self.pf_ui.spinbox_altitude.valueChanged.connect(self.spinbox_altitude_changed)
         self.pf_ui.btn_add_drone.clicked.connect(self.add_drone)
         self.pf_ui.btn_delete_drone.clicked.connect(self.delete_drone)
         self.pf_ui.btn_start.clicked.connect(self.start_mission)
@@ -93,9 +94,14 @@ class GeoFly3D(QMainWindow):
                 self.pf_ui.listWidget.takeItem(self.pf_ui.listWidget.row(item))
             self.update_metrics()
 
-    def resolution_changed(self):
+    def slider_altitude_changed(self):
         value = self.pf_ui.slider_altitude.value()
-        self.pf_ui.label_altitude_value.setText(str(value))
+        self.pf_ui.spinbox_altitude.setValue(value)
+        self.update_metrics()
+
+    def spinbox_altitude_changed(self):
+        value = self.pf_ui.spinbox_altitude.value()
+        self.pf_ui.slider_altitude.setValue(value)
         self.update_metrics()
 
     def update_label_area(self, coords):
@@ -137,7 +143,7 @@ class GeoFly3D(QMainWindow):
             self.pf_ui.mission_time_value.setText("")
 
     def calculate_required_capacity(self):
-        altitude = int(self.pf_ui.label_altitude_value.text())
+        altitude = self.pf_ui.slider_altitude.value()
         if len(self.pf_ui.selected_area_value.text()):
             area = float(self.pf_ui.selected_area_value.text())
             required_capacity = 3 + area / altitude ** 2
