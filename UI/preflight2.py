@@ -7,12 +7,22 @@
 
 import os
 from PyQt6 import QtCore, QtGui, QtWidgets
+# Define function to import external files when using PyInstaller.
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath("./UI")
+
+    return os.path.join(base_path, relative_path)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1100, 700)
-        MainWindow.setStyleSheet(open('style.qss', "r").read())
+        MainWindow.setStyleSheet(open(resource_path('style.qss'), "r").read())
 
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")

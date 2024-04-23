@@ -2,14 +2,16 @@ import json
 import math
 import sys
 import folium
-import draw
+from UI import draw
 from PyQt6 import QtWebEngineCore
 from PyQt6.QtCore import pyqtSignal, QSize
 from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QListWidgetItem, QWidget, QLabel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from drone_dialog import Ui_drone_dialog
-from preflight2 import Ui_MainWindow
-from drone import Ui_Form
+from UI.drone_dialog import Ui_drone_dialog
+from UI.preflight2 import Ui_MainWindow
+from UI.drone import Ui_Form
+
+from RoutePlanner import route_planner
 
 
 class GeoFly3D(QMainWindow):
@@ -26,9 +28,11 @@ class GeoFly3D(QMainWindow):
         self.pf_ui.slider_altitude.valueChanged.connect(self.resolution_changed)
         self.pf_ui.btn_add_drone.clicked.connect(self.add_drone)
         self.pf_ui.btn_delete_drone.clicked.connect(self.delete_drone)
+        self.pf_ui.btn_start.clicked.connect(self.start_mission)
 
         # Connect the signal from WebEnginePage to slot in GeoFly3D
         self.webView.page().coords_printed.connect(self.update_label_area)
+        self.coords = []
 
     def load_map(self, lat, lon):
         m = folium.Map(location=[lat, lon],
@@ -36,20 +40,20 @@ class GeoFly3D(QMainWindow):
                        control_scale=True,
                        )
         drw = draw.Draw(export=True,
-                            show_geometry_on_click=False,
-                            filename='my_data.geojson',
-                            draw_options={'polyline': False,
-                                          'polygone': True,
-                                          'rectangle': False,
-                                          'circle': False,
-                                          'marker': False,
-                                          'circlemarker': False})
+                        show_geometry_on_click=False,
+                        filename='my_data.geojson',
+                        draw_options={'polyline': False,
+                                      'polygone': True,
+                                      'rectangle': False,
+                                      'circle': False,
+                                      'marker': False,
+                                      'circlemarker': False})
 
         m.add_child(drw)
         m.save('map.html')
         page = WebEnginePage(self.webView)
         self.webView.setPage(page)
-        self.webView.setHtml(open('../../../PycharmProjects/geofly3dd/map.html').read())
+        self.webView.setHtml(open('UI/map.html').read())
         self.webView.show()
 
     def add_drone(self):
@@ -87,7 +91,6 @@ class GeoFly3D(QMainWindow):
                 self.pf_ui.listWidget.takeItem(self.pf_ui.listWidget.row(item))
             self.update_metrics()
 
-
     def resolution_changed(self):
         value = self.pf_ui.slider_altitude.value()
         self.pf_ui.label_altitude_value.setText(str(value))
@@ -98,6 +101,7 @@ class GeoFly3D(QMainWindow):
         area = self.calculate_area(coords)
         self.pf_ui.selected_area_value.setText(f"{area:.0f}")
         self.update_metrics()
+        self.coords = coords.copy()
 
 
     def update_metrics(self):
@@ -105,22 +109,27 @@ class GeoFly3D(QMainWindow):
         self.calculate_mission_time()
         self.calculate_provided_capacity()
 
+    def start_mission(self):
+        altitude_val = self.pf_ui.slider_altitude.value()
+        route_planner.plan_route(self.coords, altitude=altitude_val, intersection_ratio=0.8, angle_deg=20)
+
     @staticmethod
     def calculate_area(coords):
         area = 0.0
         if len(coords) > 2:
-            for i in range(len(coords)-1):
+            for i in range(len(coords) - 1):
                 p1 = coords[i]
-                p2 = coords[i+1]
-                area += math.radians(p2[0] - p1[0])*(2 + math.sin(math.radians(p1[1])) + math.sin(math.radians(p2[1])))
-            area = area*6378137.0*6378137.0/2.0
+                p2 = coords[i + 1]
+                area += math.radians(p2[0] - p1[0]) * (
+                            2 + math.sin(math.radians(p1[1])) + math.sin(math.radians(p2[1])))
+            area = area * 6378137.0 * 6378137.0 / 2.0
         return abs(area)
 
     def calculate_mission_time(self):
         num_of_drones = self.pf_ui.listWidget.count()
         required_capacity = self.pf_ui.batt_required_value.text()
         if len(required_capacity) and num_of_drones:
-            mission_time = int(required_capacity)/num_of_drones
+            mission_time = int(required_capacity) / num_of_drones
             self.pf_ui.mission_time_value.setText(f"{mission_time:.0f}")
         else:
             self.pf_ui.mission_time_value.setText("")
@@ -144,9 +153,10 @@ class GeoFly3D(QMainWindow):
                 label_spare_batt = drone_widget.findChild(QLabel, "label_spare_batt")
                 spare_battery_count = int(label_spare_batt.text())
                 total_battery = total_battery + spare_battery_count
-            self.pf_ui.batt_provided_value.setText(str(15*total_battery))
+            self.pf_ui.batt_provided_value.setText(str(15 * total_battery))
         else:
             self.pf_ui.batt_provided_value.setText("")
+
 
 class WebEnginePage(QtWebEngineCore.QWebEnginePage):
     coords_printed = pyqtSignal(list)

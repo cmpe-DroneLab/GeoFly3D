@@ -14,3 +14,6 @@ PyQt6-WebEngine-Qt6==6.6.3
 requests==2.31.0
 urllib3==2.2.1
 xyzservices==2024.4.0
+
+haversine~=2.8.1
+matplotlib~=3.7.2
