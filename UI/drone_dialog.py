@@ -4,10 +4,21 @@ import os
 import sys
 
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath("./UI")
+
+    return os.path.join(base_path, relative_path)
+
+
 class Ui_drone_dialog(object):
 
     def setupUi(self, drone_dialog):
-        drone_dialog.setStyleSheet(open('style.qss', "r").read())
+        drone_dialog.setStyleSheet(open(resource_path('style.qss'), "r").read())
         drone_dialog.setObjectName("drone_dialog")
         drone_dialog.setWindowTitle("Drone Details")
         drone_dialog.resize(300, 200)

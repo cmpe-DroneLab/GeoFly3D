@@ -2,8 +2,8 @@ import math
 
 from matplotlib import pyplot as plt
 
-from node import Node
-from scan_area import Scan_area
+from .node import Node
+from .scan_area import Scan_area
 
 
 def plan_route(coords, altitude, intersection_ratio=0.8, angle_deg=15):

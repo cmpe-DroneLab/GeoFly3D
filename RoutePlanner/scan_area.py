@@ -1,4 +1,4 @@
-from node import Node
+from .node import Node
 import math
 import numpy as np
 import haversine as hs
@@ -199,8 +199,8 @@ class Scan_area:
                 edge_length = vertex_1.calculate_geographic_distance(vertex_2)
                 limit = int((edge_length // edge_inc) + 1)
 
-                if not n1 and not n2:
-                    limit -= 1
+                # if not n1 and not n2:
+                #     limit -= 1
 
                 bearing_angle = start_vertex.calculate_bearing_angle(end_vertex)
 
