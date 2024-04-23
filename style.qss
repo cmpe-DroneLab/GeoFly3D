@@ -1,0 +1,62 @@
+QPushButton {
+    background-color: #ffffff;
+    padding: 5px 10px;
+    font-weight: 500;
+    border-radius: 5px;
+    border: 0px;
+}
+
+#btn_delete:disabled, #btn_cancel:disabled, #btn_save:disabled, #btn_start:disabled, QPushButton:disabled {
+    color: grey;
+    background-color: lightgrey;
+}
+
+#btn_delete:focus, #btn_cancel:focus, #btn_save:focus, btn_start:focus, QPushButton:focus {
+    border: 1px solid darkgrey;
+}
+
+QPushButton { color: #111111; }
+
+QPushButton:hover { background-color: #bebebe; }
+
+QPushButton:pressed { color: white; background-color: #5c5c5c; }
+
+QPushButton:checked { color: white; background-color: #5c5c5c; }
+
+
+#btn_, #btn_save, #btn_add_drone { color: #5e9459; }
+
+#btn_save:hover, #btn_add_drone:hover { background-color: #d3e6d1;}
+
+#btn_save:pressed, #btn_add_drone:pressed { color: white; background-color: #71946d; }
+
+
+#btn_delete, #btn_delete_drone { color: #b85a5a; }
+
+#btn_delete:hover, #btn_delete_drone:hover { background-color: #f5c9c9; }
+
+#btn_delete:pressed, #btn_delete_drone:pressed { color: white; background-color: #b85656; }
+
+
+#btn_cancel { color: #406d91; }
+
+#btn_cancel:hover { background-color: #bcd4e8; }
+
+#btn_cancel:pressed { color: white; background-color: #5785ad; }
+
+
+#btn_start { color: #a33ea3; }
+
+#btn_start:hover { background-color: #f7c3f7; }
+
+#btn_start:pressed { color: white; background-color: #a33ea3; }
+
+#btn_start:checked { color: white; background-color: #a33ea3; }
+
+QListWidget {
+    background-color: white;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: bold;
+}
