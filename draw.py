@@ -58,12 +58,12 @@ class Draw(JSCSSMixin, MacroElement):
             var {{ this.get_name() }} = new L.Control.Draw(
                 options
             ).addTo( {{this._parent.get_name()}} );
-            
+
             {{ this._parent.get_name() }}.on(L.Draw.Event.CREATED, function(e) {
                 var layer = e.layer,
                     type = e.layerType;
                 var coords = JSON.stringify(layer.toGeoJSON());
-                
+
                 // Control if polygon is convex or not
                 var pcoords = JSON.parse(coords).geometry.coordinates[0];
                 var is_convex = isPolygonConvex(pcoords);
@@ -75,13 +75,13 @@ class Draw(JSCSSMixin, MacroElement):
                     alert("The polygon is not convex!")
                 }
             });
-            
+
             {{ this._parent.get_name() }}.on(L.Draw.Event.DRAWSTART, function(e) {
                 // Clear previous drawings
                 drawnItems_{{ this.get_name() }}.clearLayers();
             });
-            
-            
+
+
             {{ this._parent.get_name() }}.on('draw:edited', function(e) {
                 e.layers.eachLayer(function (layer) {
                     var coords = JSON.stringify(layer.toGeoJSON());
@@ -96,10 +96,10 @@ class Draw(JSCSSMixin, MacroElement):
                         alert("The polygon is not convex!")
                         e.target.editing.enable();
                     }
-                
+
                 });
             });
-            
+
             {% if this.export %}
             document.getElementById('export').onclick = function(e) {
                 var data = drawnItems_{{ this.get_name() }}.toGeoJSON();
@@ -113,28 +113,71 @@ class Draw(JSCSSMixin, MacroElement):
                 );
             }
             {% endif %}
-            
-                            
-        function isPolygonConvex(coords) {
-            var n = coords.length;
-            var isConvex = true;
-            for (var i = 0; i < n; ++i) {
-                var p1 = coords[i];
-                var p2 = coords[(i + 1) % n];
-                var p3 = coords[(i + 2) % n];
-                var crossProductResult = crossProduct(p1, p2, p3);
-                if (crossProductResult < 0) {
-                    isConvex = false;
-                    break;
+
+
+    function isClosed(coords) {
+        for (let coord in coords) {
+            if (coords[coord].length !== 2) {
+                return false;
+            }
+
+        }
+        return true;
+    }
+
+
+    function isPolygonConvex(coords) {
+
+        let coords_length = coords.length;
+        if(coords_length < 4)
+            return false;
+
+        if (!this.isClosed(coords))
+            return false;
+
+        let prev_dir = 0;
+
+        let curr_dir = 0;
+
+        for (let i = 0; i < coords_length; i++) {
+
+            curr_dir = crossProduct(coords[i],
+                coords[(i + 1) % coords_length],
+                coords[(i + 2) % coords_length]);
+
+            if (curr_dir !== 0) {
+
+                if (curr_dir * prev_dir < 0) {
+                    return false;
+                } else {
+                    prev_dir = curr_dir;
                 }
             }
-            return isConvex;
         }
-        
-        function crossProduct(p1, p2, p3) {
-            return (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0]);
-        }
-            
+        return true;
+
+    }
+
+    // function isPolygonConvex(coords) {
+    //     var n = coords.length;
+    //     var isConvex = true;
+    //     for (var i = 0; i < n; ++i) {
+    //         var p1 = coords[i];
+    //         var p2 = coords[(i + 1) % n];
+    //         var p3 = coords[(i + 2) % n];
+    //         var crossProductResult = crossProduct(p1, p2, p3);
+    //         if (crossProductResult < 0) {
+    //             isConvex = false;
+    //             break;
+    //         }
+    //     }
+    //     return isConvex;
+    // }
+
+    function crossProduct(p1, p2, p3) {
+        return (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0]);
+    }
+
         {% endmacro %}
         """
     )
@@ -153,13 +196,13 @@ class Draw(JSCSSMixin, MacroElement):
     ]
 
     def __init__(
-        self,
-        export=False,
-        filename="data.geojson",
-        position="topleft",
-        show_geometry_on_click=True,
-        draw_options=None,
-        edit_options=None,
+            self,
+            export=False,
+            filename="data.geojson",
+            position="topleft",
+            show_geometry_on_click=True,
+            draw_options=None,
+            edit_options=None,
     ):
         super().__init__()
         self._name = "DrawControl"
