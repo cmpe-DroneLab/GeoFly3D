@@ -1,13 +1,14 @@
 import json
 import math
 import sys
-import os
+
 import folium
-from UI import draw
 from PyQt6 import QtWebEngineCore
 from PyQt6.QtCore import pyqtSignal, QSize
 from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QListWidgetItem, QWidget, QLabel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+
+from UI import draw
 from UI.drone_dialog import Ui_drone_dialog
 from UI.preflight2 import Ui_MainWindow
 from UI.drone import Ui_Form
@@ -54,7 +55,7 @@ class GeoFly3D(QMainWindow):
         m.save('./UI/map.html')
         page = WebEnginePage(self.webView)
         self.webView.setPage(page)
-        self.webView.setHtml(open(('./UI/map.html')).read())
+        self.webView.setHtml(open('./UI/map.html').read())
         self.webView.show()
 
     def add_drone(self):
