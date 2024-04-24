@@ -1,194 +1,85 @@
-import json
-import math
 import sys
 
-import folium
-from PyQt6 import QtWebEngineCore
-from PyQt6.QtCore import pyqtSignal, QSize
-from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QListWidgetItem, QWidget, QLabel
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QListWidgetItem
 
-from UI import draw
-from UI.drone_dialog import Ui_drone_dialog
-from UI.preflight2 import Ui_MainWindow
-from UI.drone import Ui_Form
-
-from RoutePlanner import route_planner
+import UI.main_design
+from UI.database import Mission, session, Base, engine
+from UI.pre1 import Pre1
+from UI.pre2 import Pre2
+from UI.pre3 import Pre3
 
 
-class GeoFly3D(QMainWindow):
-
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.pf_ui = Ui_MainWindow()
-        self.pf_ui.setupUi(self)
+        self.ui = UI.main_design.Ui_MainWindow()
+        self.ui.setupUi(self)
 
-        self.webView = QWebEngineView()
-        self.load_map(41.085974, 29.044456)
-        self.pf_ui.v_lay_right.addWidget(self.webView)
+        # Drop and Recreate all tables
+        #Base.metadata.drop_all(engine)
+        #Base.metadata.create_all(engine)
 
-        self.pf_ui.slider_altitude.valueChanged.connect(self.slider_altitude_changed)
-        self.pf_ui.spinbox_altitude.valueChanged.connect(self.spinbox_altitude_changed)
-        self.pf_ui.btn_add_drone.clicked.connect(self.add_drone)
-        self.pf_ui.btn_delete_drone.clicked.connect(self.delete_drone)
-        self.pf_ui.btn_start.clicked.connect(self.start_mission)
+        self.pre1 = Pre1()
+        self.pre2 = Pre2()
+        self.pre3 = Pre3()
 
-        # Connect the signal from WebEnginePage to slot in GeoFly3D
-        self.webView.page().coords_printed.connect(self.update_label_area)
-        self.coords = []
+        self.ui.stackedWidget.addWidget(self.pre1)
+        self.ui.stackedWidget.addWidget(self.pre2)
+        self.ui.stackedWidget.addWidget(self.pre3)
 
-    def load_map(self, lat, lon):
-        m = folium.Map(location=[lat, lon],
-                       zoom_start=18,
-                       control_scale=True,
-                       )
-        drw = draw.Draw(export=True,
-                        show_geometry_on_click=False,
-                        filename='my_data.geojson',
-                        draw_options={'polyline': False,
-                                      'polygone': True,
-                                      'rectangle': False,
-                                      'circle': False,
-                                      'marker': False,
-                                      'circlemarker': False})
+        self.pre1.ui.btn_create_mission.clicked.connect(self.go_to_pre2)
+        self.pre1.ui.btn_edit_mission.clicked.connect(self.go_to_pre2)
+        self.pre1.ui.listWidget.itemDoubleClicked.connect(self.go_to_pre2)
 
-        m.add_child(drw)
-        m.save('./UI/map.html')
-        page = WebEnginePage(self.webView)
-        self.webView.setPage(page)
-        self.webView.setHtml(open('./UI/map.html').read())
-        self.webView.show()
+        self.pre2.ui.btn_cancel.clicked.connect(self.go_to_pre1)
+        self.pre2.ui.btn_save.clicked.connect(self.go_to_pre1)
+        self.pre2.ui.btn_start.clicked.connect(self.go_to_pre3)
+        self.pre3.ui.btn_return_back.clicked.connect(self.go_to_pre2)
 
-    def add_drone(self):
-        # Open Dialog
-        dialog_win = QDialog()
-        dialog_ui = Ui_drone_dialog()
-        dialog_ui.setupUi(dialog_win)
-        dialog_win.setWindowTitle("Add Drone")
-        dialog_ui.btn_save.setText("Add")
-        dialog_ui.spin_spare_batt.setValue(0)
-        response = dialog_win.exec()
+    def go_to_pre1(self):
+        self.pre1.refresh_mission_list()
+        self.ui.stackedWidget.setCurrentIndex(0)
 
-        if response == 1:
-            # Get values from dialog
-            new_drone_type = dialog_ui.combo_model.currentText()
-            new_drone_spare = dialog_ui.spin_spare_batt.value()
-
-            new_drone_item = QListWidgetItem()
-            new_drone_item.setSizeHint(QSize(self.pf_ui.listWidget.lineWidth(), 60))
-            new_drone_widget = QWidget()
-            new_drone_ui = Ui_Form()
-            new_drone_ui.setupUi(new_drone_widget)
-            new_drone_ui.label_drone_model.setText(new_drone_type)
-            new_drone_ui.label_spare_batt.setText(str(new_drone_spare))
-            self.pf_ui.listWidget.addItem(new_drone_item)
-            self.pf_ui.listWidget.setItemWidget(new_drone_item, new_drone_widget)
-
-            self.update_metrics()
-
-    def delete_drone(self):
-        if len(self.pf_ui.listWidget.selectedIndexes()):
-            selected_items = self.pf_ui.listWidget.selectedItems()
-            for item in selected_items:
-                self.pf_ui.listWidget.removeItemWidget(item)
-                self.pf_ui.listWidget.takeItem(self.pf_ui.listWidget.row(item))
-            self.update_metrics()
-
-    def slider_altitude_changed(self):
-        value = self.pf_ui.slider_altitude.value()
-        self.pf_ui.spinbox_altitude.setValue(value)
-        self.update_metrics()
-
-    def spinbox_altitude_changed(self):
-        value = self.pf_ui.spinbox_altitude.value()
-        self.pf_ui.slider_altitude.setValue(value)
-        self.update_metrics()
-
-    def update_label_area(self, coords):
-        # Update the label_area text with the coordinates
-        area = self.calculate_area(coords)
-        self.pf_ui.selected_area_value.setText(f"{area:.0f}")
-        self.update_metrics()
-        self.coords = coords.copy()
-
-
-    def update_metrics(self):
-        self.calculate_required_capacity()
-        self.calculate_mission_time()
-        self.calculate_provided_capacity()
-
-    def start_mission(self):
-        altitude_val = self.pf_ui.slider_altitude.value()
-        route_planner.plan_route(self.coords, altitude=altitude_val, intersection_ratio=0.8, angle_deg=20)
-
-    @staticmethod
-    def calculate_area(coords):
-        area = 0.0
-        if len(coords) > 2:
-            for i in range(len(coords) - 1):
-                p1 = coords[i]
-                p2 = coords[i + 1]
-                area += math.radians(p2[0] - p1[0]) * (
-                            2 + math.sin(math.radians(p1[1])) + math.sin(math.radians(p2[1])))
-            area = area * 6378137.0 * 6378137.0 / 2.0
-        return abs(area)
-
-    def calculate_mission_time(self):
-        num_of_drones = self.pf_ui.listWidget.count()
-        required_capacity = self.pf_ui.batt_required_value.text()
-        if len(required_capacity) and num_of_drones:
-            mission_time = int(required_capacity) / num_of_drones
-            self.pf_ui.mission_time_value.setText(f"{mission_time:.0f}")
+    def go_to_pre2(self, item):
+        if isinstance(item, QListWidgetItem):
+            mission_id = int(item.text().split(":")[1].split(",")[0].strip())  # Varolan görev
         else:
-            self.pf_ui.mission_time_value.setText("")
+            new_mission = Mission(
+                mission_status="Draft",
+                center_lat=41,
+                center_lon=29,
+                mission_drones=[],
+                estimated_mission_time=0,
+                actual_mission_time=0,
+                required_battery_capacity=0,
+                selected_area=0,
+                scanned_area=0,
+                altitude=100
+            )
+            session.add(new_mission)
+            session.commit()
+            mission_id=new_mission.mission_id
+        self.pre2.load_mission(mission_id)
+        self.ui.stackedWidget.setCurrentIndex(1)
 
-    def calculate_required_capacity(self):
-        altitude = self.pf_ui.slider_altitude.value()
-        if len(self.pf_ui.selected_area_value.text()):
-            area = float(self.pf_ui.selected_area_value.text())
-            required_capacity = 3 + area / altitude ** 2
-            self.pf_ui.batt_required_value.setText(f"{required_capacity:.0f}")
-        else:
-            self.pf_ui.batt_required_value.setText("")
+    def go_to_pre3(self):
 
-    def calculate_provided_capacity(self):
-        total_battery = 0
-        num_of_drones = self.pf_ui.listWidget.count()
-        if num_of_drones:
-            for i in range(num_of_drones):
-                drone_item = self.pf_ui.listWidget.item(i)
-                drone_widget = self.pf_ui.listWidget.itemWidget(drone_item)
-                label_spare_batt = drone_widget.findChild(QLabel, "label_spare_batt")
-                spare_battery_count = int(label_spare_batt.text())
-                total_battery = total_battery + spare_battery_count
-            self.pf_ui.batt_provided_value.setText(str(15 * total_battery))
-        else:
-            self.pf_ui.batt_provided_value.setText("")
+        # Copy mission information
+        self.pre3.ui.mission_time_value.setText(self.pre2.ui.mission_time_value.text())
+        self.pre3.ui.selected_area_value.setText(self.pre2.ui.selected_area_value.text())
+        self.pre3.ui.batt_required_value.setText(self.pre2.ui.batt_required_value.text())
+        self.pre3.ui.batt_provided_value.setText(self.pre2.ui.batt_provided_value.text())
 
+        # Pass the route and altitude and create map
+        altitude_val = self.pre2.ui.slider_altitude.value()
+        route_coords = self.pre2.coords_lon_lat[:-1]
+        self.pre3.setup_map(route_coords, altitude_val)
 
-class WebEnginePage(QtWebEngineCore.QWebEnginePage):
-    coords_printed = pyqtSignal(list)
-
-    def javaScriptConsoleMessage(self, level, msg, line, sourceID):
-        # Check if msg is not empty and is a string
-        if msg and isinstance(msg, str):
-            try:
-                coords_dict = json.loads(msg)
-                # Check if the parsed JSON contains the expected structure
-                if 'geometry' in coords_dict and 'coordinates' in coords_dict['geometry']:
-                    coords = coords_dict['geometry']['coordinates'][0]
-                    print(coords)
-                    self.coords_printed.emit(coords)  # Emit the coordinates
-                else:
-                    print("Invalid JSON structure: 'geometry' or 'coordinates' key not found.")
-            except json.JSONDecodeError as e:
-                print("Error decoding JSON:", e)
-        else:
-            print("Invalid message:", msg)
+        self.ui.stackedWidget.setCurrentIndex(2)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = GeoFly3D()
+    window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    app.exec()
