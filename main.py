@@ -1,12 +1,14 @@
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QListWidgetItem
+from PyQt6.QtWidgets import QApplication, QMainWindow, QListWidgetItem
 
 import UI.main_design
-from UI.database import Mission, session, Base, engine
-from UI.pre1 import Pre1
-from UI.pre2 import Pre2
-from UI.pre3 import Pre3
+from UI.database import Mission, session
+from UI.Preflight1.pre1 import Pre1
+from UI.Preflight2.pre2 import Pre2
+from UI.Preflight3.pre3 import Pre3
+from UI.Midflight.mid import Mid
+from UI.Postflight.post import Post
 
 
 class MainWindow(QMainWindow):
@@ -22,10 +24,14 @@ class MainWindow(QMainWindow):
         self.pre1 = Pre1()
         self.pre2 = Pre2()
         self.pre3 = Pre3()
+        self.mid = Mid()
+        self.post = Post()
 
         self.ui.stackedWidget.addWidget(self.pre1)
         self.ui.stackedWidget.addWidget(self.pre2)
         self.ui.stackedWidget.addWidget(self.pre3)
+        self.ui.stackedWidget.addWidget(self.mid)
+        self.ui.stackedWidget.addWidget(self.post)
 
         self.pre1.ui.btn_create_mission.clicked.connect(self.go_to_pre2)
         self.pre1.ui.btn_edit_mission.clicked.connect(self.go_to_pre2)
@@ -77,6 +83,11 @@ class MainWindow(QMainWindow):
 
         self.ui.stackedWidget.setCurrentIndex(2)
 
+    def go_to_mid(self):
+        self.ui.stackedWidget.setCurrentIndex(3)
+
+    def go_to_post(self):
+        self.ui.stackedWidget.setCurrentIndex(4)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

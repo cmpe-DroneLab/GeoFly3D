@@ -10,9 +10,8 @@ from UI import draw
 from UI.database import Drone, session, Mission
 from UI.drone_dialog import Ui_drone_dialog
 from UI.drone import Ui_Form
-import UI.pre2_design
+import UI.Preflight2.pre2_design
 
-from RoutePlanner import route_planner
 from UI.web_engine_page import WebEnginePage
 
 
@@ -20,7 +19,7 @@ class Pre2(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.ui = UI.pre2_design.Ui_Form()
+        self.ui = UI.Preflight2.pre2_design.Ui_Form()
         self.ui.setupUi(self)
 
         self.mission_id = None
@@ -107,10 +106,10 @@ class Pre2(QWidget):
         self.save_map()
 
     def save_map(self):
-        self.m.save('./UI/pre2map.html')
+        self.m.save('./UI/Preflight2/pre2map.html')
         self.web_engine_page = WebEnginePage(self.webView)
         self.webView.setPage(self.web_engine_page)
-        self.webView.setHtml(open('./UI/pre2map.html').read())
+        self.webView.setHtml(open('./UI/Preflight2/pre2map.html').read())
         self.webView.show()
 
         self.ui.v_lay_right.addWidget(self.webView)

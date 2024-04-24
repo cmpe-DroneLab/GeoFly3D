@@ -4,7 +4,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from RoutePlanner import route_planner
 from UI.web_engine_page import WebEnginePage
-import UI.pre3_design
+import UI.Preflight3.pre3_design
 
 
 class Pre3(QWidget):
@@ -12,7 +12,7 @@ class Pre3(QWidget):
         super().__init__(*args, **kwargs)
 
         self.m = None
-        self.ui = UI.pre3_design.Ui_Form()
+        self.ui = UI.Preflight3.pre3_design.Ui_Form()
         self.ui.setupUi(self)
         self.webView = QWebEngineView()
         self.ui.v_lay_right.addWidget(self.webView)
@@ -32,10 +32,10 @@ class Pre3(QWidget):
         self.draw_rotated_route(rotated_route)
 
     def save_map(self):
-        self.m.save('./UI/pre3map.html')
+        self.m.save('./UI/Preflight3/pre3map.html')
         page = WebEnginePage(self.webView)
         self.webView.setPage(page)
-        self.webView.setHtml(open('./UI/pre3map.html').read())
+        self.webView.setHtml(open('./UI/Preflight3/pre3map.html').read())
         self.webView.show()
 
     def add_marker(self, lat, lon, popup_text):

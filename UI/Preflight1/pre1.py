@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from UI.web_engine_page import WebEnginePage
-import UI.pre1_design
+import UI.Preflight1.pre1_design
 
 from UI.database import Mission, session, get_all_missions
 
@@ -12,7 +12,7 @@ class Pre1(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.ui = UI.pre1_design.Ui_Form()
+        self.ui = UI.Preflight1.pre1_design.Ui_Form()
         self.ui.setupUi(self)
 
         self.webView = QWebEngineView()
@@ -32,10 +32,10 @@ class Pre1(QWidget):
         self.save_map()
 
     def save_map(self):
-        self.m.save('./UI/pre1map.html')
+        self.m.save('./UI/Preflight1/pre1map.html')
         page = WebEnginePage(self.webView)
         self.webView.setPage(page)
-        self.webView.setHtml(open('./UI/pre1map.html').read())
+        self.webView.setHtml(open('./UI/Preflight1/pre1map.html').read())
         self.webView.show()
 
     def add_marker(self, lat, lon, popup_text):

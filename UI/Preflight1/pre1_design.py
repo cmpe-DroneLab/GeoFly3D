@@ -24,7 +24,7 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1024, 768)
-        Form.setStyleSheet(open(resource_path('style.qss'), "r").read())
+        Form.setStyleSheet(open(resource_path('./style.qss'), "r").read())
 
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
