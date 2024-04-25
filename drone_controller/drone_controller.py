@@ -47,8 +47,9 @@ class DroneController(QThread):
                 self.progress_text.emit("Parameter error!")
                 break
             elif line.startswith("b'Mission Finished"):
-                project_folder = line[len("b'Mission Finished: "):-4]
-
+                # >>> b'Mission Finished: project\r\n'
+                project_folder = line[len("b'Mission Finished: "):-5]
+                
             print(">>> " + line)
 
     
