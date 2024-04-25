@@ -24,6 +24,8 @@ class Pre3(QWidget):
         self.has_taken_off = False
 
     def setup_map(self, coords, altitude):
+        self.coords = coords
+        self.altitude = altitude
 
         self.m = folium.Map(location=[35, 39],
                             zoom_start=5,
@@ -98,7 +100,7 @@ class Pre3(QWidget):
         if self.has_taken_off:
             return
         
-        drone_controller_thread = DroneController()
+        drone_controller_thread = DroneController(vertices=self.coords, flight_altitude=self.altitude)
 
         drone_controller_thread.started.connect(print)
         drone_controller_thread.progress_text.connect(print)
