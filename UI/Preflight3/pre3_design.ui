@@ -15,7 +15,7 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,4">
    <item>
-    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0,0">
+    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0">
      <property name="spacing">
       <number>10</number>
      </property>
@@ -112,64 +112,22 @@
         <string/>
        </property>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="4" column="1">
-         <widget class="QLabel" name="selected_area_value">
-          <property name="text">
-           <string/>
+        <item row="1" column="0" colspan="3">
+         <widget class="Line" name="line_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
          </widget>
         </item>
-        <item row="5" column="1">
-         <widget class="QLabel" name="batt_required_value">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="1">
-         <widget class="QLabel" name="batt_provided_value">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0">
+        <item row="6" column="0">
          <widget class="QLabel" name="batt_required_label">
           <property name="text">
            <string>Required Battery Capacity:</string>
           </property>
          </widget>
         </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="selected_area_label">
-          <property name="text">
-           <string>Selected Area:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QLabel" name="mission_time_value">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="0">
-         <widget class="QLabel" name="batt_provided_label">
-          <property name="text">
-           <string>Provided Battery Capacity:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="mission_time_label">
-          <property name="text">
-           <string>Estimated Mission Time:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="2">
-         <widget class="QLabel" name="mission_time_unit">
+        <item row="6" column="2">
+         <widget class="QLabel" name="batt_required_unit">
           <property name="text">
            <string>min</string>
           </property>
@@ -191,31 +149,73 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0" colspan="3">
-         <widget class="Line" name="line_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="2">
-         <widget class="QLabel" name="selected_area_unit">
+        <item row="6" column="1">
+         <widget class="QLabel" name="batt_required_value">
           <property name="text">
-           <string>m2</string>
+           <string/>
           </property>
          </widget>
         </item>
-        <item row="5" column="2">
-         <widget class="QLabel" name="batt_required_unit">
-          <property name="text">
-           <string>min</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="2">
+        <item row="7" column="2">
          <widget class="QLabel" name="batt_provided_unit">
           <property name="text">
            <string>min</string>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="1">
+         <widget class="QLabel" name="batt_provided_value">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="2">
+         <widget class="QLabel" name="mission_time_unit">
+          <property name="text">
+           <string>min</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="mission_time_label">
+          <property name="text">
+           <string>Estimated Mission Time:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="0">
+         <widget class="QLabel" name="batt_provided_label">
+          <property name="text">
+           <string>Provided Battery Capacity:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLabel" name="mission_time_value">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="selected_area_label">
+          <property name="text">
+           <string>Selected Area:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLabel" name="selected_area_value">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QLabel" name="selected_area_unit">
+          <property name="text">
+           <string>m2</string>
           </property>
          </widget>
         </item>
@@ -223,18 +223,22 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btn_return_back">
-       <property name="text">
-        <string>RETURN BACK</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btn_take_off">
-       <property name="text">
-        <string>TAKE OFF</string>
-       </property>
-      </widget>
+      <layout class="QGridLayout" name="g_lay_buttons">
+       <item row="0" column="1" colspan="2">
+        <widget class="QPushButton" name="btn_take_off">
+         <property name="text">
+          <string>Take Off ᐅ</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QPushButton" name="btn_return_back">
+         <property name="text">
+          <string>ᐊ Go Back</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>

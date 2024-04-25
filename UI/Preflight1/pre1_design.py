@@ -92,7 +92,7 @@ class Ui_Form(object):
         self.label_missions.setText(_translate("Form", "Mission List"))
         self.btn_delete_mission.setText(_translate("Form", "Delete Mission"))
         self.btn_edit_mission.setText(_translate("Form", "Edit Mission"))
-        self.btn_create_mission.setText(_translate("Form", "Create New Mission"))
+        self.btn_create_mission.setText(_translate("Form", "Create Mission ᐅ"))
 
 
 if __name__ == "__main__":

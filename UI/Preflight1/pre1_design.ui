@@ -103,7 +103,7 @@
      <item>
       <widget class="QPushButton" name="btn_create_mission">
        <property name="text">
-        <string>Create New Mission</string>
+        <string>Create Mission ᐅ</string>
        </property>
       </widget>
      </item>

@@ -24,11 +24,11 @@ QPushButton:pressed { color: white; background-color: #5c5c5c; }
 QPushButton:checked { color: white; background-color: #5c5c5c; }
 
 
-#btn_, #btn_save, #btn_add_drone, #btn_create_mission { color: #5e9459; }
+#btn_, #btn_save, #btn_add_drone { color: #5e9459; }
 
-#btn_save:hover, #btn_add_drone:hover, #btn_create_mission:hover { background-color: #d3e6d1;}
+#btn_save:hover, #btn_add_drone:hover { background-color: #d3e6d1;}
 
-#btn_save:pressed, #btn_add_drone:pressed, #btn_create_mission:pressed { color: white; background-color: #71946d; }
+#btn_save:pressed, #btn_add_drone:pressed { color: white; background-color: #71946d; }
 
 
 #btn_delete, #btn_delete_drone, #btn_delete_mission { color: #b85a5a; }
@@ -38,20 +38,18 @@ QPushButton:checked { color: white; background-color: #5c5c5c; }
 #btn_delete:pressed, #btn_delete_drone:pressed, #btn_delete_mission:pressed { color: white; background-color: #b85656; }
 
 
-#btn_cancel, #btn_edit_mission { color: #406d91; }
+#btn_edit_mission { color: #406d91; }
 
-#btn_cancel:hover, #btn_edit_mission:hover { background-color: #bcd4e8; }
+#btn_edit_mission:hover { background-color: #bcd4e8; }
 
-#btn_cancel:pressed, #btn_edit_mission:pressed { color: white; background-color: #5785ad; }
+#btn_edit_mission:pressed { color: white; background-color: #5785ad; }
 
 
-#btn_start { color: #a33ea3; }
+#btn_create_mission, #btn_start, #btn_take_off, #btn_return_to_home, #btn_process { color: #a33ea3; }
 
-#btn_start:hover { background-color: #f7c3f7; }
+#btn_create_mission:hover, #btn_start:hover, #btn_take_off:hover, #btn_return_to_home:hover, #btn_process:hover { background-color: #f7c3f7; }
 
-#btn_start:pressed { color: white; background-color: #a33ea3; }
-
-#btn_start:checked { color: white; background-color: #a33ea3; }
+#btn_create_mission:pressed, #btn_start:pressed, #btn_take_off:pressed, #btn_return_to_home:pressed, #btn_process:pressed { color: white; background-color: #a33ea3; }
 
 QListWidget {
     background-color: white;
