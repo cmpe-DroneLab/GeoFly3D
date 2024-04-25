@@ -17,6 +17,8 @@ class Pre3(QWidget):
         self.webView = QWebEngineView()
         self.ui.v_lay_right.addWidget(self.webView)
 
+        self.ui.btn_take_off.clicked.connect(self.take_off)
+
     def setup_map(self, coords, altitude):
 
         self.m = folium.Map(location=[35, 39],
@@ -89,3 +91,6 @@ class Pre3(QWidget):
         ne_point = (max_lon, max_lat)  # Longitude comes first for northeast point
 
         return sw_point, ne_point
+
+    def take_off(self):
+        pass
