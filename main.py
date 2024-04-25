@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         self.pre2.ui.btn_save.clicked.connect(self.go_to_pre1)
         self.pre2.ui.btn_start.clicked.connect(self.go_to_pre3)
         self.pre3.ui.btn_return_back.clicked.connect(self.go_to_pre2)
+        self.pre3.ui.btn_take_off.clicked.connect(self.go_to_mid)
 
     def go_to_pre1(self):
         self.pre1.refresh_mission_list()
@@ -52,8 +53,8 @@ class MainWindow(QMainWindow):
         else:
             new_mission = Mission(
                 mission_status="Draft",
-                center_lat=41,
-                center_lon=29,
+                center_lat=48.88,
+                center_lon=2.37,
                 mission_drones=[],
                 estimated_mission_time=0,
                 actual_mission_time=0,
@@ -84,11 +85,23 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.setCurrentIndex(2)
 
     def go_to_mid(self):
+
+        vertices = self.pre3.coords
+        altitude = self.pre3.altitude
+
+        mission_thread = self.mid.take_off(vertices=vertices, flight_altitude=altitude)
+        mission_thread.finished.connect(self.go_to_post)
+
         self.ui.stackedWidget.setCurrentIndex(3)
 
-    def go_to_post(self):
-        self.ui.stackedWidget.setCurrentIndex(4)
+    def go_to_post(self, msg, project_folder):
+        print(msg)
+        self.mid.threads.clear()
+        self.mid.has_taken_off = False
+        self.post.setup(project_folder)
 
+        self.ui.stackedWidget.setCurrentIndex(4)
+        
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()

@@ -1,4 +1,3 @@
-from drone_controller import DroneController
 import folium
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -18,10 +17,6 @@ class Pre3(QWidget):
         self.webView = QWebEngineView()
         self.ui.v_lay_right.addWidget(self.webView)
 
-        self.ui.btn_take_off.clicked.connect(self.take_off)
-
-        self.threads = {}
-        self.has_taken_off = False
 
     def setup_map(self, coords, altitude):
         self.coords = coords
@@ -96,21 +91,4 @@ class Pre3(QWidget):
 
         return sw_point, ne_point
 
-    def take_off(self):
-        if self.has_taken_off:
-            return
-        
-        drone_controller_thread = DroneController(vertices=self.coords, flight_altitude=self.altitude)
-
-        drone_controller_thread.started.connect(print)
-        drone_controller_thread.progress_text.connect(print)
-        drone_controller_thread.finished.connect(self.finish_mission)
-
-        self.threads[1] = drone_controller_thread
-        drone_controller_thread.start()
-        self.has_taken_off = True
-
-    def finish_mission(self, msg):
-        print(msg)
-        self.threads.clear()
-        self.has_taken_off = False
+    

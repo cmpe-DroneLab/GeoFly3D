@@ -26,7 +26,7 @@ class Pre2(QWidget):
         self.mission = None
 
         self.webView = QWebEngineView()
-        self.load_map(35, 39, 5)
+        self.load_map(48.88, 2.37, 5)
 
         self.ui.slider_altitude.valueChanged.connect(self.slider_altitude_changed)
         self.ui.spinbox_altitude.valueChanged.connect(self.spinbox_altitude_changed)
@@ -57,7 +57,7 @@ class Pre2(QWidget):
         self.load_drones()
 
         # set map
-        self.load_map(self.mission.center_lat, self.mission.center_lon, 10)
+        self.load_map(self.mission.center_lat, self.mission.center_lon, 15)
 
         # print coordinates
         if self.mission.coordinates is not None:
@@ -85,8 +85,8 @@ class Pre2(QWidget):
     def load_map(self, lat, lon, zoom):
 
         if lat is None:
-            lon = 35
-            lat = 39
+            lon = 2.37
+            lat = 48.88
             zoom = 5
 
         self.m = folium.Map(location=[lat, lon],
