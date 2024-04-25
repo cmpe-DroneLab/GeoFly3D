@@ -53,8 +53,9 @@ class MainWindow(QMainWindow):
         else:
             new_mission = Mission(
                 mission_status="Draft",
-                center_lat=48.88,
-                center_lon=2.37,
+                center_lat=41.0859528,
+                center_lon=29.0443435,
+                coordinates=None,
                 mission_drones=[],
                 estimated_mission_time=0,
                 actual_mission_time=0,
@@ -65,11 +66,12 @@ class MainWindow(QMainWindow):
             )
             session.add(new_mission)
             session.commit()
-            mission_id=new_mission.mission_id
+            mission_id = new_mission.mission_id
         self.pre2.load_mission(mission_id)
         self.ui.stackedWidget.setCurrentIndex(1)
 
     def go_to_pre3(self):
+        self.pre2.coords_lon_lat = self.pre2.invert_coordinates(self.pre2.coords)
 
         # Copy mission information
         self.pre3.ui.mission_time_value.setText(self.pre2.ui.mission_time_value.text())

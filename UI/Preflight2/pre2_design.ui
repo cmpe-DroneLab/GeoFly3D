@@ -88,6 +88,9 @@
          <layout class="QHBoxLayout" name="h_lay_drone_buttons">
           <item>
            <widget class="QPushButton" name="btn_delete_drone">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="text">
              <string>Delete Drone</string>
             </property>

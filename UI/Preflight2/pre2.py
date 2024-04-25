@@ -22,113 +22,70 @@ class Pre2(QWidget):
         self.ui = UI.Preflight2.pre2_design.Ui_Form()
         self.ui.setupUi(self)
 
-        self.mission_id = None
         self.mission = None
-
+        self.mission_id = None
+        self.mission_drones = []
+        self.coords = None
+        self.coords_lon_lat = None
+        self.map2 = None
         self.webView = QWebEngineView()
-        self.load_map(48.88, 2.37, 5)
+        self.setup_map(39, 35, 5)
+        self.ui.v_lay_right.addWidget(self.webView)
 
         self.ui.slider_altitude.valueChanged.connect(self.slider_altitude_changed)
         self.ui.spinbox_altitude.valueChanged.connect(self.spinbox_altitude_changed)
-        self.ui.btn_add_drone.clicked.connect(self.add_drone)
+        self.ui.btn_add_drone.clicked.connect(self.create_drone)
         self.ui.btn_delete_drone.clicked.connect(self.delete_drone)
+        self.ui.listWidget.itemSelectionChanged.connect(self.enable_delete_button)
         self.ui.btn_save.clicked.connect(self.save_mission)
 
-
-
+    # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
         self.mission_id = mission_id
         self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
 
-        # set mission header box
+        # Set mission id in the header box
         self.ui.id_label.setText(str(self.mission.mission_id))
 
-        # set altitude box
+        # Set mission information box
+        self.ui.selected_area_value.setText(str(self.mission.selected_area))
+        self.ui.mission_time_value.setText(str(self.mission.estimated_mission_time))
+        self.ui.batt_required_value.setText(str(self.mission.required_battery_capacity))
+
+        # Load drones
+        self.refresh_drone_list()
+        self.calculate_provided_capacity()
+
+        # Set altitude box values
         self.ui.slider_altitude.setValue(self.mission.altitude)
         self.ui.spinbox_altitude.setValue(self.mission.altitude)
 
-        # set mission information box
-        self.ui.mission_time_value.setText(str(self.mission.estimated_mission_time))
-        self.ui.selected_area_value.setText(str(self.mission.selected_area))
-        self.ui.batt_required_value.setText(str(self.mission.required_battery_capacity))
-        self.ui.batt_provided_value.setText("to do")
+        # Set up the Map
+        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
 
-        # load drones
-        self.load_drones()
-
-        # set map
-        self.load_map(self.mission.center_lat, self.mission.center_lon, 15)
-
-        # print coordinates
+        # Draw previously selected area if available in the database
         if self.mission.coordinates is not None:
             self.coords = json.loads(self.mission.coordinates)
             self.draw_polygon(self.coords)
-        else:
-            # Handle the case where coordinates are None
-            self.coords = []  # Or any other default value you want to assign
 
-
-    def load_drones(self):
-        # Görev ID'sine göre dronları yükle
-        drones = session.query(Drone).filter_by(mission_id=self.mission_id).all()
+    # Gets all matching drones from the database, adds them to the Drone List
+    def refresh_drone_list(self):
         self.ui.listWidget.clear()
+
+        # Find all drones matching the Mission
+        drones = session.query(Drone).filter_by(mission_id=self.mission_id).all()
         for drone in drones:
             self.add_drone_to_list(drone)
 
-    def save_mission(self):
-        self.mission.altitude = self.ui.spinbox_altitude.value()
-        self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
-        self.mission.selected_area = int(self.ui.selected_area_value.text())
-        self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
-        self.mission.coordinates = json.dumps(self.coords)
+        # Disable Delete Drone button
+        self.disable_delete_button()
 
-    def load_map(self, lat, lon, zoom):
+        # Update drone related metrics
+        self.update_drone_metrics()
 
-        if lat is None:
-            lon = 2.37
-            lat = 48.88
-            zoom = 5
-
-        self.m = folium.Map(location=[lat, lon],
-                            zoom_start=zoom,
-                            control_scale=True,
-                            )
-        drw = draw.Draw(export=True,
-                        show_geometry_on_click=False,
-                        filename='my_data.geojson',
-                        draw_options={'polyline': False,
-                                      'polygone': True,
-                                      'rectangle': False,
-                                      'circle': False,
-                                      'marker': False,
-                                      'circlemarker': False})
-        self.m.add_child(drw)
-        self.save_map()
-
-    def save_map(self):
-        self.m.save('./UI/Preflight2/pre2map.html')
-        self.web_engine_page = WebEnginePage(self.webView)
-        self.webView.setPage(self.web_engine_page)
-        self.webView.setHtml(open('./UI/Preflight2/pre2map.html').read())
-        self.webView.show()
-
-        self.ui.v_lay_right.addWidget(self.webView)
-
-        # Connect the signal from WebEnginePage to slot in Pre2
-        self.web_engine_page.coords_printed.connect(self.update_label_area)
-
-    def draw_polygon(self, coords):
-
-        fg = folium.FeatureGroup(name="ScanArea")
-        fg.add_child(folium.Polygon(coords))
-        self.m.add_child(fg)
-        sw_point, ne_point = self.calculate_sw_ne_points()
-        self.m.fit_bounds([sw_point, ne_point])
-        self.save_map()
-
-
-    def add_drone(self):
-        # Open Dialog
+    # Creates a Drone
+    def create_drone(self):
+        # Open add drone dialog
         dialog_win = QDialog()
         dialog_ui = Ui_drone_dialog()
         dialog_ui.setupUi(dialog_win)
@@ -143,15 +100,18 @@ class Pre2(QWidget):
             new_drone_spare = dialog_ui.spin_spare_batt.value()
 
             draft_drone = Drone(model=new_drone_model,
-                              battery_no=new_drone_spare,
-                              flight_status=None,
-                              gps_status=False,
-                              connection_status=False,
-                              mission_id=self.mission_id)
+                                battery_no=new_drone_spare,
+                                flight_status=None,
+                                gps_status=False,
+                                connection_status=False,
+                                mission_id=self.mission_id)
             session.add(draft_drone)
             session.commit()
-            self.add_drone_to_list(draft_drone)
 
+            # Refresh the Drone List
+            self.refresh_drone_list()
+
+    # Adds given drone to the Drone List
     def add_drone_to_list(self, drone):
         new_drone_item = QListWidgetItem()
         new_drone_item.setSizeHint(QSize(self.ui.listWidget.lineWidth(), 80))
@@ -163,10 +123,12 @@ class Pre2(QWidget):
         new_drone_ui.spare_batt_text.setText(str(drone.battery_no))
         self.ui.listWidget.addItem(new_drone_item)
         self.ui.listWidget.setItemWidget(new_drone_item, new_drone_widget)
-        self.update_metrics()
 
+    # Deletes the drone selected from the list from the database
     def delete_drone(self):
         selected_items = self.ui.listWidget.selectedItems()
+
+        # Find selected drone(s)
         for item in selected_items:
             # Get the widget associated with the item
             drone_widget = self.ui.listWidget.itemWidget(item)
@@ -176,58 +138,131 @@ class Pre2(QWidget):
             drone_id = int(id_label.text())
             # Query the database for the drone with the given id
             drone = session.query(Drone).filter_by(drone_id=drone_id).first()
+
+            # Delete the drone from the database and refresh the Drone List
             if drone:
-                # Remove the drone from the database
                 session.delete(drone)
                 session.commit()
-                # Remove the item from the list widget
-                self.ui.listWidget.removeItemWidget(item)
-                self.ui.listWidget.takeItem(self.ui.listWidget.row(item))
-        self.update_metrics()
 
+        # Refresh the Drone List
+        self.refresh_drone_list()
+
+    # Enables Delete Drone button
+    def enable_delete_button(self):
+        if len(self.ui.listWidget.selectedIndexes()):
+            self.ui.btn_delete_drone.setEnabled(True)
+
+    # Disables Delete Drone button
+    def disable_delete_button(self):
+        self.ui.btn_delete_drone.setEnabled(False)
+
+    # Saves mission to the database
+    def save_mission(self):
+        self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
+        self.mission.coordinates = json.dumps(self.coords)
+        self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
+        self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
+        self.mission.selected_area = int(self.ui.selected_area_value.text())
+        self.mission.altitude = self.ui.spinbox_altitude.value()
+        session.commit()
+
+    # Creates a map given center point and zoom level
+    def setup_map(self, lat, lon, zoom):
+
+        if lat is None:
+            lat = 41.0859528
+            lon = 29.0443435
+
+        self.map2 = folium.Map(location=[lat, lon],
+                               zoom_start=zoom,
+                               control_scale=True, )
+
+        drw = draw.Draw(export=True,
+                        show_geometry_on_click=False,
+                        filename='my_data.geojson',
+                        draw_options={'polyline': False,
+                                      'polygone': True,
+                                      'rectangle': False,
+                                      'circle': False,
+                                      'marker': False,
+                                      'circlemarker': False})
+        self.map2.add_child(drw)
+        self.save_map()
+
+    # Saves and shows the map
+    def save_map(self):
+        self.map2.save('./UI/Preflight2/pre2map.html')
+        page = WebEnginePage(self.webView)
+        self.webView.setPage(page)
+        self.webView.setHtml(open('./UI/Preflight2/pre2map.html').read())
+        self.webView.show()
+
+        # Listen for any drawings on the Map
+        page.coords_printed.connect(self.selected_area_changed)
+
+    # Draws a polygon with given coordinates
+    def draw_polygon(self, coords):
+        # Draw polygon and add to the map
+        fg = folium.FeatureGroup(name="ScanArea")
+        fg.add_child(folium.Polygon(coords))
+        self.map2.add_child(fg)
+
+        # Set the map to show the polygon
+        sw_point, ne_point = calculate_sw_ne_points(coords)
+        self.map2.fit_bounds([sw_point, ne_point])
+        self.save_map()
+
+    # Captures changes in the altitude slider and makes necessary updates
     def slider_altitude_changed(self):
         value = self.ui.slider_altitude.value()
         self.ui.spinbox_altitude.setValue(value)
-        self.update_metrics()
+        self.update_altitude_metrics()
 
+    # Captures changes in the altitude spinbox and makes necessary updates
     def spinbox_altitude_changed(self):
         value = self.ui.spinbox_altitude.value()
         self.ui.slider_altitude.setValue(value)
-        self.update_metrics()
+        self.update_altitude_metrics()
 
-    def update_label_area(self, coords_lon_lat):
-
+    # Captures changes in the selected area and makes necessary updates
+    def selected_area_changed(self, coords_lon_lat):
         self.coords_lon_lat = coords_lon_lat
-        self.coords = self.invert_coordinates(coords_lon_lat)
+        self.coords = invert_coordinates(coords_lon_lat)
+        self.update_area_metrics()
 
-        # Update the label_area text with the coordinates
-        area = self.calculate_area(self.coords)
-        self.ui.selected_area_value.setText(f"{area:.0f}")
-
-        print("Calculated area:", area)  # Debugging
-
-    def update_metrics(self):
-        self.calculate_required_capacity()
+    # Updates drone related metrics
+    def update_drone_metrics(self):
         self.calculate_mission_time()
         self.calculate_provided_capacity()
 
-    def start_mission(self):
-        altitude_val = self.ui.slider_altitude.value()
-        # (optimal_route, rotated_route) = route_planner.plan_route(self.coords, altitude=altitude_val,
-        #                                                           intersection_ratio=0.8, angle_deg=20)
+    # Updates altitude related metrics
+    def update_altitude_metrics(self):
+        self.calculate_mission_time()
+        self.calculate_required_capacity()
 
-    @staticmethod
-    def calculate_area(coords):
+    # Updates selected area related metrics
+    def update_area_metrics(self):
+
+        # Update the label_area text with the coordinates
+        area = self.calculate_selected_area()
+        self.ui.selected_area_value.setText(f"{area:.0f}")
+
+        self.calculate_required_capacity()
+        self.calculate_mission_time()
+
+    # Calculates selected area from coordinates
+    def calculate_selected_area(self):
         area = 0.0
-        if len(coords) > 2:
-            for i in range(len(coords) - 1):
-                p1 = coords[i]
-                p2 = coords[i + 1]
+        if len(self.coords) > 2:
+            for i in range(len(self.coords) - 1):
+                p1 = self.coords[i]
+                p2 = self.coords[i + 1]
                 area += math.radians(p2[0] - p1[0]) * (
                         2 + math.sin(math.radians(p1[1])) + math.sin(math.radians(p2[1])))
             area = area * 6378137.0 * 6378137.0 / 2.0
         return abs(area)
 
+    # Calculates mission time
     def calculate_mission_time(self):
         num_of_drones = self.ui.listWidget.count()
         required_capacity = self.ui.batt_required_value.text()
@@ -237,50 +272,72 @@ class Pre2(QWidget):
         else:
             self.ui.mission_time_value.setText('0')
 
+    # Calculates required battery capacity for the mission
     def calculate_required_capacity(self):
         altitude = self.ui.slider_altitude.value()
-        if len(self.ui.selected_area_value.text()):
-            area = float(self.ui.selected_area_value.text())
-            required_capacity = area / altitude ** 2
-            self.ui.batt_required_value.setText(f"{required_capacity:.0f}")
-        else:
-            self.ui.batt_required_value.setText('0')
+        selected_area = int(self.ui.selected_area_value.text())
+        required_capacity = selected_area / altitude ** 2
+        self.ui.batt_required_value.setText(f"{required_capacity:.0f}")
 
+    # Calculates provided battery capacity from drones in the Drone List
     def calculate_provided_capacity(self):
-        total_battery = 0
         num_of_drones = self.ui.listWidget.count()
+        battery_count = num_of_drones
         if num_of_drones:
             for i in range(num_of_drones):
                 drone_item = self.ui.listWidget.item(i)
                 drone_widget = self.ui.listWidget.itemWidget(drone_item)
                 spare_batt_field = drone_widget.findChild(QLabel, "spare_batt_text")
                 spare_battery_count = int(spare_batt_field.text())
-                total_battery = total_battery + spare_battery_count
-            self.ui.batt_provided_value.setText(str(15 * total_battery))
+                battery_count += spare_battery_count
+            self.ui.batt_provided_value.setText(str(battery_count * 15))
         else:
             self.ui.batt_provided_value.setText('0')
 
-    def invert_coordinates(self, coordinates):
-        inverted_coordinates = []
-        for coord_pair in coordinates:
-            inverted_coord = [coord_pair[1], coord_pair[0]]
-            inverted_coordinates.append(inverted_coord)
-        return inverted_coordinates
 
-    def calculate_sw_ne_points(self):
-        if not self.coords:
-            return None, None
-
-        lats = [coord[0] for coord in self.coords]
-        lons = [coord[1] for coord in self.coords]
+# Calculates SW and NE points given coordinates
+def calculate_sw_ne_points(coords):
+    if len(coords):
+        lats = [c[0] for c in coords]
+        lons = [c[1] for c in coords]
 
         min_lat = min(lats)
         min_lon = min(lons)
         max_lat = max(lats)
         max_lon = max(lons)
 
-        sw_point = (min_lat, min_lon)  # Longitude comes first for southwest point
-        ne_point = (max_lat, max_lon)  # Longitude comes first for northeast point
+        sw_point = (min_lat, min_lon)
+        ne_point = (max_lat, max_lon)
 
         return sw_point, ne_point
+    return None, None
 
+
+# Calculates center point coordinates of given coordinates
+def calculate_center_point(coords):
+    if not coords:
+        return None
+
+    total_lat = 0
+    total_lon = 0
+    num_coords = len(coords)
+
+    # Iterate over all coordinates to calculate the total lat and lon values
+    for lat, lon in coords:
+        total_lat += lat
+        total_lon += lon
+
+    # Calculate the average point by dividing the total lat and lon values by the number of coordinates
+    center_lat = total_lat / num_coords
+    center_lon = total_lon / num_coords
+
+    return center_lat, center_lon
+
+
+# Changes positions of longitudes and latitudes
+def invert_coordinates(coordinates):
+    inverted_coordinates = []
+    for coord_pair in coordinates:
+        inverted_coord = [coord_pair[1], coord_pair[0]]
+        inverted_coordinates.append(inverted_coord)
+    return inverted_coordinates
