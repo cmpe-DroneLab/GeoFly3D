@@ -9,6 +9,8 @@ from UI.Preflight3.pre3 import Pre3
 from UI.Midflight.mid import Mid
 from UI.Postflight.post import Post
 
+from UI.database import session, Mission
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -58,8 +60,11 @@ class MainWindow(QMainWindow):
         if mission_status == "draft":
             self.pre2.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(1)
-        elif mission_status == "post_flight":
-            print("Post")
+        elif mission_status == "mid flight":
+            self.ui.stackedWidget.setCurrentIndex(3)
+        elif mission_status == "post flight":
+            mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+            self.go_to_post("", project_folder=mission.project_folder,mission_id=mission_id)
             self.ui.stackedWidget.setCurrentIndex(4)
 
     # PRE2 to PRE1
@@ -85,20 +90,27 @@ class MainWindow(QMainWindow):
 
     # PRE3 to MID
     def take_off_clicked(self):
-        vertices = self.pre3.coords
+        vertices = self.pre3.coords_lon_lat
         altitude = self.pre3.mission.altitude
 
-        mission_thread = self.mid.take_off(vertices=vertices, flight_altitude=altitude)
+        mission_thread = self.mid.take_off(vertices=vertices, flight_altitude=altitude, mission_id=self.pre3.mission_id)
         mission_thread.finished.connect(self.go_to_post)
 
         self.ui.stackedWidget.setCurrentIndex(3)
 
     # MID to POST
-    def go_to_post(self, msg, project_folder):
+    def go_to_post(self, msg, project_folder, mission_id):
         print(msg)
         self.mid.threads.clear()
         self.mid.has_taken_off = False
         self.post.setup(project_folder)
+
+        # DB UPDATE
+        # mission_id post_flight
+        mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+        mission.mission_status = "Post Flight"
+        mission.project_folder = project_folder
+        session.commit()
 
         self.ui.stackedWidget.setCurrentIndex(4)
 

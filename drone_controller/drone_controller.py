@@ -8,7 +8,7 @@ import pexpect
 class DroneController(QThread):
     started = pyqtSignal(str)
     progress_text = pyqtSignal(str)
-    finished = pyqtSignal(str, str)
+    finished = pyqtSignal(str, str, int)
 
     def __init__(self, vertices, flight_altitude, rotation_angle=20, intersection_ratio=0.8, mission_id=1):
         super().__init__()
@@ -57,4 +57,4 @@ class DroneController(QThread):
         
     
 
-        self.finished.emit(f"Mission #{self.mission_id} ---- END", project_folder)
+        self.finished.emit(f"Mission #{self.mission_id} ---- END", project_folder, self.mission_id)
