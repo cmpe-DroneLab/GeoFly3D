@@ -41,11 +41,28 @@ class Pre2(QWidget):
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
-        self.mission_id = mission_id
-        self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+
+        if mission_id == 0:
+            self.mission = Mission(
+                mission_status="Draft",
+                coordinates=None,
+                mission_drones=[],
+                estimated_mission_time=0,
+                actual_mission_time=0,
+                required_battery_capacity=0,
+                selected_area=0,
+                scanned_area=0,
+                altitude=100
+            )
+            session.add(self.mission)
+            session.commit()
+        else:
+            self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+
+        self.mission_id = self.mission.mission_id
 
         # Set mission id in the header box
-        self.ui.id_label.setText(str(self.mission.mission_id))
+        self.ui.id_label.setText(str(self.mission_id))
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -158,7 +175,8 @@ class Pre2(QWidget):
 
     # Saves mission to the database
     def save_mission(self):
-        self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
+        if self.coords:
+            self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
         self.mission.coordinates = json.dumps(self.coords)
         self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())

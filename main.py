@@ -5,11 +5,10 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QListWidgetItem
 import UI.main_design
 from UI.database import Mission, session
 from UI.Preflight1.pre1 import Pre1
-from UI.Preflight2.pre2 import Pre2
+from UI.Preflight2.pre2 import Pre2, invert_coordinates
 from UI.Preflight3.pre3 import Pre3
 from UI.Midflight.mid import Mid
 from UI.Postflight.post import Post
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -33,45 +32,43 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.addWidget(self.mid)
         self.ui.stackedWidget.addWidget(self.post)
 
-        self.pre1.ui.btn_create_mission.clicked.connect(self.go_to_pre2)
-        self.pre1.ui.btn_edit_mission.clicked.connect(self.go_to_pre2)
-        self.pre1.ui.listWidget.itemDoubleClicked.connect(self.go_to_pre2)
+        self.pre1.ui.btn_create_mission.clicked.connect(self.create_mission_clicked)
+        self.pre1.ui.btn_edit_mission.clicked.connect(self.edit_mission_clicked)
+        self.pre1.ui.listWidget.itemDoubleClicked.connect(self.edit_mission_clicked)
 
-        self.pre2.ui.btn_cancel.clicked.connect(self.go_to_pre1)
-        self.pre2.ui.btn_save.clicked.connect(self.go_to_pre1)
-        self.pre2.ui.btn_start.clicked.connect(self.go_to_pre3)
-        self.pre3.ui.btn_return_back.clicked.connect(self.go_to_pre2)
-        self.pre3.ui.btn_take_off.clicked.connect(self.go_to_mid)
+        self.pre2.ui.btn_cancel.clicked.connect(self.cancel_mission_clicked)
+        self.pre2.ui.btn_save.clicked.connect(self.save_mission_clicked)
+        self.pre2.ui.btn_start.clicked.connect(self.start_mission_clicked)
 
-    def go_to_pre1(self):
-        self.pre1.refresh_mission_list()
-        self.ui.stackedWidget.setCurrentIndex(0)
+        self.pre3.ui.btn_return_back.clicked.connect(self.return_back_clicked)
+        self.pre3.ui.btn_take_off.clicked.connect(self.take_off_clicked)
 
-    def go_to_pre2(self, item):
-        if isinstance(item, QListWidgetItem):
-            mission_id = int(item.text().split(":")[1].split(",")[0].strip())  # Varolan görev
-        else:
-            new_mission = Mission(
-                mission_status="Draft",
-                center_lat=41.0859528,
-                center_lon=29.0443435,
-                coordinates=None,
-                mission_drones=[],
-                estimated_mission_time=0,
-                actual_mission_time=0,
-                required_battery_capacity=0,
-                selected_area=0,
-                scanned_area=0,
-                altitude=100
-            )
-            session.add(new_mission)
-            session.commit()
-            mission_id = new_mission.mission_id
+    def create_mission_clicked(self):
+        mission_id = 0
         self.pre2.load_mission(mission_id)
         self.ui.stackedWidget.setCurrentIndex(1)
 
-    def go_to_pre3(self):
-        self.pre2.coords_lon_lat = self.pre2.invert_coordinates(self.pre2.coords)
+    def edit_mission_clicked(self):
+        selected_item = self.pre1.ui.listWidget.selectedItems()[0]
+        mission_id = int(selected_item.text().split(":")[1].split(",")[0].strip())
+        self.pre2.load_mission(mission_id)
+        self.ui.stackedWidget.setCurrentIndex(1)
+
+    def cancel_mission_clicked(self):
+        self.pre1.refresh_mission_list()
+        self.ui.stackedWidget.setCurrentIndex(0)
+
+    def save_mission_clicked(self):
+        self.pre1.refresh_mission_list()
+        self.ui.stackedWidget.setCurrentIndex(0)
+
+    def return_back_clicked(self):
+        self.ui.stackedWidget.setCurrentIndex(1)
+
+    def start_mission_clicked(self):
+
+        self.pre2.save_mission()
+        self.pre2.coords_lon_lat = invert_coordinates(self.pre2.coords)
 
         # Copy mission information
         self.pre3.ui.mission_time_value.setText(self.pre2.ui.mission_time_value.text())
@@ -86,7 +83,7 @@ class MainWindow(QMainWindow):
 
         self.ui.stackedWidget.setCurrentIndex(2)
 
-    def go_to_mid(self):
+    def take_off_clicked(self):
 
         vertices = self.pre3.coords
         altitude = self.pre3.altitude
