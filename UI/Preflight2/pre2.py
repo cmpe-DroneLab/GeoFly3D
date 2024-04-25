@@ -158,6 +158,7 @@ class Pre2(QWidget):
 
     # Saves mission to the database
     def save_mission(self):
+        self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
         self.mission.coordinates = json.dumps(self.coords)
         self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
@@ -207,7 +208,7 @@ class Pre2(QWidget):
         self.map2.add_child(fg)
 
         # Set the map to show the polygon
-        sw_point, ne_point = self.calculate_sw_ne_points(coords)
+        sw_point, ne_point = calculate_sw_ne_points(coords)
         self.map2.fit_bounds([sw_point, ne_point])
         self.save_map()
 
@@ -226,7 +227,7 @@ class Pre2(QWidget):
     # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
         self.coords_lon_lat = coords_lon_lat
-        self.coords = self.invert_coordinates(coords_lon_lat)
+        self.coords = invert_coordinates(coords_lon_lat)
         self.update_area_metrics()
 
     # Updates drone related metrics
@@ -293,26 +294,50 @@ class Pre2(QWidget):
         else:
             self.ui.batt_provided_value.setText('0')
 
-    # Calculates SW and NE points given coordinates
-    def calculate_sw_ne_points(self, coords):
-        if len(coords):
-            lats = [c[0] for c in coords]
-            lons = [c[1] for c in coords]
 
-            min_lat = min(lats)
-            min_lon = min(lons)
-            max_lat = max(lats)
-            max_lon = max(lons)
+# Calculates SW and NE points given coordinates
+def calculate_sw_ne_points(coords):
+    if len(coords):
+        lats = [c[0] for c in coords]
+        lons = [c[1] for c in coords]
 
-            sw_point = (min_lat, min_lon)
-            ne_point = (max_lat, max_lon)
+        min_lat = min(lats)
+        min_lon = min(lons)
+        max_lat = max(lats)
+        max_lon = max(lons)
 
-            return sw_point, ne_point
-        return None, None
+        sw_point = (min_lat, min_lon)
+        ne_point = (max_lat, max_lon)
 
-    def invert_coordinates(self, coordinates):
-        inverted_coordinates = []
-        for coord_pair in coordinates:
-            inverted_coord = [coord_pair[1], coord_pair[0]]
-            inverted_coordinates.append(inverted_coord)
-        return inverted_coordinates
+        return sw_point, ne_point
+    return None, None
+
+
+# Calculates center point coordinates of given coordinates
+def calculate_center_point(coords):
+    if not coords:
+        return None
+
+    total_lat = 0
+    total_lon = 0
+    num_coords = len(coords)
+
+    # Iterate over all coordinates to calculate the total lat and lon values
+    for lat, lon in coords:
+        total_lat += lat
+        total_lon += lon
+
+    # Calculate the average point by dividing the total lat and lon values by the number of coordinates
+    center_lat = total_lat / num_coords
+    center_lon = total_lon / num_coords
+
+    return center_lat, center_lon
+
+
+# Changes positions of longitudes and latitudes
+def invert_coordinates(coordinates):
+    inverted_coordinates = []
+    for coord_pair in coordinates:
+        inverted_coord = [coord_pair[1], coord_pair[0]]
+        inverted_coordinates.append(inverted_coord)
+    return inverted_coordinates
