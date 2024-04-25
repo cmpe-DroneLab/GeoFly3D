@@ -27,7 +27,7 @@ class Pre2(QWidget):
         self.mission_drones = []
         self.coords = None
         self.coords_lon_lat = None
-        self.map2 = None
+        self.map = None
         self.webView = QWebEngineView()
         self.setup_map(39, 35, 5)
         self.ui.v_lay_right.addWidget(self.webView)
@@ -205,9 +205,9 @@ class Pre2(QWidget):
             lat = 41.0859528
             lon = 29.0443435
 
-        self.map2 = folium.Map(location=[lat, lon],
-                               zoom_start=zoom,
-                               control_scale=True, )
+        self.map = folium.Map(location=[lat, lon],
+                              zoom_start=zoom,
+                              control_scale=True, )
 
         drw = draw.Draw(export=True,
                         show_geometry_on_click=False,
@@ -218,15 +218,15 @@ class Pre2(QWidget):
                                       'circle': False,
                                       'marker': False,
                                       'circlemarker': False})
-        self.map2.add_child(drw)
+        self.map.add_child(drw)
         self.save_map()
 
     # Saves and shows the map
     def save_map(self):
-        self.map2.save('./UI/Preflight2/pre2map.html')
+        self.map.save('./UI/Preflight2/pre2_map.html')
         page = WebEnginePage(self.webView)
         self.webView.setPage(page)
-        self.webView.setHtml(open('./UI/Preflight2/pre2map.html').read())
+        self.webView.setHtml(open('./UI/Preflight2/pre2_map.html').read())
         self.webView.show()
 
         # Listen for any drawings on the Map
@@ -237,11 +237,11 @@ class Pre2(QWidget):
         # Draw polygon and add to the map
         fg = folium.FeatureGroup(name="ScanArea")
         fg.add_child(folium.Polygon(coords))
-        self.map2.add_child(fg)
+        self.map.add_child(fg)
 
         # Set the map to show the polygon
         sw_point, ne_point = calculate_sw_ne_points(coords)
-        self.map2.fit_bounds([sw_point, ne_point])
+        self.map.fit_bounds([sw_point, ne_point])
         self.save_map()
 
     # Captures changes in the altitude slider and makes necessary updates

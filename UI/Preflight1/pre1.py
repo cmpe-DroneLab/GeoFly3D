@@ -15,7 +15,7 @@ class Pre1(QWidget):
         self.ui = UI.Preflight1.pre1_design.Ui_Form()
         self.ui.setupUi(self)
 
-        self.map1 = None
+        self.map = None
         self.webView = QWebEngineView()
         self.setup_map(39, 35, 5)
         self.ui.v_lay_right.addWidget(self.webView)
@@ -26,22 +26,22 @@ class Pre1(QWidget):
 
     # Creates a map given center point and zoom level
     def setup_map(self, lat, lon, zoom):
-        self.map1 = folium.Map(location=[lat, lon],
-                               zoom_start=zoom,
-                               control_scale=True, )
+        self.map = folium.Map(location=[lat, lon],
+                              zoom_start=zoom,
+                              control_scale=True, )
         self.save_map()
 
     # Saves and shows the Map
     def save_map(self):
-        self.map1.save('./UI/Preflight1/pre1map.html')
+        self.map.save('./UI/Preflight1/pre1_map.html')
         page = WebEnginePage(self.webView)
         self.webView.setPage(page)
-        self.webView.setHtml(open('./UI/Preflight1/pre1map.html').read())
+        self.webView.setHtml(open('./UI/Preflight1/pre1_map.html').read())
         self.webView.show()
 
     # Adds marker to the Map
     def add_marker(self, lat, lon, popup_text):
-        folium.Marker([lat, lon], popup=popup_text).add_to(self.map1)
+        folium.Marker([lat, lon], popup=popup_text).add_to(self.map)
         self.save_map()
 
     # Deletes the mission selected from the list from the database
@@ -68,7 +68,7 @@ class Pre1(QWidget):
         missions = get_all_missions()
 
         # Generate a new map in order to clear all markers
-        self.map1 = folium.Map(location=[39, 35], zoom_start=5, control_scale=True)
+        self.map = folium.Map(location=[39, 35], zoom_start=5, control_scale=True)
 
         for mission in missions:
             # Add missions to the Mission List

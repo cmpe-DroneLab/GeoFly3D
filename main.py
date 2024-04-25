@@ -45,6 +45,9 @@ class MainWindow(QMainWindow):
         self.pre3.ui.btn_return_back.clicked.connect(self.return_back_clicked)
         self.pre3.ui.btn_take_off.clicked.connect(self.take_off_clicked)
 
+        self.mid.ui.btn_main.clicked.connect(self.go_to_main_clicked)
+        self.post.ui.btn_main.clicked.connect(self.go_to_main_clicked)
+
     # PRE1 to PRE2
     def create_mission_clicked(self):
         mission_id = 0
@@ -61,6 +64,7 @@ class MainWindow(QMainWindow):
             self.pre2.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(1)
         elif mission_status == "mid flight":
+            self.mid.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(3)
         elif mission_status == "post flight":
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
@@ -90,6 +94,7 @@ class MainWindow(QMainWindow):
 
     # PRE3 to MID
     def take_off_clicked(self):
+        self.mid.load_mission(self.pre3.mission_id)
         vertices = self.pre3.coords_lon_lat
         altitude = self.pre3.mission.altitude
 
@@ -103,7 +108,7 @@ class MainWindow(QMainWindow):
         print(msg)
         self.mid.threads.clear()
         self.mid.has_taken_off = False
-        self.post.setup(project_folder)
+        self.post.load_mission(project_folder, mission_id)
 
         # DB UPDATE
         # mission_id post_flight
@@ -113,6 +118,10 @@ class MainWindow(QMainWindow):
         session.commit()
 
         self.ui.stackedWidget.setCurrentIndex(4)
+
+    # MID/POST to PRE1
+    def go_to_main_clicked(self):
+        self.ui.stackedWidget.setCurrentIndex(0)
 
 
 if __name__ == '__main__':

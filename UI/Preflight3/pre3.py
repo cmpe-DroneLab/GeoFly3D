@@ -26,7 +26,7 @@ class Pre3(QWidget):
         self.coords_lon_lat = None
         self.optimal_route = None
         self.rotated_route = None
-        self.map3 = None
+        self.map = None
         self.webView = QWebEngineView()
         self.ui.v_lay_right.addWidget(self.webView)
 
@@ -84,20 +84,20 @@ class Pre3(QWidget):
     # Creates a map
     def setup_map(self):
 
-        self.map3 = folium.Map(location=[35, 39],
-                               zoom_start=5,
-                               control_scale=True, )
+        self.map = folium.Map(location=[35, 39],
+                              zoom_start=5,
+                              control_scale=True, )
         self.save_map()
 
         sw_point, ne_point = calculate_sw_ne_points(self.coords)
-        self.map3.fit_bounds([sw_point, ne_point])
+        self.map.fit_bounds([sw_point, ne_point])
 
     # Saves and shows the map
     def save_map(self):
-        self.map3.save('./UI/Preflight3/pre3map.html')
+        self.map.save('./UI/Preflight3/pre3_map.html')
         page = WebEnginePage(self.webView)
         self.webView.setPage(page)
-        self.webView.setHtml(open('./UI/Preflight3/pre3map.html').read())
+        self.webView.setHtml(open('./UI/Preflight3/pre3_map.html').read())
         self.webView.show()
 
     # Calculates route
@@ -113,14 +113,18 @@ class Pre3(QWidget):
         # draw path nodes
         for point in route:
             folium.CircleMarker(point,
-                                radius=2,
-                                fill=True,
-                                fill_color="blue",
-                                fill_opacity=1).add_to(self.map3)
+                                radius=5,
+                                color="green",
+                                weight=3,
+                                opacity=0.8,
+                                fill=False).add_to(self.map)
 
         # draw path edges
-        route_line = folium.PolyLine(locations=route, color='green', weight=2.5, opacity=0.8)
-        self.map3.add_child(route_line)
+        route_line = folium.PolyLine(locations=route,
+                                     color='green',
+                                     weight=2.5,
+                                     opacity=0.8)
+        self.map.add_child(route_line)
         self.save_map()
 
     # Draws rotated route
@@ -129,12 +133,16 @@ class Pre3(QWidget):
         # draw path nodes
         for point in route:
             folium.CircleMarker(point,
-                                radius=2,
+                                radius=5,
+                                stroke=False,
                                 fill=True,
                                 fill_color="orange",
-                                fill_opacity=1).add_to(self.map3)
+                                fill_opacity=0.8).add_to(self.map)
 
         # draw path edges
-        route_line = folium.PolyLine(locations=route, color='orange', weight=2.5, opacity=0.8)
-        self.map3.add_child(route_line)
+        route_line = folium.PolyLine(locations=route,
+                                     color='orange',
+                                     weight=2.5,
+                                     opacity=0.8)
+        self.map.add_child(route_line)
         self.save_map()
