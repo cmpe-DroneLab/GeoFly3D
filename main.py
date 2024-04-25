@@ -53,8 +53,14 @@ class MainWindow(QMainWindow):
     def edit_mission_clicked(self):
         selected_item = self.pre1.ui.listWidget.selectedItems()[0]
         mission_id = int(selected_item.text().split(":")[1].split(",")[0].strip())
-        self.pre2.load_mission(mission_id)
-        self.ui.stackedWidget.setCurrentIndex(1)
+        mission_status = selected_item.text().split(":")[2].strip().lower()
+
+        if mission_status == "draft":
+            self.pre2.load_mission(mission_id)
+            self.ui.stackedWidget.setCurrentIndex(1)
+        elif mission_status == "post_flight":
+            print("Post")
+            self.ui.stackedWidget.setCurrentIndex(4)
 
     # PRE2 to PRE1
     def cancel_mission_clicked(self):
