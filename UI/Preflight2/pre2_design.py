@@ -72,6 +72,7 @@ class Ui_Form(object):
         self.h_lay_drone_buttons = QtWidgets.QHBoxLayout()
         self.h_lay_drone_buttons.setObjectName("h_lay_drone_buttons")
         self.btn_delete_drone = QtWidgets.QPushButton(parent=self.gb_drones)
+        self.btn_delete_drone.setEnabled(False)
         self.btn_delete_drone.setObjectName("btn_delete_drone")
         self.h_lay_drone_buttons.addWidget(self.btn_delete_drone)
         self.btn_add_drone = QtWidgets.QPushButton(parent=self.gb_drones)

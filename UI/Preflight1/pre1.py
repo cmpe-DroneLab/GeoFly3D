@@ -53,11 +53,11 @@ class Pre1(QWidget):
             mission_id = int(item.text().split(":")[1].split(",")[0].strip())
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
 
-            # Delete the mission from the database and refresh the Mission List
+            # Delete the mission from the database
             if mission:
                 session.delete(mission)
                 session.commit()
-
+        # Refresh the Mission List
         self.refresh_mission_list()
 
     # Gets all missions from the database, adds them to the Mission List and adds markers to the Map
