@@ -15,10 +15,43 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,4">
    <item>
-    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0">
+    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0,0">
      <property name="spacing">
       <number>10</number>
      </property>
+     <item>
+      <layout class="QGridLayout" name="g_lay_mission_header">
+       <item row="0" column="2">
+        <widget class="QLabel" name="id_label">
+         <property name="font">
+          <font>
+           <pointsize>21</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label_header">
+         <property name="font">
+          <font>
+           <pointsize>21</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>MISSION  #</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
      <item>
       <widget class="QLabel" name="label_header">
        <property name="font">
@@ -35,9 +68,6 @@
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
-       </property>
-       <property name="margin">
-        <number>10</number>
        </property>
       </widget>
      </item>
