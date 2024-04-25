@@ -5,11 +5,10 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QListWidgetItem
 import UI.main_design
 from UI.database import Mission, session
 from UI.Preflight1.pre1 import Pre1
-from UI.Preflight2.pre2 import Pre2
+from UI.Preflight2.pre2 import Pre2, invert_coordinates
 from UI.Preflight3.pre3 import Pre3
 from UI.Midflight.mid import Mid
 from UI.Postflight.post import Post
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -71,7 +70,7 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.setCurrentIndex(1)
 
     def go_to_pre3(self):
-        self.pre2.coords_lon_lat = self.pre2.invert_coordinates(self.pre2.coords)
+        self.pre2.coords_lon_lat = invert_coordinates(self.pre2.coords)
 
         # Copy mission information
         self.pre3.ui.mission_time_value.setText(self.pre2.ui.mission_time_value.text())
