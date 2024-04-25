@@ -1,3 +1,4 @@
+from drone_controller import DroneController
 import folium
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -19,6 +20,9 @@ class Pre3(QWidget):
 
         self.ui.btn_take_off.clicked.connect(self.take_off)
 
+        self.threads = {}
+        self.has_taken_off = False
+
     def setup_map(self, coords, altitude):
 
         self.m = folium.Map(location=[35, 39],
@@ -26,7 +30,6 @@ class Pre3(QWidget):
                             control_scale=True,
                             )
         self.save_map()
-        print("Coords: ", coords)
         (optimal_route, rotated_route) = route_planner.plan_route(coords, altitude=altitude, intersection_ratio=0.8, angle_deg=20)
         sw_point, ne_point = self.calculate_sw_ne_points(coords)
         self.m.fit_bounds([sw_point, ne_point])
@@ -45,8 +48,7 @@ class Pre3(QWidget):
         self.save_map()
 
     def draw_optimal_route(self, route):
-        print(route)
-
+        
         # draw path nodes
         for point in route:
             folium.CircleMarker(point,
@@ -93,4 +95,20 @@ class Pre3(QWidget):
         return sw_point, ne_point
 
     def take_off(self):
-        pass
+        if self.has_taken_off:
+            return
+        
+        drone_controller_thread = DroneController()
+
+        drone_controller_thread.started.connect(print)
+        drone_controller_thread.progress_text.connect(print)
+        drone_controller_thread.finished.connect(self.finish_mission)
+
+        self.threads[1] = drone_controller_thread
+        drone_controller_thread.start()
+        self.has_taken_off = True
+
+    def finish_mission(self, msg):
+        print(msg)
+        self.threads.clear()
+        self.has_taken_off = False
