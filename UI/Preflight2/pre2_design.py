@@ -180,6 +180,7 @@ class Ui_Form(object):
         self.h_lay_mission_buttons.addWidget(self.btn_save)
         self.v_lay_left.addLayout(self.h_lay_mission_buttons)
         self.btn_start = QtWidgets.QPushButton(parent=Form)
+        self.btn_start.setEnabled(False)
         self.btn_start.setObjectName("btn_start")
         self.v_lay_left.addWidget(self.btn_start)
         self.horizontalLayout_2.addLayout(self.v_lay_left)

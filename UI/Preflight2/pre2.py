@@ -81,9 +81,12 @@ class Pre2(QWidget):
         self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
 
         # Draw previously selected area if available in the database
-        if self.mission.coordinates is not None:
+        if not (self.mission.coordinates == 'null' or self.mission.coordinates is None):
             self.coords = json.loads(self.mission.coordinates)
             self.draw_polygon(self.coords)
+
+        # Set Start Mission button
+        self.update_start_button()
 
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
@@ -173,6 +176,17 @@ class Pre2(QWidget):
     def disable_delete_button(self):
         self.ui.btn_delete_drone.setEnabled(False)
 
+    # Update Start Mission button
+    def update_start_button(self):
+        if (
+                (self.coords != 'null')
+                and (self.coords is not None)
+                and (int(self.ui.batt_provided_value.text()) > int(self.ui.batt_required_value.text()))
+        ):
+            self.ui.btn_start.setEnabled(True)
+        else:
+            self.ui.btn_start.setEnabled(False)
+
     # Saves mission to the database
     def save_mission(self):
         if self.coords:
@@ -252,11 +266,13 @@ class Pre2(QWidget):
     def update_drone_metrics(self):
         self.calculate_mission_time()
         self.calculate_provided_capacity()
+        self.update_start_button()
 
     # Updates altitude related metrics
     def update_altitude_metrics(self):
         self.calculate_mission_time()
         self.calculate_required_capacity()
+        self.update_start_button()
 
     # Updates selected area related metrics
     def update_area_metrics(self):
@@ -267,6 +283,7 @@ class Pre2(QWidget):
 
         self.calculate_required_capacity()
         self.calculate_mission_time()
+        self.update_start_button()
 
     # Calculates selected area from coordinates
     def calculate_selected_area(self):

@@ -302,6 +302,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="btn_start">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>Start the Mission</string>
        </property>
