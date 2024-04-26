@@ -422,6 +422,9 @@ class Scan_area:
                 x_list_2.append(node.coordinates[0])
                 y_list_2.append(node.coordinates[1])
             print("Second divison Vertices:")
+            plt.scatter(x_list_1,y_list_1)
+            plt.scatter(x_list_2,y_list_2)
+            plt.show()
             return first_edge_set, first_node_dict, second_edge_set, second_node_dict
 
     def get_angle(self, first_pair, second_pair):
