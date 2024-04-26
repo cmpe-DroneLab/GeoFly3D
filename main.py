@@ -8,10 +8,10 @@ intersection_ratio  = 0.8              # The intersection_ratio is configurable
 angle               = math.pi * 15/ 180
 #################################### Sample polygon
 #\operatorname{polygon}\left(\left(-3,7\right),\left(8,5\right),\left(4,-1\right),\left(-5,-4\right)\right)
-node_1 = Node(-3,7, 0)
-node_2 = Node(8,5, 0)
-node_3 = Node(4,-1, 0)
-node_4 = Node(-5,-4, 0)
+node_1 = Node(29.171791, 40.950603, 0)
+node_2 = Node(29.165955, 40.910918, 0)
+node_3 = Node(29.226723, 40.912994, 0)
+node_4 = Node(29.257278, 40.94049, 0)
 take_off_node       = Node(-1,-1,0)
 edge_1              = [node_1,node_2]
 edge_2              = [node_2,node_3]
