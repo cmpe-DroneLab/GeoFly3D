@@ -21,12 +21,11 @@ edges               = [edge_1,edge_2,edge_3,edge_4]
 x_vertices          = [node_1.coordinates[0],node_2.coordinates[0],node_3.coordinates[0],node_4.coordinates[0]]
 y_vertices          = [node_1.coordinates[1],node_2.coordinates[1],node_3.coordinates[1],node_4.coordinates[1]]
 ####################################
-area                  = Scan_area(edges)
-route,transformed_list   = area.create_route(take_off_node,height,intersection_ratio,True,angle,None,None)
+area = Scan_area(edges)
+route, transformed_list = area.create_route(take_off_node, height, intersection_ratio, True, angle, None, None)
 
-
-x_list       = []
-y_list       = []
+x_list = []
+y_list = []
 x_list_trans = []
 y_list_trans = []
 ### Plot the route: sorted now
@@ -39,11 +38,19 @@ for i in range(len(transformed_list)):
 print(x_list_trans[0])
 print(y_list_trans[0])
 
-plt.plot(x_list,y_list,color='green',label='Optimal Route')
-plt.plot(x_list_trans,y_list_trans,color='orange',label=f'Route Rotated {int(round(angle*180/math.pi))} degress')
-plt.scatter(x_list_trans,y_list_trans,color='olive')
-plt.scatter(x_list,y_list,color='purple')
-plt.scatter(take_off_node.coordinates[0],take_off_node.coordinates[1],color="blue")
-plt.scatter(x_vertices,y_vertices,color='red')
+plt.plot(x_list, y_list, color='green', label='Optimal Route')
+plt.plot(x_list_trans, y_list_trans, color='orange', label=f'Route Rotated {int(round(angle * 180 / math.pi))} degress')
+plt.scatter(x_list_trans, y_list_trans, color='olive')
+plt.scatter(x_list, y_list, color='purple')
+plt.scatter(take_off_node.coordinates[0], take_off_node.coordinates[1], color="blue")
+
+x_vertices = []
+y_vertices = []
+
+for node in nodes:
+    x_vertices.append(node.coordinates[0])
+    y_vertices.append(node.coordinates[1])
+
+plt.scatter(x_vertices, y_vertices, color='red')
 plt.legend()
 plt.show()
