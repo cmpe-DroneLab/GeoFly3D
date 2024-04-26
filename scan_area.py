@@ -409,6 +409,12 @@ class Scan_area:
                 second_edge_set.append([second_node_list[i], second_node_list[(i + 1) % len(second_node_list)]])
                 second_node_dict[second_node_list[i]] = [second_node_list[i - 1],
                                                          second_node_list[(i + 1) % len(second_node_list)]]
+			print("First divison Vertices:")
+			x_list_1 = [] 
+			y_list_1 = []
+			x_list_2 = []
+			y_list_2 = []
+			print("Second divison Vertices:")
             return first_edge_set, first_node_dict, second_edge_set, second_node_dict
 
     def get_angle(self, first_pair, second_pair):
