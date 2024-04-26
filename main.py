@@ -3,14 +3,15 @@ from scan_area import Scan_area
 import matplotlib.pyplot as plt
 import math
 
-height              = 0.5            # Scanning resolution
-intersection_ratio  = 0.8            # The intersection_ratio is configurable
+height              = 1.6              # Scanning resolution
+intersection_ratio  = 0.8              # The intersection_ratio is configurable
 angle               = math.pi * 15/ 180
 #################################### Sample polygon
-node_1 = Node(0, 0, 0)
-node_2 = Node(1, 6, 0)
-node_3 = Node(6, 6, 0)
-node_4 = Node(7, 0, 0)
+#\operatorname{polygon}\left(\left(-3,7\right),\left(8,5\right),\left(4,-1\right),\left(-5,-4\right)\right)
+node_1 = Node(-3,7, 0)
+node_2 = Node(8,5, 0)
+node_3 = Node(4,-1, 0)
+node_4 = Node(-5,-4, 0)
 take_off_node       = Node(-1,-1,0)
 edge_1              = [node_1,node_2]
 edge_2              = [node_2,node_3]
@@ -35,6 +36,8 @@ for i in range(len(route)):
 for i in range(len(transformed_list)):
     x_list_trans.append(transformed_list[i].coordinates[0])
     y_list_trans.append(transformed_list[i].coordinates[1])
+print(x_list_trans[0])
+print(y_list_trans[0])
 
 plt.plot(x_list,y_list,color='green',label='Optimal Route')
 plt.plot(x_list_trans,y_list_trans,color='orange',label=f'Route Rotated {int(round(angle*180/math.pi))} degress')
