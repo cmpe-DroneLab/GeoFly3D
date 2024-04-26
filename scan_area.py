@@ -1,9 +1,9 @@
 from node import Node
 import math
-import matplotlib.pyplot as plt
 import numpy as np
 import haversine as hs
 from haversine import Unit
+
 
 class Scan_area:
     def __init__(self, edges=None):
@@ -199,8 +199,8 @@ class Scan_area:
                 edge_length = vertex_1.calculate_geographic_distance(vertex_2)
                 limit = int((edge_length // edge_inc) + 1)
 
-                if not n1 and not n2:
-                    limit -= 1
+                # if not n1 and not n2:
+                #     limit -= 1
 
                 bearing_angle = start_vertex.calculate_bearing_angle(end_vertex)
 
@@ -409,22 +409,6 @@ class Scan_area:
                 second_edge_set.append([second_node_list[i], second_node_list[(i + 1) % len(second_node_list)]])
                 second_node_dict[second_node_list[i]] = [second_node_list[i - 1],
                                                          second_node_list[(i + 1) % len(second_node_list)]]
-			
-            print("First divison Vertices:")
-            x_list_1 = [] 
-            y_list_1 = []
-            x_list_2 = []
-            y_list_2 = []
-            for node in first_node_dict:
-                x_list_1.append(node.coordinates[0])
-                y_list_1.append(node.coordinates[1])
-            for node in second_node_dict:
-                x_list_2.append(node.coordinates[0])
-                y_list_2.append(node.coordinates[1])
-            print("Second divison Vertices:")
-            plt.scatter(x_list_1,y_list_1)
-            plt.scatter(x_list_2,y_list_2)
-            plt.show()
             return first_edge_set, first_node_dict, second_edge_set, second_node_dict
 
     def get_angle(self, first_pair, second_pair):
