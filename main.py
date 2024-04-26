@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
         # PRE1 to POST
         elif mission_status == "post flight":
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-            self.go_to_post("", project_folder=mission.project_folder,mission_id=mission_id)
+            self.post.load_mission(mission.project_folder, mission_id)
             self.ui.stackedWidget.setCurrentIndex(4)
 
     # PRE2 to PRE1
@@ -108,9 +108,6 @@ class MainWindow(QMainWindow):
 
     def scan_finished(self, msg, project_folder, mission_id):
         print(msg)
-        self.mid.threads.clear()
-        self.mid.has_taken_off = False
-        self.post.load_mission(project_folder, mission_id)
 
         # DB UPDATE
         # mission_id post_flight
@@ -118,6 +115,11 @@ class MainWindow(QMainWindow):
         mission.mission_status = "Post Flight"
         mission.project_folder = project_folder
         session.commit()
+
+        self.post.load_mission(project_folder, mission_id)
+
+        self.mid.threads.clear()
+        self.mid.has_taken_off = False
 
         self.ui.stackedWidget.setCurrentIndex(4)
 
