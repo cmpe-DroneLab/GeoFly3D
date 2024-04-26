@@ -2,7 +2,7 @@ from node import Node
 import math
 import numpy as np
 import haversine as hs
-from haversine import Unit
+from haversine import Unit,haversine
 
 
 class Scan_area:
@@ -38,6 +38,27 @@ class Scan_area:
         else:
             return False
 
+    def cross_product(self,p1,p2,p3):
+        cross_product  = 0
+        #x1, y1 = haversine(coord1[:2], (coord1[0], coord2[1])) * 1000, haversine(coord1[:2], (coord2[0], coord1[1])) * 1000
+        #x2, y2 = haversine(coord2[:2], (coord1[0], coord2[1])) * 1000, haversine(coord2[:2], (coord2[0], coord1[1])) * 1000
+        #x3, y3 = haversine(coord3[:2], (coord1[0], coord2[1])) * 1000, haversine(coord3[:2], (coord2[0], coord1[1])) * 1000
+
+        # Create vectors between coordinates
+        #v1 = np.array([x2 - x1, y2 - y1, coord2[2] - coord1[2]])
+        #v2 = np.array([x3 - x1, y3 - y1, coord3[2] - coord1[2]])
+
+        # Calculate cross product
+        #cross_product = np.cross(v1, v2)
+        cross_product  = ((p2.coordinates[0] - p1.coordinates[0]) * (p3.coordinates[1] - p1.coordinates[1])) - (
+                    (p2.coordinates[1] - p1.coordinates[1]) * (p3.coordinates[0] - p1.coordinates[0]))
+        #print(cross_product)
+        #return cross_product[2]
+        return cross_product
+    def calculate_vector(self,p1,p2):
+        vector = []
+
+        return vector
     # Add a list of edges
     def check_edges(self, edges):
         for edge in edges:
@@ -73,8 +94,7 @@ class Scan_area:
             p1 = visited_nodes[i]
             p2 = visited_nodes[(i + 1) % n]
             p3 = visited_nodes[(i + 2) % n]
-            cross_product = ((p2.coordinates[0] - p1.coordinates[0]) * (p3.coordinates[1] - p1.coordinates[1])) - (
-                    (p2.coordinates[1] - p1.coordinates[1]) * (p3.coordinates[0] - p1.coordinates[0]))
+            cross_product = self.cross_product(p1,p2,p3)
             #######################
             total_area        = total_area + cross_product
             #######################
