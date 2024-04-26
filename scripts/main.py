@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+import sys
 import rospy
 from std_msgs.msg import String
 import olympe
 import time
+import math
 import os
 from olympe.messages.ardrone3.PilotingState import GpsLocationChanged
 from olympe.messages.ardrone3.Piloting import *
@@ -11,7 +13,7 @@ from olympe.enums.gimbal import control_mode, frame_of_reference
 from olympe.messages.gimbal import set_target
 from olympe.enums.ardrone3.Piloting import MoveTo_Orientation_mode
 from olympe.enums.camera import photo_file_format,photo_format,camera_mode,photo_mode
-from olympe.messages.camera import set_photo_mode,take_photo,set_camera_mode,photo_progress
+from olympe.messages.camera import set_photo_mode,take_photo,set_camera_mode,photo_progress, stop_photo
 from olympe.messages.rth import return_to_home
 from olympe.media import download_media, indexing_state, delete_media, delete_all_media
 import re
@@ -20,7 +22,8 @@ import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from node import Node
-from route_planning import create_route
+from scan_area import Scan_area
+
 from orthophoto_generator import generate_orthophoto
 
 DRONE_IP = os.environ.get("DRONE_IP", "10.202.0.1")
@@ -98,7 +101,7 @@ def position_changed_callback(event, controller):
 def take_photo_single(drone):
     print("taking photo")
     photo_saved = drone(photo_progress(result="photo_saved", _policy="wait"))
-    drone(take_photo(cam_id=0)).wait()
+    # drone(take_photo(cam_id=0)).wait()
     photo_saved.wait()
     media_id = photo_saved.received_events().last().args["media_id"]
 
@@ -127,17 +130,17 @@ def take_photo_single(drone):
                     print(resource["resource_id"], xmp_tag, xmp_value)
 
 
-def setup_photo_single_mode(drone):
+def setup_photo_gpslapse_mode(drone):
     drone(set_camera_mode(cam_id=0, value="photo")).wait()
     drone(
         set_photo_mode(
             cam_id=0,
-            mode="single",  
+            mode="gps_lapse",
             format="rectilinear",
             file_format="jpeg",
-            burst="burst_14_over_1s",  
+            burst="burst_14_over_1s",
             bracketing="preset_1ev",
-            capture_interval=0.0,  
+            capture_interval=vertical_increment * 0.9,
         )
     ).wait()
 
@@ -191,6 +194,51 @@ def download_photos():
         rospy.logwarn("Media is not indexed :(")
     return num_media, dir_name
 
+def take_photo_single(drone):
+    print("taking photo")
+    photo_saved = drone(photo_progress(result="photo_saved", _policy="wait"))
+    drone(take_photo(cam_id=0)).wait()
+    photo_saved.wait()
+    media_id = photo_saved.received_events().last().args["media_id"]
+
+
+    media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
+    media_info_response.raise_for_status()
+    download_dir = tempfile.mkdtemp()
+    for resource in media_info_response.json()["resources"]:
+        image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
+        download_path = os.path.join(download_dir, resource["resource_id"])
+        image_response.raise_for_status()
+        with open(download_path, "wb") as image_file:
+            shutil.copyfileobj(image_response.raw, image_file)
+
+       
+        with open(download_path, "rb") as image_file:
+            image_data = image_file.read()
+            image_xmp_start = image_data.find(b"<x:xmpmeta")
+            image_xmp_end = image_data.find(b"</x:xmpmeta")
+            image_xmp = ET.fromstring(image_data[image_xmp_start : image_xmp_end + 12])
+            for image_meta in image_xmp[0][0]:
+                xmp_tag = re.sub(r"{[^}]*}", "", image_meta.tag)
+                xmp_value = image_meta.text
+                
+                if xmp_tag in XMP_TAGS_OF_INTEREST:
+                    print(resource["resource_id"], xmp_tag, xmp_value)
+
+
+def setup_photo_single_mode(drone):
+    drone(set_camera_mode(cam_id=0, value="photo")).wait()
+    drone(
+        set_photo_mode(
+            cam_id=0,
+            mode="single",  
+            format="rectilinear",
+            file_format="jpeg",
+            burst="burst_14_over_1s",  
+            bracketing="preset_1ev",
+            capture_interval=0.0,  
+        )
+    ).wait()
 
 def land():
     print("Landing....")
@@ -206,23 +254,62 @@ def command_callback(msg):
 
 def move_to(lat,lon,alt,drone_gps):
     print("moving...") 
+    # TODO: HEAD TO TARGET
     drone(moveTo(lat, lon, alt, MoveTo_Orientation_mode.NONE, 0)).wait().success()
     while not drone_gps.has_reached_target(lat, lon):
         print("Drone has not reached the target yet. Waiting...")
         time.sleep(5) 
     print("moving end...")
 
+
 if __name__ == '__main__':
     rospy.init_node('drone_command_node')
+    rospy.on_shutdown(exit)
 
-    altitude = float(input("Enter the flight altitude: ").strip() or 20)
 
-    loc00= Node(float(input("Enter Corner 1 Latitude: ").strip() or 48.8802), float(input("Enter Corner 1 Longitude: ").strip() or 2.3696), 170)
-    loc01= Node(float(input("Enter Corner 2 Latitude: ").strip() or 48.8802), float(input("Enter Corner 2 Longitude: ").strip() or 2.3700), 170)
-    loc10= Node(float(input("Enter Corner 3 Latitude: ").strip() or 48.8810), float(input("Enter Corner 3 Longitude: ").strip() or 2.3696), 170)
-    loc11= Node(float(input("Enter Corner 4 Latitude: ").strip() or 48.8810), float(input("Enter Corner 4 Longitude: ").strip() or 2.3700), 170)
+    # altitude = float(input("Enter the flight altitude: ").strip() or 20)
 
-    resolution = float(input("Enter orthophoto resolution cm/pixel: ").strip() or 1)
+    # # loc00= Node(float(input("Enter Corner 1 Latitude: ").strip() or 48.8802), float(input("Enter Corner 1 Longitude: ").strip() or 2.37), 170)
+    # # loc01= Node(float(input("Enter Corner 2 Latitude: ").strip() or 48.8802), float(input("Enter Corner 2 Longitude: ").strip() or 2.372), 170)
+    # # loc10= Node(float(input("Enter Corner 3 Latitude: ").strip() or 48.8810), float(input("Enter Corner 3 Longitude: ").strip() or 2.37), 170)
+    # # loc11= Node(float(input("Enter Corner 4 Latitude: ").strip() or 48.8810), float(input("Enter Corner 4 Longitude: ").strip() or 2.372), 170)
+
+    # nodes = []
+    # vertex_index = 1
+
+    # while True:
+    #     vertex_latitude = input("Enter Vertex " + str(vertex_index) + " Latitude: ").strip().lower()
+    #     if vertex_latitude == "finish":
+    #         break
+
+    #     vertex_longitude= input("Enter Vertex " + str(vertex_index) + " Longitude: ").strip().lower()
+    #     if vertex_longitude == "finish":
+    #         break
+
+    #     vertex_latitude = float(vertex_latitude)
+    #     vertex_longitude = float(vertex_longitude)
+
+    #     nodes.append(Node(vertex_longitude, vertex_latitude, 0))
+    #     vertex_index += 1
+
+    # rotation_angle = math.pi * max(0, min(20, float(input("Enter a rotation angle up to 20 degrees: ").strip() or 15))) / 180
+
+    # resolution = float(input("Enter orthophoto resolution cm/pixel: ").strip() or 1)
+
+    # intersection_ratio = float(input("Enter intersection ratio: ").strip() or 0.8)
+
+    if len(sys.argv) < 7:
+        print(sys.argv)
+        print("Usage: <altitude> <rotation_angle> <intersection_ratio> <vertex1_lat> <vertex1_lon> ... <vertexN_lon>")
+        sys.exit(1)
+
+    altitude = float(sys.argv[1])
+    rotation_angle = math.pi * max(0, min(20, float(sys.argv[2]))) / 180
+    intersection_ratio = float(sys.argv[3])
+    vertices = [(float(sys.argv[i]), float(sys.argv[i+1])) for i in range(4, len(sys.argv), 2)]
+
+    # Create Node instances for each vertex
+    nodes = [Node(lon, lat, 0) for lon, lat in vertices]
 
     print("imports are done")
    
@@ -231,22 +318,24 @@ if __name__ == '__main__':
     drone_gps = DroneGPS(drone)
     drone_gps.start()
     time.sleep(2)
+    print("Connection State: ", drone.connection_state())
     print("Creating Route...")
     takeoff_coord = drone_gps.get_current_position()
-    takeoff_n = Node(takeoff_coord[0], takeoff_coord[1], takeoff_coord[2])
-    # loc00= Node(48.8802, 2.3696, 170)
-    # loc01= Node(48.8802, 2.3700, 170)
-    # loc10= Node(48.8810, 2.3696, 170)
-    # loc11= Node(48.8810, 2.3700, 170)
+    takeoff_node = Node(takeoff_coord[1], takeoff_coord[0], takeoff_coord[2])
 
-    corner_list = [loc00, loc01, loc10, loc11]
-    route = create_route(takeoff_n, altitude, corner_list)
+    edges = []
+    len_nodes = len(nodes)
+    for i in range(len_nodes):
+        edges.append([nodes[i], nodes[(i + 1) % len_nodes]])
+
+    area = Scan_area(edges)
+    route, transformed_list, vertical_increment = area.create_route(takeoff_node, altitude, intersection_ratio, True, rotation_angle, None, None)
+
     print("route has been created")
 
     time.sleep(1)
     print("setting camera...")
     drone(set_camera_mode(0,value=camera_mode.photo))
-    drone(set_photo_mode(0,photo_mode.single,photo_format.full_frame,photo_file_format.jpeg,0,0,0))
 
     takeoff()
     drone(moveBy(0, 0, -altitude, 0)).wait().success()
@@ -257,28 +346,65 @@ if __name__ == '__main__':
                      roll=0.0)).wait()
     
     time.sleep(5)
-    setup_photo_single_mode(drone)
-    time.sleep(5)
-    
-    
+   
+    setup_photo_gpslapse_mode(drone)
+
+    print("following the first route...")
+
+    is_gpslapse_on = False
+
+    alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
+
     for i,point in enumerate(route):
-        # if i == 10:
-        #     break
-        print(f"point {i}/{len(route)}: {point.coordinates}")
-        lat = point.coordinates[0]
-        lon = point.coordinates[1]
-        alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
+        
+        print(f"point {i+1}/{len(route)}: {point.coordinates}")
+        lat = point.coordinates[1]
+        lon = point.coordinates[0]
         move_to(lat, lon, alt,drone_gps)
-        take_photo_single(drone)
-        time.sleep(5)
 
+        if is_gpslapse_on:
+            assert drone(stop_photo(cam_id=0)).wait().success()
+            setup_photo_single_mode(drone)
+            take_photo_single(drone)
+            setup_photo_gpslapse_mode(drone)
 
+        else:
+            drone(take_photo(cam_id=0)).wait()
+            time.sleep(2)
 
-    # drone(moveBy(0, 0, -40, 0)).wait().success()
-    # move_to(48.88064952124071, 2.370018686716253, 140.9792938232422,drone_gps)
+        is_gpslapse_on = not is_gpslapse_on
 
-    drone(return_to_home()).wait()
-    time.sleep(20)  
+        time.sleep(2)
+
+    print("following the second route...")
+
+    alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
+
+    for i,point in enumerate(transformed_list):
+        
+        print(f"point {i+1}/{len(transformed_list)}: {point.coordinates}")
+        lat = point.coordinates[1]
+        lon = point.coordinates[0]
+        move_to(lat, lon, alt,drone_gps)
+
+        if is_gpslapse_on:
+            assert drone(stop_photo(cam_id=0)).wait().success()
+            setup_photo_single_mode(drone)
+            take_photo_single(drone)
+            setup_photo_gpslapse_mode(drone)
+
+        else:
+            drone(take_photo(cam_id=0)).wait()
+            time.sleep(2)
+
+        is_gpslapse_on = not is_gpslapse_on
+
+        time.sleep(2)
+
+    
+    # drone(return_to_home()).wait()
+
+    move_to(takeoff_coord[0], takeoff_coord[1], alt, drone_gps)
     land()
 
     num_photos, project_folder = download_photos()
@@ -289,8 +415,7 @@ if __name__ == '__main__':
     drone_gps.stop()
     drone.disconnect()
 
-    if num_photos > 0:
-        generate_orthophoto(project_folder, resolution)
-        
+    print(f"Mission Finished: {project_folder}")
+
 
     

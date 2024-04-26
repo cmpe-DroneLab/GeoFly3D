@@ -152,19 +152,22 @@ def create_route(start_node,height,vertex_list):
         else:
             direction_vertical = Direction.NORTH
 
-    # plot_route(route=route)
+    plot_route(route=route)
 
     return route
+
+
+
 
 # corner_list = [Node(5,5,0), Node(15,5,0), Node(5,15,0), Node(15,15,0)]
 
 
-takeoff = Node(41.0859275, 29.044429, 0)
+# takeoff = Node(41.0859275, 29.044429, 0)
 
-loc00=  Node(41.085695, 29.044161, 0)
-loc01= Node(41.085695, 29.044697, 0)
-loc10= Node(41.086160, 29.044161, 0)
-loc11= Node(41.086160, 29.044697, 0)
+# loc00=  Node(41.085695, 29.044161, 0)
+# loc01= Node(41.085695, 29.044697, 0)
+# loc10= Node(41.086160, 29.044161, 0)
+# loc11= Node(41.086160, 29.044697, 0)
 
 
 # takeoff = Node(52.29145808851995, 4.939366446653248, 0)
@@ -176,7 +179,18 @@ loc11= Node(41.086160, 29.044697, 0)
 
 # corner_list = [loc00, loc01, loc10, loc11]
 
-# route = create_route(takeoff, 25, corner_list)
+# takeoff = Node(48.88, 2.37, 0)
+
+# loc00=  Node(48.88, 2.37, 0)
+# loc01= Node(48.88, 2.372, 0)
+# loc10= Node(48.881, 2.37, 0)
+# loc11= Node(48.881, 2.372, 0)
+# corner_list = [loc00, loc01, loc10, loc11]
+
+# route = create_route(takeoff, 100, corner_list)
+
+# # plot_route(route=route)
+
 # print(len(route))
 # x_list = []
 # y_list = []
