@@ -54,18 +54,21 @@ class MainWindow(QMainWindow):
         self.pre2.load_mission(mission_id)
         self.ui.stackedWidget.setCurrentIndex(1)
 
-    # PRE1 to PRE2
+    # PRE1 to PRE2/MID/POST
     def edit_mission_clicked(self):
         selected_item = self.pre1.ui.listWidget.selectedItems()[0]
         mission_id = int(selected_item.text().split(":")[1].split(",")[0].strip())
         mission_status = selected_item.text().split(":")[2].strip().lower()
 
+        # PRE1 to PRE2
         if mission_status == "draft":
             self.pre2.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(1)
+        # PRE1 to MID
         elif mission_status == "mid flight":
             self.mid.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(3)
+        # PRE1 to POST
         elif mission_status == "post flight":
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
             self.go_to_post("", project_folder=mission.project_folder,mission_id=mission_id)
@@ -99,12 +102,11 @@ class MainWindow(QMainWindow):
         altitude = self.pre3.mission.altitude
 
         mission_thread = self.mid.take_off(vertices=vertices, flight_altitude=altitude, mission_id=self.pre3.mission_id)
-        mission_thread.finished.connect(self.go_to_post)
+        mission_thread.finished.connect(self.scan_finished)
 
         self.ui.stackedWidget.setCurrentIndex(3)
 
-    # MID to POST
-    def go_to_post(self, msg, project_folder, mission_id):
+    def scan_finished(self, msg, project_folder, mission_id):
         print(msg)
         self.mid.threads.clear()
         self.mid.has_taken_off = False
@@ -121,6 +123,7 @@ class MainWindow(QMainWindow):
 
     # MID/POST to PRE1
     def go_to_main_clicked(self):
+        self.pre1.refresh_mission_list()
         self.ui.stackedWidget.setCurrentIndex(0)
 
 
