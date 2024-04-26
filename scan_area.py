@@ -66,12 +66,18 @@ class Scan_area:
         current_direction = None
         direction = None
         n = len(visited_nodes)
+        #######################
+        total_area  = 0
+        #######################
         for i in range(len(visited_nodes)):
             p1 = visited_nodes[i]
             p2 = visited_nodes[(i + 1) % n]
             p3 = visited_nodes[(i + 2) % n]
             cross_product = ((p2.coordinates[0] - p1.coordinates[0]) * (p3.coordinates[1] - p1.coordinates[1])) - (
                     (p2.coordinates[1] - p1.coordinates[1]) * (p3.coordinates[0] - p1.coordinates[0]))
+            #######################
+            total_area        = total_area + cross_product
+            #######################
             if cross_product == 0:
                 continue
             elif cross_product > 0.0001:
@@ -83,6 +89,7 @@ class Scan_area:
                 direction = current_direction
             elif direction != current_direction:
                 return False
+        print("Total Area:",total_area)
         return True
 
     # It's necessary to determine the direction of incrementing
@@ -112,6 +119,9 @@ class Scan_area:
         vector_2 = []
         transformed_list = []
         if enable_rotate:
+            #######################
+            print("Increment:",increment)
+            #######################
             longest_edge = None
             biggest_length = 0
             for edge in self.edges:
