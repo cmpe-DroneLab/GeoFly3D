@@ -98,9 +98,9 @@ class Scan_area:
             #######################
             total_area        = total_area + cross_product
             #######################
-            if cross_product == 0:
+            if cross_product * 10000000 == 0:
                 continue
-            elif cross_product > 0.0001:
+            elif cross_product * 10000000 > 0.0001:
                 current_direction = 1
             else:
                 current_direction = -1
@@ -128,7 +128,7 @@ class Scan_area:
     def create_route(self, start_point, height, intersection_ratio, enable_rotate, angle_rotation, n1, n2):
         if self.is_convex() == False:
             print("Please Check the Polygon")
-            return []
+            return [],[]
         route = []
         increment = self.calculate_increment(height, intersection_ratio)
         first_point = None
@@ -200,13 +200,13 @@ class Scan_area:
             dot_1 = (direction_vector_1[0] * direction_vector[0]) + (direction_vector_1[1] * direction_vector[1])
             dot_2 = (direction_vector_2[0] * direction_vector[0]) + (direction_vector_2[1] * direction_vector[1])
             is_orthogonal = False
-            if dot_1 > 0.00001:
+            if dot_1 * 10000000  > 0.00001:
                 true_angle = angle_1
                 true_vector = direction_1.copy()
                 start_vertex = vertex_2
                 end_vertex = vertex_1
                 true_vector.append(end_vertex.coordinates[2] - start_vertex.coordinates[2])
-            elif dot_2 > 0.00001:
+            elif dot_2 * 10000000 > 0.00001:
                 true_angle = angle_2
                 true_vector = direction_2.copy()
                 start_vertex = vertex_1
