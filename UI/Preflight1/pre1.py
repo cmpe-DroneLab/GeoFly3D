@@ -5,7 +5,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from UI.web_engine_page import WebEnginePage
 import UI.Preflight1.pre1_design
 
-from UI.database import Mission, session, get_all_missions
+from UI.database import Mission, session, get_all_missions, Drone
 
 
 class Pre1(QWidget):
@@ -21,6 +21,7 @@ class Pre1(QWidget):
         self.ui.v_lay_right.addWidget(self.webView)
 
         self.ui.btn_delete_mission.clicked.connect(self.delete_mission)
+        self.ui.btn_duplicate_mission.clicked.connect(self.duplicate_mission)
         self.ui.listWidget.itemSelectionChanged.connect(self.enable_buttons)
         self.refresh_mission_list()
 
@@ -60,6 +61,51 @@ class Pre1(QWidget):
         # Refresh the Mission List
         self.refresh_mission_list()
 
+    # Duplicate the mission selected from the list
+    def duplicate_mission(self):
+        selected_items = self.ui.listWidget.selectedItems()
+
+        # Find selected mission(s)
+        for item in selected_items:
+            old_mission_id = int(item.text().split(":")[1].split(",")[0].strip())
+            old_mission = session.query(Mission).filter_by(mission_id=old_mission_id).first()
+
+            # Create a new "Draft" mission
+            new_mission = Mission(
+                center_lat=old_mission.center_lat,
+                center_lon=old_mission.center_lon,
+                coordinates=old_mission.coordinates,
+                mission_status="Draft",
+                estimated_mission_time=old_mission.estimated_mission_time,
+                actual_mission_time=old_mission.actual_mission_time,
+                required_battery_capacity=old_mission.required_battery_capacity,
+                selected_area=old_mission.selected_area,
+                scanned_area=old_mission.scanned_area,
+                altitude=old_mission.altitude,
+            )
+
+            session.add(new_mission)
+            session.commit()
+
+            # Find all drones matching the old Mission
+            old_drones = session.query(Drone).filter_by(mission_id=old_mission.mission_id).all()
+            for old_drone in old_drones:
+                # Create a new Drone with same features as the old one
+                new_drone = Drone(
+                    model=old_drone.model,
+                    battery_no=old_drone.battery_no,
+                    flight_status=old_drone.flight_status,
+                    gps_status=old_drone.gps_status,
+                    connection_status=old_drone.connection_status,
+                    mission_id=new_mission.mission_id
+                )
+
+                session.add(new_drone)
+                session.commit()
+
+        # Refresh the Mission List
+        self.refresh_mission_list()
+
     # Gets all missions from the database, adds them to the Mission List and adds markers to the Map
     def refresh_mission_list(self):
         self.ui.listWidget.clear()
@@ -93,8 +139,11 @@ class Pre1(QWidget):
         if len(self.ui.listWidget.selectedIndexes()):
             self.ui.btn_edit_mission.setEnabled(True)
             self.ui.btn_delete_mission.setEnabled(True)
+            self.ui.btn_duplicate_mission.setEnabled(True)
+
 
     # Disables Edit Mission and Delete Mission buttons
     def disable_buttons(self):
         self.ui.btn_edit_mission.setEnabled(False)
         self.ui.btn_delete_mission.setEnabled(False)
+        self.ui.btn_duplicate_mission.setEnabled(False)

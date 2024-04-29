@@ -76,22 +76,29 @@
         <item>
          <layout class="QHBoxLayout" name="h_lay_drone_buttons">
           <item>
+           <widget class="QPushButton" name="btn_create_mission">
+            <property name="text">
+             <string>Create</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_duplicate_mission">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Duplicate</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QPushButton" name="btn_delete_mission">
             <property name="enabled">
              <bool>false</bool>
             </property>
             <property name="text">
-             <string>Delete Mission</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_edit_mission">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="text">
-             <string>Edit Mission</string>
+             <string>Delete</string>
             </property>
            </widget>
           </item>
@@ -101,11 +108,15 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btn_create_mission">
-       <property name="text">
-        <string>Create Mission ᐅ</string>
-       </property>
-      </widget>
+      <layout class="QGridLayout" name="g_lay_buttons">
+       <item row="1" column="0">
+        <widget class="QPushButton" name="btn_edit_mission">
+         <property name="text">
+          <string>Continue with Selected Mission ᐅ</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>
