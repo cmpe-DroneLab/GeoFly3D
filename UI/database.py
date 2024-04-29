@@ -85,7 +85,7 @@ def get_all_missions():
 
 
 # SQLite veritabanı motorunu oluşturma
-engine = create_engine('sqlite:///drone_veritabani.db')
+engine = create_engine('sqlite:///database.db')
 Base.metadata.create_all(engine)
 
 # Session oluştur

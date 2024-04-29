@@ -1,7 +1,10 @@
+import json
+
 import folium
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
+from UI.Preflight2.pre2 import calculate_sw_ne_points
 from UI.web_engine_page import WebEnginePage
 import UI.Preflight1.pre1_design
 
@@ -20,6 +23,7 @@ class Pre1(QWidget):
         self.setup_map(39, 35, 5)
         self.ui.v_lay_right.addWidget(self.webView)
 
+        self.ui.btn_test_missions.clicked.connect(self.create_test_missions)
         self.ui.btn_delete_mission.clicked.connect(self.delete_mission)
         self.ui.btn_duplicate_mission.clicked.connect(self.duplicate_mission)
         self.ui.listWidget.itemSelectionChanged.connect(self.enable_buttons)
@@ -61,7 +65,7 @@ class Pre1(QWidget):
         # Refresh the Mission List
         self.refresh_mission_list()
 
-    # Duplicate the mission selected from the list
+    # Duplicates the mission selected from the list
     def duplicate_mission(self):
         selected_items = self.ui.listWidget.selectedItems()
 
@@ -105,6 +109,58 @@ class Pre1(QWidget):
 
         # Refresh the Mission List
         self.refresh_mission_list()
+
+    # Creates test missions
+    def create_test_missions(self):
+
+        # Test Mission 1 RECTANGLE
+        test_mission_1 = Mission(
+            center_lat=41.0855452,
+            center_lon=29.0406428,
+            coordinates="[[41.085815, 29.040274], [41.085334, 29.040121], [41.085137, 29.041192], [41.085625, 29.041353], [41.085815, 29.040274]]",
+            mission_status="Draft",
+            required_battery_capacity=0,
+            selected_area=5972,
+            altitude=20,
+        )
+
+        session.add(test_mission_1)
+        session.commit()
+
+        test_drone_1 = Drone(
+            model="Parrot Anafi 4k",
+            battery_no=3,
+            mission_id=test_mission_1.mission_id
+        )
+
+        session.add(test_drone_1)
+        session.commit()
+
+        # Test Mission 2 SQUARE
+        test_mission_2 = Mission(
+            center_lat=41.0854778,
+            center_lon=29.040432199999998,
+            coordinates="[[41.085321, 29.040092], [41.085839, 29.040256], [41.085714, 29.040945], [41.085194, 29.040776], [41.085321, 29.040092]]",
+            mission_status="Draft",
+            required_battery_capacity=0,
+            selected_area=4087,
+            altitude=20,
+        )
+
+        session.add(test_mission_2)
+        session.commit()
+
+        test_drone_2 = Drone(
+            model="Parrot Anafi 4k",
+            battery_no=3,
+            mission_id=test_mission_2.mission_id
+        )
+
+        session.add(test_drone_2)
+        session.commit()
+
+        self.refresh_mission_list()
+
 
     # Gets all missions from the database, adds them to the Mission List and adds markers to the Map
     def refresh_mission_list(self):

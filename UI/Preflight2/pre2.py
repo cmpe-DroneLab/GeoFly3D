@@ -191,7 +191,7 @@ class Pre2(QWidget):
     def save_mission(self):
         if self.coords:
             self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
-        self.mission.coordinates = json.dumps(self.coords)
+            self.mission.coordinates = json.dumps(self.coords)
         self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
         self.mission.selected_area = int(self.ui.selected_area_value.text())
