@@ -41,6 +41,12 @@ class Pre2(QWidget):
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
+        self.mission = None
+        self.mission_id = None
+        self.mission_drones = []
+        self.coords = None
+        self.coords_lon_lat = None
+        self.map = None
 
         if mission_id == 0:
             self.mission = Mission(
@@ -189,7 +195,7 @@ class Pre2(QWidget):
 
     # Saves mission to the database
     def save_mission(self):
-        if self.coords:
+        if not (self.coords == 'null' or self.coords is None):
             self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
             self.mission.coordinates = json.dumps(self.coords)
         self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())

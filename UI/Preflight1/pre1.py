@@ -1,6 +1,7 @@
 import json
 
 import folium
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
@@ -28,6 +29,7 @@ class Pre1(QWidget):
         self.ui.btn_duplicate_mission.clicked.connect(self.duplicate_mission)
         self.ui.listWidget.itemSelectionChanged.connect(self.enable_buttons)
         self.refresh_mission_list()
+        self.refresh_general_map()
 
     # Creates a map given center point and zoom level
     def setup_map(self, lat, lon, zoom):
@@ -62,8 +64,9 @@ class Pre1(QWidget):
             if mission:
                 session.delete(mission)
                 session.commit()
-        # Refresh the Mission List
+        # Refresh the Mission List and the Map
         self.refresh_mission_list()
+        self.refresh_general_map()
 
     # Duplicates the mission selected from the list
     def duplicate_mission(self):
@@ -107,8 +110,9 @@ class Pre1(QWidget):
                 session.add(new_drone)
                 session.commit()
 
-        # Refresh the Mission List
+        # Refresh the Mission List and the Map
         self.refresh_mission_list()
+        self.refresh_general_map()
 
     # Creates test missions
     def create_test_missions(self):
@@ -160,7 +164,7 @@ class Pre1(QWidget):
         session.commit()
 
         self.refresh_mission_list()
-
+        self.refresh_general_map()
 
     # Gets all missions from the database, adds them to the Mission List and adds markers to the Map
     def refresh_mission_list(self):
@@ -168,15 +172,22 @@ class Pre1(QWidget):
 
         # Get all missions from the database
         missions = get_all_missions()
-
-        # Generate a new map in order to clear all markers
-        self.map = folium.Map(location=[39, 35], zoom_start=5, control_scale=True)
-
         for mission in missions:
             # Add missions to the Mission List
             item = QListWidgetItem(f"Mission ID: {mission.mission_id}, Status: {mission.mission_status}")
             self.ui.listWidget.addItem(item)
 
+        # Disable Edit Mission and Delete Mission buttons
+        self.disable_buttons()
+
+    def refresh_general_map(self):
+
+        # Generate a new map in order to clear all markers
+        self.map = folium.Map(location=[39, 35], zoom_start=5, control_scale=True)
+
+        # Get all missions from the database
+        missions = get_all_missions()
+        for mission in missions:
             # Get center points of the missions and put markers for them to the Map
             lat = mission.center_lat
             lon = mission.center_lon
@@ -187,16 +198,50 @@ class Pre1(QWidget):
         # Save and display the updated map
         self.save_map()
 
-        # Disable Edit Mission and Delete Mission buttons
-        self.disable_buttons()
-
     # Enables Edit Mission and Delete Mission buttons
     def enable_buttons(self):
         if len(self.ui.listWidget.selectedIndexes()):
             self.ui.btn_edit_mission.setEnabled(True)
             self.ui.btn_delete_mission.setEnabled(True)
             self.ui.btn_duplicate_mission.setEnabled(True)
+            self.zoom_selected_mission()
 
+    # Zooms into the selected mission on the map
+    def zoom_selected_mission(self):
+        if len(self.ui.listWidget.selectedIndexes()):
+            selected_item = self.ui.listWidget.selectedItems()[0]
+            mission_id = int(selected_item.text().split(":")[1].split(",")[0].strip())
+            mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+
+            # Draw previously selected area if available in the database
+            if not (mission.coordinates == 'null' or mission.coordinates is None):
+
+                # Generate a new map in order to clear all markers
+                self.map = folium.Map(location=[39, 35], zoom_start=5, control_scale=True)
+
+                coords = json.loads(mission.coordinates)
+
+                # Draw polygon and add to the map
+                fg = folium.FeatureGroup(name="ScanArea")
+                fg.add_child(folium.Polygon(coords))
+                self.map.add_child(fg)
+
+                # Set the map to show the polygon
+                sw_point, ne_point = calculate_sw_ne_points(coords)
+                self.map.fit_bounds([sw_point, ne_point])
+                self.save_map()
+            else:
+                self.refresh_general_map()
+
+
+    # Clears selection and zooms out the map when ESC button is pressed
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.ui.listWidget.clearSelection()
+            self.refresh_mission_list()
+            self.refresh_general_map()
+        else:
+            super().keyPressEvent(event)
 
     # Disables Edit Mission and Delete Mission buttons
     def disable_buttons(self):

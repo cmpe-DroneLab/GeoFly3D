@@ -18,10 +18,6 @@ class MainWindow(QMainWindow):
         self.ui = UI.main_design.Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # Drop and Recreate all tables
-        # Base.metadata.drop_all(engine)
-        # Base.metadata.create_all(engine)
-
         self.pre1 = Pre1()
         self.pre2 = Pre2()
         self.pre3 = Pre3()
@@ -77,11 +73,13 @@ class MainWindow(QMainWindow):
     # PRE2 to PRE1
     def cancel_mission_clicked(self):
         self.pre1.refresh_mission_list()
+        self.pre1.refresh_general_map()
         self.ui.stackedWidget.setCurrentIndex(0)
 
     # PRE2 to PRE1
     def save_mission_clicked(self):
         self.pre1.refresh_mission_list()
+        self.pre1.refresh_general_map()
         self.ui.stackedWidget.setCurrentIndex(0)
 
     # PRE3 to PRE2
@@ -126,6 +124,7 @@ class MainWindow(QMainWindow):
     # MID/POST to PRE1
     def go_to_main_clicked(self):
         self.pre1.refresh_mission_list()
+        self.pre1.refresh_general_map()
         self.ui.stackedWidget.setCurrentIndex(0)
 
 
