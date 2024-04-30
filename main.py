@@ -98,8 +98,14 @@ class MainWindow(QMainWindow):
         self.mid.load_mission(self.pre3.mission_id)
         vertices = self.pre3.coords_lon_lat
         altitude = self.pre3.mission.altitude
+        gimbal_angle = self.pre3.mission.gimbal_angle
 
-        mission_thread = self.mid.take_off(vertices=vertices, flight_altitude=altitude, mission_id=self.pre3.mission_id)
+        mission_thread = self.mid.take_off(
+            vertices=vertices,
+            flight_altitude=altitude,
+            mission_id=self.pre3.mission_id,
+            gimbal_angle=gimbal_angle
+        )
         mission_thread.finished.connect(self.scan_finished)
 
         self.ui.stackedWidget.setCurrentIndex(3)

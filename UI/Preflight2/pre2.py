@@ -34,6 +34,8 @@ class Pre2(QWidget):
 
         self.ui.slider_altitude.valueChanged.connect(self.slider_altitude_changed)
         self.ui.spinbox_altitude.valueChanged.connect(self.spinbox_altitude_changed)
+        self.ui.slider_gimbal.valueChanged.connect(self.slider_gimbal_changed)
+        self.ui.spinbox_gimbal.valueChanged.connect(self.spinbox_gimbal_changed)
         self.ui.btn_add_drone.clicked.connect(self.create_drone)
         self.ui.btn_delete_drone.clicked.connect(self.delete_drone)
         self.ui.listWidget.itemSelectionChanged.connect(self.enable_delete_button)
@@ -58,7 +60,8 @@ class Pre2(QWidget):
                 required_battery_capacity=0,
                 selected_area=0,
                 scanned_area=0,
-                altitude=100
+                altitude=100,
+                gimbal_angle=-90,
             )
             session.add(self.mission)
             session.commit()
@@ -82,6 +85,10 @@ class Pre2(QWidget):
         # Set altitude box values
         self.ui.slider_altitude.setValue(self.mission.altitude)
         self.ui.spinbox_altitude.setValue(self.mission.altitude)
+
+        # Set gimbal angle box values
+        self.ui.slider_gimbal.setValue(self.mission.gimbal_angle)
+        self.ui.spinbox_gimbal.setValue(self.mission.gimbal_angle)
 
         # Set up the Map
         self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
@@ -202,6 +209,7 @@ class Pre2(QWidget):
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
         self.mission.selected_area = int(self.ui.selected_area_value.text())
         self.mission.altitude = self.ui.spinbox_altitude.value()
+        self.mission.gimbal_angle = self.ui.spinbox_gimbal.value()
         session.commit()
 
     # Creates a map given center point and zoom level
@@ -261,6 +269,16 @@ class Pre2(QWidget):
         value = self.ui.spinbox_altitude.value()
         self.ui.slider_altitude.setValue(value)
         self.update_altitude_metrics()
+
+    # Captures changes in the gimbal angle slider and makes necessary updates
+    def slider_gimbal_changed(self):
+        value = self.ui.slider_gimbal.value()
+        self.ui.spinbox_gimbal.setValue(value)
+
+    # Captures changes in the gimbal angle spinbox and makes necessary updates
+    def spinbox_gimbal_changed(self):
+        value = self.ui.spinbox_gimbal.value()
+        self.ui.slider_gimbal.setValue(value)
 
     # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
