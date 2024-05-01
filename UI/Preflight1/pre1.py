@@ -91,6 +91,7 @@ class Pre1(QWidget):
                 altitude=old_mission.altitude,
                 gimbal_angle=old_mission.gimbal_angle,
                 route_angle=old_mission.route_angle,
+                rotated_route_angle=old_mission.rotated_route_angle,
             )
 
             session.add(new_mission)
@@ -130,6 +131,7 @@ class Pre1(QWidget):
             altitude=20,
             gimbal_angle=-85,
             route_angle=0,
+            rotated_route_angle=20,
         )
 
         session.add(test_mission_1)
@@ -155,6 +157,7 @@ class Pre1(QWidget):
             altitude=20,
             gimbal_angle=-85,
             route_angle=0,
+            rotated_route_angle=20,
         )
 
         session.add(test_mission_2)

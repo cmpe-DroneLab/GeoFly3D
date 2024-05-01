@@ -100,13 +100,15 @@ class MainWindow(QMainWindow):
         altitude = self.pre3.mission.altitude
         gimbal_angle = self.pre3.mission.gimbal_angle
         route_angle = self.pre3.mission.route_angle
+        rotated_route_angle = self.pre3.mission.rotated_route_angle
 
         mission_thread = self.mid.take_off(
             vertices=vertices,
             flight_altitude=altitude,
             mission_id=self.pre3.mission_id,
             gimbal_angle=gimbal_angle,
-            route_angle=route_angle
+            route_angle=route_angle,
+            rotated_route_angle=rotated_route_angle
         )
         mission_thread.finished.connect(self.scan_finished)
 

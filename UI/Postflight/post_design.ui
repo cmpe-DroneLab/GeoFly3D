@@ -159,7 +159,7 @@
           <property name="font">
            <font>
             <pointsize>15</pointsize>
-            <bold>true</bold>
+            <italic>true</italic>
            </font>
           </property>
           <property name="text">

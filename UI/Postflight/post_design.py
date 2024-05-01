@@ -104,7 +104,7 @@ class Ui_Form(object):
         self.label_drones = QtWidgets.QLabel(parent=self.gb_drones)
         font = QtGui.QFont()
         font.setPointSize(15)
-        font.setBold(True)
+        font.setItalic(True)
         self.label_drones.setFont(font)
         self.label_drones.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.label_drones.setObjectName("label_drones")

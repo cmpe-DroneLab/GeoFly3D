@@ -35,6 +35,7 @@ class Pre2(QWidget):
         self.ui.spinbox_altitude.valueChanged.connect(self.altitude_changed)
         self.ui.spinbox_gimbal.valueChanged.connect(self.gimbal_angle_changed)
         self.ui.spinbox_route_angle.valueChanged.connect(self.route_angle_changed)
+        self.ui.spinbox_rotated_route_angle.valueChanged.connect(self.rotated_route_angle_changed)
         self.ui.btn_add_drone.clicked.connect(self.create_drone)
         self.ui.btn_edit_drone.clicked.connect(self.edit_drone)
         self.ui.listWidget.doubleClicked.connect(self.edit_drone)
@@ -64,6 +65,7 @@ class Pre2(QWidget):
                 altitude=100,
                 gimbal_angle=-90,
                 route_angle=0,
+                rotated_route_angle=20,
             )
             session.add(self.mission)
             session.commit()
@@ -92,6 +94,9 @@ class Pre2(QWidget):
 
         # Set route angle value
         self.ui.spinbox_route_angle.setValue(self.mission.route_angle)
+
+        # Set rotated route angle value
+        self.ui.spinbox_rotated_route_angle.setValue(self.mission.rotated_route_angle)
 
         # Set up the Map
         self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
@@ -262,6 +267,7 @@ class Pre2(QWidget):
         self.mission.altitude = self.ui.spinbox_altitude.value()
         self.mission.gimbal_angle = self.ui.spinbox_gimbal.value()
         self.mission.route_angle = self.ui.spinbox_route_angle.value()
+        self.mission.rotated_route_angle = self.ui.spinbox_rotated_route_angle.value()
         session.commit()
 
     # Creates a map given center point and zoom level
@@ -320,6 +326,10 @@ class Pre2(QWidget):
 
     # Captures changes in the routing angle spinbox and makes necessary updates
     def route_angle_changed(self):
+        pass
+
+    # Captures changes in the rotated routing angle spinbox and makes necessary updates
+    def rotated_route_angle_changed(self):
         pass
 
     # Captures changes in the selected area and makes necessary updates

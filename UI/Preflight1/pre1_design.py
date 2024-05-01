@@ -92,7 +92,7 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
-        self.labe_header.setText(_translate("Form", "GeoFly3D"))
+        self.labe_header.setText(_translate("Form", "GeoFly3D Main Page"))
         self.label_missions.setText(_translate("Form", "Mission List"))
         self.btn_test_missions.setText(_translate("Form", "Create Test Missions"))
         self.btn_create_mission.setText(_translate("Form", "Create"))
