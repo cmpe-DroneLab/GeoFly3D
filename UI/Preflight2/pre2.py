@@ -32,10 +32,9 @@ class Pre2(QWidget):
         self.setup_map(39, 35, 5)
         self.ui.v_lay_right.addWidget(self.webView)
 
-        self.ui.slider_altitude.valueChanged.connect(self.slider_altitude_changed)
-        self.ui.spinbox_altitude.valueChanged.connect(self.spinbox_altitude_changed)
-        self.ui.slider_gimbal.valueChanged.connect(self.slider_gimbal_changed)
-        self.ui.spinbox_gimbal.valueChanged.connect(self.spinbox_gimbal_changed)
+        self.ui.spinbox_altitude.valueChanged.connect(self.altitude_changed)
+        self.ui.spinbox_gimbal.valueChanged.connect(self.gimbal_angle_changed)
+        self.ui.spinbox_route_angle.valueChanged.connect(self.route_angle_changed)
         self.ui.btn_add_drone.clicked.connect(self.create_drone)
         self.ui.btn_edit_drone.clicked.connect(self.edit_drone)
         self.ui.listWidget.doubleClicked.connect(self.edit_drone)
@@ -64,6 +63,7 @@ class Pre2(QWidget):
                 scanned_area=0,
                 altitude=100,
                 gimbal_angle=-90,
+                route_angle=0,
             )
             session.add(self.mission)
             session.commit()
@@ -84,13 +84,14 @@ class Pre2(QWidget):
         self.refresh_drone_list()
         self.calculate_provided_capacity()
 
-        # Set altitude box values
-        self.ui.slider_altitude.setValue(self.mission.altitude)
+        # Set altitude value
         self.ui.spinbox_altitude.setValue(self.mission.altitude)
 
-        # Set gimbal angle box values
-        self.ui.slider_gimbal.setValue(self.mission.gimbal_angle)
+        # Set gimbal angle value
         self.ui.spinbox_gimbal.setValue(self.mission.gimbal_angle)
+
+        # Set route angle value
+        self.ui.spinbox_route_angle.setValue(self.mission.route_angle)
 
         # Set up the Map
         self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
@@ -246,6 +247,7 @@ class Pre2(QWidget):
         self.mission.selected_area = int(self.ui.selected_area_value.text())
         self.mission.altitude = self.ui.spinbox_altitude.value()
         self.mission.gimbal_angle = self.ui.spinbox_gimbal.value()
+        self.mission.route_angle = self.ui.spinbox_route_angle.value()
         session.commit()
 
     # Creates a map given center point and zoom level
@@ -294,27 +296,17 @@ class Pre2(QWidget):
         self.map.fit_bounds([sw_point, ne_point])
         self.save_map()
 
-    # Captures changes in the altitude slider and makes necessary updates
-    def slider_altitude_changed(self):
-        value = self.ui.slider_altitude.value()
-        self.ui.spinbox_altitude.setValue(value)
-        self.update_altitude_metrics()
-
     # Captures changes in the altitude spinbox and makes necessary updates
-    def spinbox_altitude_changed(self):
-        value = self.ui.spinbox_altitude.value()
-        self.ui.slider_altitude.setValue(value)
+    def altitude_changed(self):
         self.update_altitude_metrics()
-
-    # Captures changes in the gimbal angle slider and makes necessary updates
-    def slider_gimbal_changed(self):
-        value = self.ui.slider_gimbal.value()
-        self.ui.spinbox_gimbal.setValue(value)
 
     # Captures changes in the gimbal angle spinbox and makes necessary updates
-    def spinbox_gimbal_changed(self):
-        value = self.ui.spinbox_gimbal.value()
-        self.ui.slider_gimbal.setValue(value)
+    def gimbal_angle_changed(self):
+        pass
+
+    # Captures changes in the routing angle spinbox and makes necessary updates
+    def route_angle_changed(self):
+        pass
 
     # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
@@ -369,7 +361,7 @@ class Pre2(QWidget):
 
     # Calculates required battery capacity for the mission
     def calculate_required_capacity(self):
-        altitude = self.ui.slider_altitude.value()
+        altitude = self.ui.spinbox_altitude.value()
         selected_area = int(self.ui.selected_area_value.text())
         required_capacity = selected_area / altitude ** 2
         self.ui.batt_required_value.setText(f"{required_capacity:.0f}")

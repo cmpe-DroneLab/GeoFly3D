@@ -10,7 +10,7 @@ class DroneController(QThread):
     progress_text = pyqtSignal(str)
     finished = pyqtSignal(str, str, int)
 
-    def __init__(self, vertices, flight_altitude, rotation_angle=20, intersection_ratio=0.8, mission_id=1, gimbal_angle=-90):
+    def __init__(self, vertices, flight_altitude, rotation_angle=20, intersection_ratio=0.8, mission_id=1, gimbal_angle=-90, route_angle=0):
         super().__init__()
 
         # self.optimal_route = optimal_route
@@ -21,6 +21,7 @@ class DroneController(QThread):
         self.intersection_ratio = intersection_ratio
         self.mission_id = mission_id
         self.gimbal_angle = gimbal_angle
+        self.route_angle = route_angle
 
     def run(self):
         self.started.emit(f"Mission #{self.mission_id} ---- START")
@@ -35,7 +36,7 @@ class DroneController(QThread):
         coords = [str(coord) for vertex in self.vertices for coord in vertex]
 
         # rosrun_command = f"rosrun route_control main.py {self.flight_altitude} {self.rotation_angle} {self.intersection_ratio} {coords}"
-        rosrun_command = ["rosrun", "route_control", "main.py", str(self.flight_altitude), str(self.rotation_angle), str(self.intersection_ratio), str(self.gimbal_angle), *coords]
+        rosrun_command = ["rosrun", "route_control", "main.py", str(self.flight_altitude), str(self.rotation_angle), str(self.intersection_ratio), str(self.gimbal_angle), str(self.route_angle), *coords]
 
         command = " ".join(rosrun_command)
         process = pexpect.spawn(command)

@@ -47,6 +47,7 @@ class Mission(Base):
     scanned_area = Column(Integer)
     altitude = Column(Integer)
     gimbal_angle = Column(Integer)
+    route_angle = Column(Integer)
     mission_drones = relationship("Drone", back_populates="mission")
     project_folder = Column(String)
 

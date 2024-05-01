@@ -150,13 +150,13 @@ class Mid(QWidget):
         self.map.add_child(route_line)
         self.save_map()
 
-    def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle):
+    def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle):
         if self.has_taken_off:
             return
 
         self.mission_id = mission_id
 
-        drone_controller_thread = DroneController(vertices=vertices, flight_altitude=flight_altitude, gimbal_angle=gimbal_angle)
+        drone_controller_thread = DroneController(vertices=vertices, flight_altitude=flight_altitude, gimbal_angle=gimbal_angle, route_angle=route_angle)
 
         drone_controller_thread.started.connect(print)
         drone_controller_thread.progress_text.connect(print)
