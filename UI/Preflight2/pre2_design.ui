@@ -367,7 +367,7 @@
        <item row="3" column="0">
         <widget class="QPushButton" name="btn_cancel">
          <property name="text">
-          <string>ᐊ Cancel</string>
+          <string>ᐊ Go Main</string>
          </property>
         </widget>
        </item>
@@ -384,7 +384,7 @@
        <item row="2" column="0" colspan="3">
         <widget class="QPushButton" name="btn_save">
          <property name="text">
-          <string>Save Mission</string>
+          <string>Save Changes</string>
          </property>
         </widget>
        </item>

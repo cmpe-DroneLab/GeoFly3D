@@ -6,6 +6,7 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QDialog, QListWidgetItem, QWidget, QLabel
 
+from RoutePlanner import route_planner
 from UI import draw
 from UI.database import Drone, session, Mission
 from UI.drone_dialog import Ui_drone_dialog
@@ -55,6 +56,8 @@ class Pre2(QWidget):
         if mission_id == 0:
             self.mission = Mission(
                 mission_status="Draft",
+                center_lat=41.0859528,
+                center_lon=29.0443435,
                 coordinates=None,
                 mission_drones=[],
                 estimated_mission_time=0,
@@ -86,6 +89,9 @@ class Pre2(QWidget):
         self.refresh_drone_list()
         self.calculate_provided_capacity()
 
+        # Set up the Map
+        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+
         # Set altitude value
         self.ui.spinbox_altitude.setValue(self.mission.altitude)
 
@@ -98,13 +104,8 @@ class Pre2(QWidget):
         # Set rotated route angle value
         self.ui.spinbox_rotated_route_angle.setValue(self.mission.rotated_route_angle)
 
-        # Set up the Map
-        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
-
-        # Draw previously selected area if available in the database
-        if not (self.mission.coordinates == 'null' or self.mission.coordinates is None):
-            self.coords = json.loads(self.mission.coordinates)
-            self.draw_polygon(self.coords)
+        # Draw route
+        self.draw_route()
 
         # Set Start Mission button
         self.update_start_button()
@@ -261,6 +262,7 @@ class Pre2(QWidget):
         if not (self.coords == 'null' or self.coords is None):
             self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
             self.mission.coordinates = json.dumps(self.coords)
+            self.draw_route()
         self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
         self.mission.selected_area = int(self.ui.selected_area_value.text())
@@ -273,20 +275,16 @@ class Pre2(QWidget):
     # Creates a map given center point and zoom level
     def setup_map(self, lat, lon, zoom):
 
-        if lat is None:
-            lat = 41.0859528
-            lon = 29.0443435
-
         self.map = folium.Map(location=[lat, lon],
                               zoom_start=zoom,
                               control_scale=True, )
 
-        drw = draw.Draw(export=True,
-                        show_geometry_on_click=False,
+        drw = draw.Draw(export=False,
+                        show_geometry_on_click=True,
                         filename='my_data.geojson',
                         draw_options={'polyline': False,
                                       'polygone': True,
-                                      'rectangle': False,
+                                      'rectangle': True,
                                       'circle': False,
                                       'marker': False,
                                       'circlemarker': False})
@@ -304,21 +302,10 @@ class Pre2(QWidget):
         # Listen for any drawings on the Map
         page.coords_printed.connect(self.selected_area_changed)
 
-    # Draws a polygon with given coordinates
-    def draw_polygon(self, coords):
-        # Draw polygon and add to the map
-        fg = folium.FeatureGroup(name="ScanArea")
-        fg.add_child(folium.Polygon(coords))
-        self.map.add_child(fg)
-
-        # Set the map to show the polygon
-        sw_point, ne_point = calculate_sw_ne_points(coords)
-        self.map.fit_bounds([sw_point, ne_point])
-        self.save_map()
-
     # Captures changes in the altitude spinbox and makes necessary updates
     def altitude_changed(self):
         self.update_altitude_metrics()
+        self.draw_route()
 
     # Captures changes in the gimbal angle spinbox and makes necessary updates
     def gimbal_angle_changed(self):
@@ -326,11 +313,11 @@ class Pre2(QWidget):
 
     # Captures changes in the routing angle spinbox and makes necessary updates
     def route_angle_changed(self):
-        pass
+        self.draw_route()
 
     # Captures changes in the rotated routing angle spinbox and makes necessary updates
     def rotated_route_angle_changed(self):
-        pass
+        self.draw_route()
 
     # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
@@ -404,6 +391,95 @@ class Pre2(QWidget):
             self.ui.batt_provided_value.setText(str(battery_count * 15))
         else:
             self.ui.batt_provided_value.setText('0')
+
+    def draw_route(self):
+
+        if self.mission.coordinates == 'null' or self.mission.coordinates is None:
+            return
+
+        # if self.coords == 'null' or self.coords is None:
+        #     return
+
+        # Get coordinates from database
+        self.coords = json.loads(self.mission.coordinates)
+        self.coords_lon_lat = invert_coordinates(self.coords)
+
+        # Recreate Map to clear everything
+        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+
+        # Create feature group for Selected Area
+        fg_selected = folium.FeatureGroup(name="Selected Area")
+
+        # Draw Selected Area
+        fg_selected.add_child(folium.Polygon(locations=self.coords,
+                                             weight=0,
+                                             fill_color="red",
+                                             fill_opacity=0.1,
+                                             fill=True,))
+
+        # Add Selected Area feature group to the Map
+        self.map.add_child(fg_selected)
+
+        # Calculate Optimal and Rotated Route
+        (self.optimal_route, self.rotated_route) = route_planner.plan_route(coords=self.coords_lon_lat[:-1],
+                                                                            altitude=self.ui.spinbox_altitude.value(),
+                                                                            intersection_ratio=0.8,
+                                                                            route_angle_deg=self.ui.spinbox_route_angle.value(),
+                                                                            rotated_route_angle_deg=self.ui.spinbox_rotated_route_angle.value())
+
+        # Create feature group for Optimal Route
+        fg_optimal = folium.FeatureGroup(name="Optimal Route")
+
+        # Add marker to Start point of Optimal Route
+        optimal_start_point = self.optimal_route[0]
+        fg_optimal.add_child(folium.Marker(location=[optimal_start_point[0], optimal_start_point[1]],
+                                           tooltip="Starting point of Optimal Route",
+                                           icon=folium.Icon(color="darkgreen", icon='play')))
+
+        # Add marker to End point of Optimal Route
+        optimal_end_point = self.optimal_route[-1]
+        fg_optimal.add_child(folium.Marker(location=[optimal_end_point[0], optimal_end_point[1]],
+                                           tooltip="Ending point of Optimal Route",
+                                           icon=folium.Icon(color="darkgreen", icon='stop')))
+
+        # Draw Optimal Route
+        fg_optimal.add_child(folium.PolyLine(locations=self.optimal_route,
+                                             color='darkgreen',
+                                             weight=3,
+                                             opacity=1))
+
+        # Add Optimal Route feature group to the Map
+        self.map.add_child(fg_optimal)
+
+        # Create feature group for Rotated Route
+        fg_rotated = folium.FeatureGroup(name="Rotated Route")
+
+        # Add marker to Start point of Rotated Route
+        rotated_start_point = self.rotated_route[0]
+        fg_rotated.add_child(folium.Marker(location=[rotated_start_point[0], rotated_start_point[1]],
+                                           tooltip="Starting point of Rotated Route",
+                                           icon=folium.Icon(color="darkblue", icon='play')))
+
+        # Add marker to End point of Rotated Route
+        rotated_end_point = self.rotated_route[-1]
+        fg_rotated.add_child(folium.Marker(location=[rotated_end_point[0], rotated_end_point[1]],
+                                           tooltip="Ending point of Rotated Route",
+                                           icon=folium.Icon(color="darkblue", icon='stop')))
+
+        # Draw Rotated Route
+        fg_rotated.add_child(folium.PolyLine(locations=self.rotated_route,
+                                             color='darkblue',
+                                             weight=2,
+                                             opacity=1,
+                                             dash_array='5'))
+
+        # Add Rotated Route feature group to the Map
+        self.map.add_child(fg_rotated)
+        self.map.add_child(folium.LayerControl())
+
+        sw_point, ne_point = calculate_sw_ne_points(self.coords)
+        self.map.fit_bounds([sw_point, ne_point])
+        self.save_map()
 
 
 # Calculates SW and NE points given coordinates

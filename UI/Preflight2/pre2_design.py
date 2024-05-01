@@ -245,9 +245,9 @@ class Ui_Form(object):
         self.btn_add_drone.setText(_translate("Form", "Create"))
         self.btn_edit_drone.setText(_translate("Form", "Edit"))
         self.btn_delete_drone.setText(_translate("Form", "Delete"))
-        self.btn_cancel.setText(_translate("Form", "ᐊ Cancel"))
+        self.btn_cancel.setText(_translate("Form", "ᐊ Go Main"))
         self.btn_start.setText(_translate("Form", "Start the Mission ᐅ"))
-        self.btn_save.setText(_translate("Form", "Save Mission"))
+        self.btn_save.setText(_translate("Form", "Save Changes"))
 
 
 if __name__ == "__main__":

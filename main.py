@@ -35,7 +35,6 @@ class MainWindow(QMainWindow):
         self.pre1.ui.listWidget.itemDoubleClicked.connect(self.edit_mission_clicked)
 
         self.pre2.ui.btn_cancel.clicked.connect(self.cancel_mission_clicked)
-        self.pre2.ui.btn_save.clicked.connect(self.save_mission_clicked)
         self.pre2.ui.btn_start.clicked.connect(self.start_mission_clicked)
 
         self.pre3.ui.btn_return_back.clicked.connect(self.return_back_clicked)
@@ -72,12 +71,6 @@ class MainWindow(QMainWindow):
 
     # PRE2 to PRE1
     def cancel_mission_clicked(self):
-        self.pre1.refresh_mission_list()
-        self.pre1.refresh_general_map()
-        self.ui.stackedWidget.setCurrentIndex(0)
-
-    # PRE2 to PRE1
-    def save_mission_clicked(self):
         self.pre1.refresh_mission_list()
         self.pre1.refresh_general_map()
         self.ui.stackedWidget.setCurrentIndex(0)
