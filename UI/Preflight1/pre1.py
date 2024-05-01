@@ -204,7 +204,7 @@ class Pre1(QWidget):
         # Save and display the updated map
         self.save_map()
 
-    # Enables Edit Mission and Delete Mission buttons
+    # Enables Edit Mission, Duplicate Mission and Delete Mission buttons
     def enable_buttons(self):
         if len(self.ui.listWidget.selectedIndexes()):
             self.ui.btn_edit_mission.setEnabled(True)

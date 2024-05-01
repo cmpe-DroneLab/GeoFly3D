@@ -2,7 +2,7 @@ import json
 import math
 
 import folium
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QDialog, QListWidgetItem, QWidget, QLabel
 
@@ -39,7 +39,7 @@ class Pre2(QWidget):
         self.ui.btn_edit_drone.clicked.connect(self.edit_drone)
         self.ui.listWidget.doubleClicked.connect(self.edit_drone)
         self.ui.btn_delete_drone.clicked.connect(self.delete_drone)
-        self.ui.listWidget.itemSelectionChanged.connect(self.enable_delete_button)
+        self.ui.listWidget.itemSelectionChanged.connect(self.enable_buttons)
         self.ui.btn_save.clicked.connect(self.save_mission)
 
     # Loads mission information from database into relevant fields
@@ -113,8 +113,8 @@ class Pre2(QWidget):
         for drone in drones:
             self.add_drone_to_list(drone)
 
-        # Disable Delete Drone button
-        self.disable_delete_button()
+        # Disable Edit Drone and Delete Drone buttons
+        self.disable_buttons()
 
         # Update drone related metrics
         self.update_drone_metrics()
@@ -217,14 +217,24 @@ class Pre2(QWidget):
         # Refresh the Drone List
         self.refresh_drone_list()
 
-    # Enables Delete Drone button
-    def enable_delete_button(self):
+    # Enables Edit Drone and Delete Drone buttons
+    def enable_buttons(self):
         if len(self.ui.listWidget.selectedIndexes()):
             self.ui.btn_delete_drone.setEnabled(True)
+            self.ui.btn_edit_drone.setEnabled(True)
 
-    # Disables Delete Drone button
-    def disable_delete_button(self):
+    # Disables Edit Drone and Delete Drone buttons
+    def disable_buttons(self):
         self.ui.btn_delete_drone.setEnabled(False)
+        self.ui.btn_edit_drone.setEnabled(False)
+
+    # Clears selection when ESC button is pressed
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.ui.listWidget.clearSelection()
+            self.disable_buttons()
+        else:
+            super().keyPressEvent(event)
 
     # Update Start Mission button
     def update_start_button(self):
