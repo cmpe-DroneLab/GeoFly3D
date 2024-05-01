@@ -105,7 +105,8 @@ class Pre3(QWidget):
         (self.optimal_route, self.rotated_route) = route_planner.plan_route(coords=self.coords_lon_lat[:-1],
                                                                             altitude=self.mission.altitude,
                                                                             intersection_ratio=0.8,
-                                                                            angle_deg=20)
+                                                                            route_angle_deg=self.mission.route_angle,
+                                                                            rotated_route_angle_deg=self.mission.rotated_route_angle)
 
     # Draws optimal route
     def draw_optimal_route(self, route):

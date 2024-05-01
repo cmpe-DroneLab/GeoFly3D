@@ -1,26 +1,17 @@
 import math
-
-from matplotlib import pyplot as plt
-
-from .node import Node
-from .scan_area import Scan_area
+from .scan_area import ScanArea
 
 
-def plan_route(coords, altitude, intersection_ratio=0.8, angle_deg=15):
-    angle = (math.pi * angle_deg / 180)
+def plan_route(coords, altitude, intersection_ratio=0.8, route_angle_deg=0, rotated_route_angle_deg=20):
+    route_angle = (math.pi * route_angle_deg / 180)
+    rotated_route_angle = (math.pi * rotated_route_angle_deg / 180)
 
     nodes = []
     for coord in coords:
-        nodes.append(Node(coord[0], coord[1], 0))
+        nodes.append((coord[0], coord[1]))
 
-    take_off_node = nodes[0]
-    edges = []
-    len_nodes = len(nodes)
-    for i in range(len_nodes):
-        edges.append([nodes[i], nodes[(i + 1) % len_nodes]])
-
-    area = Scan_area(edges)
-    optimal_route_nodes, rotated_route_nodes = area.create_route(take_off_node, altitude, intersection_ratio, True, angle, None, None)
+    polygon = ScanArea(coords=nodes)
+    optimal_route_nodes, rotated_route_nodes = polygon.create_route(altitude, intersection_ratio, route_angle, rotated_route_angle)
 
     # x_list = []
     # y_list = []
@@ -54,10 +45,10 @@ def plan_route(coords, altitude, intersection_ratio=0.8, angle_deg=15):
 
     optimal_route_coords = []
     for node in optimal_route_nodes:
-        optimal_route_coords.append((node.coordinates[1], node.coordinates[0]))
+        optimal_route_coords.append((node[1], node[0]))
 
     rotated_route_coords = []
     for node in rotated_route_nodes:
-        rotated_route_coords.append((node.coordinates[1], node.coordinates[0]))
+        rotated_route_coords.append((node[1], node[0]))
 
     return optimal_route_coords, rotated_route_coords
