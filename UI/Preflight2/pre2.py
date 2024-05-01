@@ -228,11 +228,15 @@ class Pre2(QWidget):
         self.ui.btn_delete_drone.setEnabled(False)
         self.ui.btn_edit_drone.setEnabled(False)
 
-    # Clears selection when ESC button is pressed
+    # Captures button pressings and performs necessary actions
     def keyPressEvent(self, event):
+        # Clear selection when ESC button is pressed
         if event.key() == Qt.Key.Key_Escape:
             self.ui.listWidget.clearSelection()
             self.disable_buttons()
+        # Delete selected drone when DELETE/BACKSPACE button is pressed
+        if event.key() == Qt.Key.Key_Delete or event.key() == Qt.Key.Key_Backspace:
+            self.delete_drone()
         else:
             super().keyPressEvent(event)
 

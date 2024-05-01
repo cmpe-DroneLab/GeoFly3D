@@ -239,13 +239,16 @@ class Pre1(QWidget):
             else:
                 self.refresh_general_map()
 
-
-    # Clears selection and zooms out the map when ESC button is pressed
+    # Captures button pressings and performs necessary actions
     def keyPressEvent(self, event):
+        # Clear selection and zooms out the map when ESC button is pressed
         if event.key() == Qt.Key.Key_Escape:
             self.ui.listWidget.clearSelection()
             self.refresh_mission_list()
             self.refresh_general_map()
+        # Delete selected mission when DELETE/BACKSPACE button is pressed
+        if event.key() == Qt.Key.Key_Delete or event.key() == Qt.Key.Key_Backspace:
+            self.delete_mission()
         else:
             super().keyPressEvent(event)
 
