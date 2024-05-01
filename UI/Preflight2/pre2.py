@@ -37,6 +37,8 @@ class Pre2(QWidget):
         self.ui.slider_gimbal.valueChanged.connect(self.slider_gimbal_changed)
         self.ui.spinbox_gimbal.valueChanged.connect(self.spinbox_gimbal_changed)
         self.ui.btn_add_drone.clicked.connect(self.create_drone)
+        self.ui.btn_edit_drone.clicked.connect(self.edit_drone)
+        self.ui.listWidget.doubleClicked.connect(self.edit_drone)
         self.ui.btn_delete_drone.clicked.connect(self.delete_drone)
         self.ui.listWidget.itemSelectionChanged.connect(self.enable_delete_button)
         self.ui.btn_save.clicked.connect(self.save_mission)
@@ -156,6 +158,40 @@ class Pre2(QWidget):
         new_drone_ui.spare_batt_text.setText(str(drone.battery_no))
         self.ui.listWidget.addItem(new_drone_item)
         self.ui.listWidget.setItemWidget(new_drone_item, new_drone_widget)
+
+    # Edits selected Drone
+    def edit_drone(self):
+
+        # Get the selected item
+        selected_item = self.ui.listWidget.selectedItems()[0]
+        # Get the widget associated with the item
+        selected_drone_widget = self.ui.listWidget.itemWidget(selected_item)
+        # Find the QLabel that holds the drone id and get the drone id
+        drone_id = int(selected_drone_widget.findChild(QLabel, "id_text").text())
+        # Query the database for the drone with the given id
+        drone = session.query(Drone).filter_by(drone_id=drone_id).first()
+
+        # Open edit drone dialog
+        dialog_win = QDialog()
+        dialog_ui = Ui_drone_dialog()
+        dialog_ui.setupUi(dialog_win)
+        dialog_win.setWindowTitle("Edit Drone")
+        dialog_ui.btn_save.setText("Save")
+        dialog_ui.combo_model.setCurrentText(drone.model)
+        dialog_ui.spin_spare_batt.setValue(drone.battery_no)
+        response = dialog_win.exec()
+
+        if response == 1:
+            # Get values from dialog
+            new_model = dialog_ui.combo_model.currentText()
+            new_spare = dialog_ui.spin_spare_batt.value()
+
+            drone.model = new_model
+            drone.battery_no = new_spare
+            session.commit()
+
+            # Refresh the Drone List
+            self.refresh_drone_list()
 
     # Deletes the drone selected from the list from the database
     def delete_drone(self):

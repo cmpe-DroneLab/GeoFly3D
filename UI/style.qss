@@ -52,7 +52,6 @@ QPushButton:checked { color: white; background-color: #5c5c5c; }
 #btn_edit_mission:pressed, #btn_start:pressed, #btn_take_off:pressed, #btn_return_to_home:pressed, #btn_process:pressed { color: white; background-color: #a33ea3; }
 
 QListWidget {
-    background-color: white;
     border-radius: 5px;
     padding: 10px;
     font-size: 13px;

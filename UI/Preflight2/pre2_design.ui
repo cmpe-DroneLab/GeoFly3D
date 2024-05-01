@@ -87,19 +87,26 @@
         <item>
          <layout class="QHBoxLayout" name="h_lay_drone_buttons">
           <item>
+           <widget class="QPushButton" name="btn_add_drone">
+            <property name="text">
+             <string>Create</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_edit_drone">
+            <property name="text">
+             <string>Edit</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QPushButton" name="btn_delete_drone">
             <property name="enabled">
              <bool>false</bool>
             </property>
             <property name="text">
-             <string>Delete Drone</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_add_drone">
-            <property name="text">
-             <string>Add Drone</string>
+             <string>Delete</string>
             </property>
            </widget>
           </item>
