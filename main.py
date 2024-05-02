@@ -108,20 +108,14 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.setCurrentIndex(3)
 
     def scan_finished(self, msg, project_folder, mission_id):
-        print(msg)
-
-        # DB UPDATE
-        # mission_id post_flight
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Post Flight"
         mission.project_folder = project_folder
         session.commit()
 
         self.post.load_mission(project_folder, mission_id)
-
         self.mid.threads.clear()
         self.mid.has_taken_off = False
-
         self.ui.stackedWidget.setCurrentIndex(4)
 
     # MID/POST to PRE1

@@ -36,8 +36,8 @@ class Mission(Base):
     __tablename__ = 'missions'
 
     mission_id = Column(Integer, primary_key=True)
-    center_lat = Column(Integer)
-    center_lon = Column(Integer)
+    center_lat = Column(Float)
+    center_lon = Column(Float)
     coordinates = Column(String)
     mission_status = Column(String)
     estimated_mission_time = Column(Integer)
@@ -49,7 +49,7 @@ class Mission(Base):
     gimbal_angle = Column(Integer)
     route_angle = Column(Integer)
     rotated_route_angle = Column(Integer)
-    mission_drones = relationship("Drone", back_populates="mission")
+    mission_drones = relationship("Drone", cascade="all, delete", back_populates="mission")
     project_folder = Column(String)
 
 
