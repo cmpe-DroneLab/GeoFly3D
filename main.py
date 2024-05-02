@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
     def start_mission_clicked(self):
         self.pre2.save_mission()
         self.pre3.ui.batt_provided_value.setText(self.pre2.ui.batt_provided_value.text())
-        self.pre3.load_mission(self.pre2.mission_id)
+        self.pre3.load_mission(self.pre2.mission.mission_id)
         self.ui.stackedWidget.setCurrentIndex(2)
 
     # PRE3 to MID

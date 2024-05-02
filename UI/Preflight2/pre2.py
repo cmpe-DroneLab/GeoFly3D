@@ -24,10 +24,6 @@ class Pre2(QWidget):
         self.ui.setupUi(self)
 
         self.mission = None
-        self.mission_id = None
-        self.mission_drones = []
-        self.coords = None
-        self.coords_lon_lat = None
         self.map = None
         self.webView = QWebEngineView()
         self.setup_map(39, 35, 5)
@@ -43,23 +39,13 @@ class Pre2(QWidget):
         self.ui.btn_delete_drone.clicked.connect(self.delete_drone)
         self.ui.listWidget.itemSelectionChanged.connect(self.enable_buttons)
         self.ui.btn_save.clicked.connect(self.save_mission)
+        self.ui.btn_cancel.clicked.connect(self.cancel_mission)
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
-        self.mission = None
-        self.mission_id = None
-        self.mission_drones = []
-        self.coords = None
-        self.coords_lon_lat = None
-        self.map = None
-
         if mission_id == 0:
             self.mission = Mission(
                 mission_status="Draft",
-                center_lat=41.0859528,
-                center_lon=29.0443435,
-                coordinates=None,
-                mission_drones=[],
                 estimated_mission_time=0,
                 actual_mission_time=0,
                 required_battery_capacity=0,
@@ -71,14 +57,8 @@ class Pre2(QWidget):
                 rotated_route_angle=20,
             )
             session.add(self.mission)
-            session.commit()
         else:
             self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-
-        self.mission_id = self.mission.mission_id
-
-        # Set mission id in the header box
-        self.ui.id_label.setText(str(self.mission_id))
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -89,8 +69,14 @@ class Pre2(QWidget):
         self.refresh_drone_list()
         self.calculate_provided_capacity()
 
+        # Set mission id in the header box
+        self.ui.id_label.setText(str(self.mission.mission_id))
+
         # Set up the Map
-        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+        if self.mission.center_lat is None:
+            self.setup_map(41.0859528, 29.0443435, 10)
+        else:
+            self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
 
         # Set altitude value
         self.ui.spinbox_altitude.setValue(self.mission.altitude)
@@ -115,7 +101,7 @@ class Pre2(QWidget):
         self.ui.listWidget.clear()
 
         # Find all drones matching the Mission
-        drones = session.query(Drone).filter_by(mission_id=self.mission_id).all()
+        drones = session.query(Drone).filter_by(mission_id=self.mission.mission_id).all()
         for drone in drones:
             self.add_drone_to_list(drone)
 
@@ -141,16 +127,13 @@ class Pre2(QWidget):
             new_drone_model = dialog_ui.combo_model.currentText()
             new_drone_spare = dialog_ui.spin_spare_batt.value()
 
+            # Create the drone object and add it to the database session
             draft_drone = Drone(model=new_drone_model,
                                 battery_no=new_drone_spare,
-                                flight_status=None,
-                                gps_status=False,
-                                connection_status=False,
-                                mission_id=self.mission_id)
+                                mission_id=self.mission.mission_id)
             session.add(draft_drone)
-            session.commit()
 
-            # Refresh the Drone List
+            # Refresh drone list after adding the drone
             self.refresh_drone_list()
 
     # Adds given drone to the Drone List
@@ -168,12 +151,10 @@ class Pre2(QWidget):
 
     # Edits selected Drone
     def edit_drone(self):
-
         # Get the selected item
         selected_item = self.ui.listWidget.selectedItems()[0]
-        # Get the widget associated with the item
+        # Get the widget associated with the item  and get the drone id
         selected_drone_widget = self.ui.listWidget.itemWidget(selected_item)
-        # Find the QLabel that holds the drone id and get the drone id
         drone_id = int(selected_drone_widget.findChild(QLabel, "id_text").text())
         # Query the database for the drone with the given id
         drone = session.query(Drone).filter_by(drone_id=drone_id).first()
@@ -195,9 +176,8 @@ class Pre2(QWidget):
 
             drone.model = new_model
             drone.battery_no = new_spare
-            session.commit()
 
-            # Refresh the Drone List
+            # Refresh drone list after updating the drone
             self.refresh_drone_list()
 
     # Deletes the drone selected from the list from the database
@@ -212,16 +192,14 @@ class Pre2(QWidget):
             id_label = drone_widget.findChild(QLabel, "id_text")
             # Get the drone id
             drone_id = int(id_label.text())
-            # Query the database for the drone with the given id
+            # Query the database for the drone with the given id and delete it
             drone = session.query(Drone).filter_by(drone_id=drone_id).first()
 
-            # Delete the drone from the database and refresh the Drone List
+            # Delete the drone object from the database session
             if drone:
                 session.delete(drone)
-                session.commit()
-
-        # Refresh the Drone List
-        self.refresh_drone_list()
+                # Refresh drone list after deleting the drone
+                self.refresh_drone_list()
 
     # Enables Edit Drone and Delete Drone buttons
     def enable_buttons(self):
@@ -248,20 +226,15 @@ class Pre2(QWidget):
 
     # Update Start Mission button
     def update_start_button(self):
-        if (
-                (self.coords != 'null')
-                and (self.coords is not None)
-                and (int(self.ui.batt_provided_value.text()) > int(self.ui.batt_required_value.text()))
-        ):
+        if (self.mission.coordinates != 'null') and (self.mission.coordinates is not None) and (int(self.ui.batt_provided_value.text()) > int(self.ui.batt_required_value.text())):
             self.ui.btn_start.setEnabled(True)
         else:
             self.ui.btn_start.setEnabled(False)
 
     # Saves mission to the database
     def save_mission(self):
-        if not (self.coords == 'null' or self.coords is None):
-            self.mission.center_lat, self.mission.center_lon = calculate_center_point(self.coords)
-            self.mission.coordinates = json.dumps(self.coords)
+        if (self.mission.coordinates != 'null') and (self.mission.coordinates is not None):
+            self.mission.center_lat, self.mission.center_lon = calculate_center_point(json.loads(self.mission.coordinates))
             self.draw_route()
         self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
@@ -270,7 +243,17 @@ class Pre2(QWidget):
         self.mission.gimbal_angle = self.ui.spinbox_gimbal.value()
         self.mission.route_angle = self.ui.spinbox_route_angle.value()
         self.mission.rotated_route_angle = self.ui.spinbox_rotated_route_angle.value()
+
+        # Commit changes to the database
         session.commit()
+
+        # Refresh drone list after saving mission
+        self.refresh_drone_list()
+
+    # Cancels mission changes and rolls back to the state before the last commit
+    def cancel_mission(self):
+        # Rollback to the state before the last commit
+        session.rollback()
 
     # Creates a map given center point and zoom level
     def setup_map(self, lat, lon, zoom):
@@ -321,8 +304,7 @@ class Pre2(QWidget):
 
     # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
-        self.coords_lon_lat = coords_lon_lat
-        self.coords = invert_coordinates(coords_lon_lat)
+        self.mission.coordinates = json.dumps(invert_coordinates(coords_lon_lat))
         self.update_area_metrics()
 
     # Updates drone related metrics
@@ -351,10 +333,11 @@ class Pre2(QWidget):
     # Calculates selected area from coordinates
     def calculate_selected_area(self):
         area = 0.0
-        if len(self.coords) > 2:
-            for i in range(len(self.coords) - 1):
-                p1 = self.coords[i]
-                p2 = self.coords[i + 1]
+        coords = json.loads(self.mission.coordinates)
+        if len(coords) > 2:
+            for i in range(len(coords) - 1):
+                p1 = coords[i]
+                p2 = coords[i + 1]
                 area += math.radians(p2[0] - p1[0]) * (
                         2 + math.sin(math.radians(p1[1])) + math.sin(math.radians(p2[1])))
             area = area * 6378137.0 * 6378137.0 / 2.0
@@ -397,12 +380,8 @@ class Pre2(QWidget):
         if self.mission.coordinates == 'null' or self.mission.coordinates is None:
             return
 
-        # if self.coords == 'null' or self.coords is None:
-        #     return
-
-        # Get coordinates from database
-        self.coords = json.loads(self.mission.coordinates)
-        self.coords_lon_lat = invert_coordinates(self.coords)
+        coords = json.loads(self.mission.coordinates)
+        coords_lon_lat = invert_coordinates(coords)
 
         # Recreate Map to clear everything
         self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
@@ -411,17 +390,17 @@ class Pre2(QWidget):
         fg_selected = folium.FeatureGroup(name="Selected Area")
 
         # Draw Selected Area
-        fg_selected.add_child(folium.Polygon(locations=self.coords,
+        fg_selected.add_child(folium.Polygon(locations=coords,
                                              weight=0,
                                              fill_color="red",
                                              fill_opacity=0.1,
-                                             fill=True,))
+                                             fill=True, ))
 
         # Add Selected Area feature group to the Map
         self.map.add_child(fg_selected)
 
         # Calculate Optimal and Rotated Route
-        (self.optimal_route, self.rotated_route) = route_planner.plan_route(coords=self.coords_lon_lat[:-1],
+        (self.optimal_route, self.rotated_route) = route_planner.plan_route(coords=coords_lon_lat[:-1],
                                                                             altitude=self.ui.spinbox_altitude.value(),
                                                                             intersection_ratio=0.8,
                                                                             route_angle_deg=self.ui.spinbox_route_angle.value(),
@@ -444,9 +423,9 @@ class Pre2(QWidget):
 
         # Draw Optimal Route
         fg_optimal.add_child(folium.PolyLine(locations=self.optimal_route,
-                                             color='darkgreen',
-                                             weight=3,
-                                             opacity=1))
+                                             weight=2,
+                                             color="darkgreen",
+                                             opacity=0.6))
 
         # Add Optimal Route feature group to the Map
         self.map.add_child(fg_optimal)
@@ -458,26 +437,28 @@ class Pre2(QWidget):
         rotated_start_point = self.rotated_route[0]
         fg_rotated.add_child(folium.Marker(location=[rotated_start_point[0], rotated_start_point[1]],
                                            tooltip="Starting point of Rotated Route",
-                                           icon=folium.Icon(color="darkblue", icon='play')))
+                                           icon=folium.Icon(color="darkred", icon='play')))
 
         # Add marker to End point of Rotated Route
         rotated_end_point = self.rotated_route[-1]
         fg_rotated.add_child(folium.Marker(location=[rotated_end_point[0], rotated_end_point[1]],
                                            tooltip="Ending point of Rotated Route",
-                                           icon=folium.Icon(color="darkblue", icon='stop')))
+                                           icon=folium.Icon(color="darkred", icon='stop')))
 
         # Draw Rotated Route
         fg_rotated.add_child(folium.PolyLine(locations=self.rotated_route,
-                                             color='darkblue',
                                              weight=2,
-                                             opacity=1,
-                                             dash_array='5'))
+                                             color="darkred",
+                                             opacity=0.6))
 
         # Add Rotated Route feature group to the Map
         self.map.add_child(fg_rotated)
+
+        # Add Layer Control
         self.map.add_child(folium.LayerControl())
 
-        sw_point, ne_point = calculate_sw_ne_points(self.coords)
+        # Save and Show Map
+        sw_point, ne_point = calculate_sw_ne_points(coords)
         self.map.fit_bounds([sw_point, ne_point])
         self.save_map()
 
@@ -488,13 +469,8 @@ def calculate_sw_ne_points(coords):
         lats = [c[0] for c in coords]
         lons = [c[1] for c in coords]
 
-        min_lat = min(lats)
-        min_lon = min(lons)
-        max_lat = max(lats)
-        max_lon = max(lons)
-
-        sw_point = (min_lat, min_lon)
-        ne_point = (max_lat, max_lon)
+        sw_point = (min(lats), min(lons))
+        ne_point = (max(lats), max(lons))
 
         return sw_point, ne_point
     return None, None
