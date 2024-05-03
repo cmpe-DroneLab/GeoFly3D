@@ -1,1 +1,1 @@
-{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"model": "Anafi 4k", "droneId": "1", "notes": ""}, "geometry": {"type": "Point", "coordinates": [29.04077226701099, 41.08560931545996]}}]}
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"model": "Anafi 4k", "droneId": "1", "notes": ""}, "geometry": {"type": "Point", "coordinates": [29.040359829529603, 41.08514828666524]}}]}

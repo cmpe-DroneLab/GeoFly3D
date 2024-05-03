@@ -130,6 +130,11 @@ class WebEnginePage(QtWebEngineCore.QWebEnginePage):
             print("Invalid message:", msg)
 
 
+class ServerThread(QThread):
+    def run(self):
+        start_server()
+
+
 class CORSRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -155,28 +160,11 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
 
-class ServerThread(QThread):
-    def __init__(self):
-        super().__init__()
-        self.httpd = None
-
-    def run(self):
-        self.start_server()
-
-    def terminate(self):
-        self.terminate_server()
-
-    def start_server(self, server_class=HTTPServer, handler_class=CORSRequestHandler, port=9000):
-        server_address = ('', port)
-        self.httpd = server_class(server_address, handler_class)
-        print(f'Starting server on port {port}...')
-        self.httpd.serve_forever()
-
-    def terminate_server(self):
-        if self.httpd:
-            print('Shutting down server...')
-            self.httpd.shutdown()  # Shutdown the server
-            self.httpd.server_close()
+def start_server(server_class=HTTPServer, handler_class=CORSRequestHandler, port=9000):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f'Starting server on port {port}...')
+    httpd.serve_forever()
 
 
 def update_drone_position_on_map(latitude, longitude):
