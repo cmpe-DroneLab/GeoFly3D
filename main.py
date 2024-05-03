@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
 
         if 0 not in self.mid.threads:
             self.start_server()
-        self.simulate_drone_flight()
+        # self.simulate_drone_flight()
 
         self.ui.stackedWidget.setCurrentIndex(3)
 
