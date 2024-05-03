@@ -117,7 +117,7 @@ class Mid(QWidget):
             self.save_map()
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
-        if self.has_taken_off:
+        if mission_id in self.threads:
             return
 
         drone_controller_thread = DroneController(vertices=vertices, flight_altitude=flight_altitude,
@@ -127,10 +127,9 @@ class Mid(QWidget):
         drone_controller_thread.started.connect(print)
         drone_controller_thread.progress_text.connect(print)
 
-        self.threads[1] = drone_controller_thread
+        self.threads[mission_id] = drone_controller_thread
         # drone_controller_thread.start()
         self.has_taken_off = True
-
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Mid Flight"
         session.commit()

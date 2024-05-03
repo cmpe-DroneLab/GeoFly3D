@@ -3,7 +3,7 @@ import folium
 import UI.Preflight1.pre1_design
 
 from folium.plugins import MousePosition, MarkerCluster
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from UI.database import Mission, session, get_all_missions, Drone
@@ -11,6 +11,8 @@ from UI.helpers import WebEnginePage, calculate_sw_ne_points
 
 
 class Pre1(QWidget):
+    mission_deleted = pyqtSignal(int)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -36,7 +38,7 @@ class Pre1(QWidget):
                               zoom_start=zoom,
                               control_scale=True, )
 
-        self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False,))
+        self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False, ))
         self.map.add_child(self.marker_cluster)
 
         self.save_map()
@@ -66,6 +68,7 @@ class Pre1(QWidget):
 
             # Delete the mission from the database
             if mission:
+                self.mission_deleted.emit(mission_id)
                 session.delete(mission)
                 session.commit()
 

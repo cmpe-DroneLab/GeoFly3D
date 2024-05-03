@@ -35,6 +35,7 @@ class MainWindow(QMainWindow):
         self.pre1.ui.btn_create_mission.clicked.connect(self.create_mission_clicked)
         self.pre1.ui.btn_edit_mission.clicked.connect(self.edit_mission_clicked)
         self.pre1.ui.listWidget.itemDoubleClicked.connect(self.edit_mission_clicked)
+        self.pre1.mission_deleted.connect(self.delete_mission_clicked)
 
         self.pre2.ui.btn_cancel.clicked.connect(self.cancel_mission_clicked)
         self.pre2.ui.btn_start.clicked.connect(self.start_mission_clicked)
@@ -70,6 +71,19 @@ class MainWindow(QMainWindow):
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
             self.post.load_mission(mission.project_folder, mission_id)
             self.ui.stackedWidget.setCurrentIndex(4)
+
+    def delete_mission_clicked(self, mission_id):
+        threads = self.mid.threads
+        if mission_id in threads:
+            mission_thread = threads.pop(mission_id)
+            mission_thread.terminate()
+            print(f"Mission {mission_id} Thread Aborted!")
+
+        if len(threads.keys()) == 1:
+            server_thread = threads.pop(0)
+            server_thread.terminate()
+            print(f"Server Thread Aborted!")
+        print(self.mid.threads)
 
     # PRE2 to PRE1
     def cancel_mission_clicked(self):
@@ -113,7 +127,8 @@ class MainWindow(QMainWindow):
         )
         mission_thread.finished.connect(self.scan_finished)
 
-        self.start_server()
+        if 0 not in self.mid.threads:
+            self.start_server()
         self.simulate_drone_flight()
 
         self.ui.stackedWidget.setCurrentIndex(3)
@@ -157,7 +172,7 @@ class MainWindow(QMainWindow):
     # Method to start the HTTP server
     def start_server(self):
         server_thread = ServerThread()
-        self.mid.threads[2] = server_thread
+        self.mid.threads[0] = server_thread
         server_thread.start()
 
 
