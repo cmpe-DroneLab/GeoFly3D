@@ -183,13 +183,14 @@ def update_drone_position_on_map(latitude, longitude):
     # Read the GeoJSON file
     with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
         data = json.load(fr)
-
+    fr.close()
     # Update the coordinates
     data['features'][0]['geometry']['coordinates'] = [longitude, latitude]
 
     # Write back the modified data
     with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
         json.dump(data, fw)
+    fw.close()
 
 
 # Calculates SW and NE points given coordinates

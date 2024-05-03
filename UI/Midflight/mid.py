@@ -120,15 +120,16 @@ class Mid(QWidget):
         if mission_id in self.threads:
             return
 
-        drone_controller_thread = DroneController(vertices=vertices, flight_altitude=flight_altitude,
+        drone_controller_thread = DroneController(vertices=vertices, mission_id=mission_id, flight_altitude=flight_altitude,
                                                   gimbal_angle=gimbal_angle, route_angle=route_angle,
                                                   rotated_route_angle=rotated_route_angle)
 
         drone_controller_thread.started.connect(print)
         drone_controller_thread.progress_text.connect(print)
+        drone_controller_thread.update_coord.connect(lambda lat, lon: self.drone_position_updated.emit(lat, lon))
 
         self.threads[mission_id] = drone_controller_thread
-        # drone_controller_thread.start()
+        drone_controller_thread.start()
         self.has_taken_off = True
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Mid Flight"
