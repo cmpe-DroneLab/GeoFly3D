@@ -1,16 +1,13 @@
 import json
-
 import folium
+import UI.Preflight1.pre1_design
+
+from folium.plugins import MousePosition, MarkerCluster
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from folium.plugins import MousePosition, MarkerCluster
-
-from UI.Preflight2.pre2 import calculate_sw_ne_points
-from UI.web_engine_page import WebEnginePage
-import UI.Preflight1.pre1_design
-
 from UI.database import Mission, session, get_all_missions, Drone
+from UI.helpers import WebEnginePage, calculate_sw_ne_points
 
 
 class Pre1(QWidget):
@@ -58,6 +55,7 @@ class Pre1(QWidget):
         self.save_map()
 
     # Deletes the mission selected from the list from the database
+    # TODO: Related thread will be removed
     def delete_mission(self):
         selected_items = self.ui.listWidget.selectedItems()
 
@@ -70,6 +68,7 @@ class Pre1(QWidget):
             if mission:
                 session.delete(mission)
                 session.commit()
+
         # Refresh the Mission List and the Map
         self.refresh_mission_list()
         self.refresh_general_map()

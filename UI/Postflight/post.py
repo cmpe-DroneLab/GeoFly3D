@@ -1,10 +1,9 @@
+import UI.Postflight.post_design
+
 from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
-
-import UI.Postflight.post_design
 from UI.database import session, Mission, Drone
 from UI.drone import Ui_Form
-
 from orthophoto_generator import OrthophotoGenerator
 
 

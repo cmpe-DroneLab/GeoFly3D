@@ -1,15 +1,17 @@
+import json
 import sys
-
-from PyQt6.QtWidgets import QApplication, QMainWindow
-
+import random
 import UI.main_design
+
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication, QMainWindow
 from UI.Preflight1.pre1 import Pre1
-from UI.Preflight2.pre2 import Pre2, invert_coordinates
+from UI.Preflight2.pre2 import Pre2
 from UI.Preflight3.pre3 import Pre3
 from UI.Midflight.mid import Mid
 from UI.Postflight.post import Post
-
 from UI.database import session, Mission
+from UI.helpers import ServerThread, calculate_sw_ne_points, invert_coordinates
 
 
 class MainWindow(QMainWindow):
@@ -88,25 +90,35 @@ class MainWindow(QMainWindow):
 
     # PRE3 to MID
     def take_off_clicked(self):
-        self.mid.load_mission(self.pre3.mission_id)
-        vertices = self.pre3.coords_lon_lat
+
+        coords = json.loads(self.pre3.mission.coordinates)
+        coords_lon_lat = invert_coordinates(coords)
+
+        mission_id = self.pre3.mission.mission_id
+        vertices = coords_lon_lat
         altitude = self.pre3.mission.altitude
         gimbal_angle = self.pre3.mission.gimbal_angle
         route_angle = self.pre3.mission.route_angle
         rotated_route_angle = self.pre3.mission.rotated_route_angle
 
+        self.mid.load_mission(mission_id)
+
         mission_thread = self.mid.take_off(
             vertices=vertices,
             flight_altitude=altitude,
-            mission_id=self.pre3.mission_id,
+            mission_id=mission_id,
             gimbal_angle=gimbal_angle,
             route_angle=route_angle,
             rotated_route_angle=rotated_route_angle
         )
         mission_thread.finished.connect(self.scan_finished)
 
+        self.start_server()
+        self.simulate_drone_flight()
+
         self.ui.stackedWidget.setCurrentIndex(3)
 
+    # MID to POST Automatically
     def scan_finished(self, msg, project_folder, mission_id):
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Post Flight"
@@ -123,6 +135,30 @@ class MainWindow(QMainWindow):
         self.pre1.refresh_mission_list()
         self.pre1.refresh_general_map()
         self.ui.stackedWidget.setCurrentIndex(0)
+
+    def simulate_drone_flight(self):
+        print("Drone started flying")
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.simulate_position_update)
+        self.timer.start(1000)  # Update position every 1000 milliseconds (1 second)
+
+    def simulate_position_update(self):
+
+        coords = json.loads(self.mid.mission.coordinates)
+        sw_point, ne_point = calculate_sw_ne_points(coords)
+
+        # Simulate random latitude and longitude
+        latitude = random.uniform(sw_point[0], ne_point[0])
+        longitude = random.uniform(sw_point[1], ne_point[1])
+        print("GPS coordinate: ", latitude, longitude)
+        # Emit signal with simulated position update
+        self.mid.drone_position_updated.emit(latitude, longitude)
+
+    # Method to start the HTTP server
+    def start_server(self):
+        server_thread = ServerThread()
+        self.mid.threads[2] = server_thread
+        server_thread.start()
 
 
 if __name__ == '__main__':

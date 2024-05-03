@@ -1,17 +1,14 @@
 import json
-
 import folium
+import UI.Preflight3.pre3_design
+
+from folium.plugins import MousePosition
 from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from folium.plugins import MousePosition
-
-from RoutePlanner import route_planner
 from UI.database import session, Mission, Drone
-from UI.web_engine_page import WebEnginePage
-import UI.Preflight3.pre3_design
 from UI.drone import Ui_Form
-from UI.Preflight2.pre2 import calculate_sw_ne_points, invert_coordinates
+from UI.helpers import RouteDrawer, WebEnginePage
 
 
 class Pre3(QWidget):
@@ -22,29 +19,16 @@ class Pre3(QWidget):
         self.ui.setupUi(self)
 
         self.mission = None
-        self.mission_id = None
-        self.coords = None
-        self.coords_lon_lat = None
-        self.optimal_route = None
-        self.rotated_route = None
         self.map = None
         self.webView = QWebEngineView()
         self.ui.v_lay_right.addWidget(self.webView)
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
-
         if mission_id == 0:
             exit(-1)
         else:
             self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-
-        self.mission_id = self.mission.mission_id
-        self.coords = json.loads(self.mission.coordinates)
-        self.coords_lon_lat = invert_coordinates(self.coords)
-
-        # Set mission id in the header box
-        self.ui.id_label.setText(str(self.mission_id))
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -54,18 +38,21 @@ class Pre3(QWidget):
         # Load drones
         self.refresh_drone_list()
 
+        # Set mission id in the header box
+        self.ui.id_label.setText(str(self.mission.mission_id))
+
         # Set up the Map
-        self.setup_map()
-        self.calculate_route()
-        self.draw_optimal_route(self.optimal_route)
-        self.draw_rotated_route(self.rotated_route)
+        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+
+        # Draw route
+        self.draw_route()
 
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
 
         # Find all drones matching the Mission
-        drones = session.query(Drone).filter_by(mission_id=self.mission_id).all()
+        drones = session.query(Drone).filter_by(mission_id=self.mission.mission_id).all()
         for drone in drones:
             self.add_drone_to_list(drone)
 
@@ -82,19 +69,16 @@ class Pre3(QWidget):
         self.ui.listWidget.addItem(new_drone_item)
         self.ui.listWidget.setItemWidget(new_drone_item, new_drone_widget)
 
-    # Creates a map
-    def setup_map(self):
+    # Creates a map given center point and zoom level
+    def setup_map(self, lat, lon, zoom):
 
-        self.map = folium.Map(location=[35, 39],
-                              zoom_start=5,
+        self.map = folium.Map(location=[lat, lon],
+                              zoom_start=zoom,
                               control_scale=True, )
 
         self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False,))
 
         self.save_map()
-
-        sw_point, ne_point = calculate_sw_ne_points(self.coords)
-        self.map.fit_bounds([sw_point, ne_point])
 
     # Saves and shows the map
     def save_map(self):
@@ -104,50 +88,8 @@ class Pre3(QWidget):
         self.webView.setHtml(open('./UI/Preflight3/pre3_map.html').read())
         self.webView.show()
 
-    # Calculates route
-    def calculate_route(self):
-        (self.optimal_route, self.rotated_route) = route_planner.plan_route(coords=self.coords_lon_lat[:-1],
-                                                                            altitude=self.mission.altitude,
-                                                                            intersection_ratio=0.8,
-                                                                            route_angle_deg=self.mission.route_angle,
-                                                                            rotated_route_angle_deg=self.mission.rotated_route_angle)
-
-    # Draws optimal route
-    def draw_optimal_route(self, route):
-
-        # draw path nodes
-        for point in route:
-            folium.CircleMarker(point,
-                                radius=5,
-                                color="green",
-                                weight=3,
-                                opacity=0.8,
-                                fill=False).add_to(self.map)
-
-        # draw path edges
-        route_line = folium.PolyLine(locations=route,
-                                     color='green',
-                                     weight=2.5,
-                                     opacity=0.8)
-        self.map.add_child(route_line)
-        self.save_map()
-
-    # Draws rotated route
-    def draw_rotated_route(self, route):
-
-        # draw path nodes
-        for point in route:
-            folium.CircleMarker(point,
-                                radius=5,
-                                stroke=False,
-                                fill=True,
-                                fill_color="orange",
-                                fill_opacity=0.8).add_to(self.map)
-
-        # draw path edges
-        route_line = folium.PolyLine(locations=route,
-                                     color='orange',
-                                     weight=2.5,
-                                     opacity=0.8)
-        self.map.add_child(route_line)
-        self.save_map()
+    def draw_route(self):
+        if self.mission:
+            self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+            RouteDrawer.draw_route(self.map, self.mission)
+            self.save_map()
