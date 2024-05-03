@@ -39,9 +39,11 @@ class Pre1(QWidget):
                               control_scale=True, )
 
         self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False, ))
+        self.marker_cluster = None
+        self.marker_cluster = MarkerCluster()
         self.map.add_child(self.marker_cluster)
-
         self.save_map()
+
 
     # Saves and shows the Map
     def save_map(self):
