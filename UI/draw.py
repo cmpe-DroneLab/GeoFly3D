@@ -50,55 +50,83 @@ class Draw(JSCSSMixin, MacroElement):
               draw: {{ this.draw_options|tojson }},
               edit: {{ this.edit_options|tojson }},
             }
+                       
             // FeatureGroup is to store editable layers.
             var drawnItems_{{ this.get_name() }} = new L.featureGroup().addTo(
                 {{ this._parent.get_name() }}
             );
+            
             options.edit.featureGroup = drawnItems_{{ this.get_name() }};
             var {{ this.get_name() }} = new L.Control.Draw(
                 options
             ).addTo( {{this._parent.get_name()}} );
+            
 
+            // Listen for the event triggered when a new shape is created
             {{ this._parent.get_name() }}.on(L.Draw.Event.CREATED, function(e) {
+                // Get the created layer and its type
                 var layer = e.layer,
                     type = e.layerType;
+                // Obtain the coordinates of the layer in GeoJSON format
                 var coords = JSON.stringify(layer.toGeoJSON());
 
-                // Control if polygon is convex or not
+                // Check if the shape is convex or not by obtaining its coordinates
                 var pcoords = JSON.parse(coords).geometry.coordinates[0];
                 var is_convex = isPolygonConvex(pcoords);
                 if (is_convex) {
+                    // If the shape is convex, log the coordinates to the console
                     console.log(coords);
+                    // Clear all previously drawn shapes and add the new shape
                     drawnItems_{{ this.get_name() }}.clearLayers();
                     drawnItems_{{ this.get_name() }}.addLayer(layer);
                 } else {
+                    // If the shape is not convex, show a warning message to the user
                     alert("The polygon is not convex!")
+                    // Enable editing mode (to edit the shape)
+                    e.target.editing.enable();
                 }
             });
-
+            
+            
+            // Listen for the event triggered when drawing starts
             {{ this._parent.get_name() }}.on(L.Draw.Event.DRAWSTART, function(e) {
-                // Clear previous drawings
+                // Clear all previously drawn shapes when drawing starts
                 drawnItems_{{ this.get_name() }}.clearLayers();
             });
 
+            
+            
+            // Listen for the event triggered when shapes are deleted
+            {{ this._parent.get_name() }}.on(L.Draw.Event.DELETED, function(e) {
+                // Log a message to the console when shapes are deleted
+                console.log("drawings deleted");
+            });
 
+        
+
+            // Listen for the event triggered when shapes are edited
             {{ this._parent.get_name() }}.on('draw:edited', function(e) {
+                // Iterate over each edited layer
                 e.layers.eachLayer(function (layer) {
+                    // Get the coordinates of the layer in GeoJSON format
                     var coords = JSON.stringify(layer.toGeoJSON());
-
-                    // Control if polygon is convex or not
+            
+                    // Extract the coordinates of the polygon
                     var pcoords = JSON.parse(coords).geometry.coordinates[0];
+                    // Check if the polygon is convex
                     var is_convex = isPolygonConvex(pcoords);
                     if (is_convex) {
-                        // Clear previous drawings
+                        // If the polygon is convex, log the coordinates to the console
                         console.log(coords);
                     } else {
-                        alert("The polygon is not convex!")
+                        // If the polygon is not convex, show a warning message to the user
+                        alert("The polygon is not convex!");
+                        // Enable editing mode (to edit the polygon)
                         e.target.editing.enable();
                     }
-
                 });
             });
+
 
             {% if this.export %}
             document.getElementById('export').onclick = function(e) {
@@ -136,7 +164,6 @@ class Draw(JSCSSMixin, MacroElement):
             return false;
 
         let prev_dir = 0;
-
         let curr_dir = 0;
 
         for (let i = 0; i < coords_length; i++) {
@@ -157,22 +184,6 @@ class Draw(JSCSSMixin, MacroElement):
         return true;
 
     }
-
-    // function isPolygonConvex(coords) {
-    //     var n = coords.length;
-    //     var isConvex = true;
-    //     for (var i = 0; i < n; ++i) {
-    //         var p1 = coords[i];
-    //         var p2 = coords[(i + 1) % n];
-    //         var p3 = coords[(i + 2) % n];
-    //         var crossProductResult = crossProduct(p1, p2, p3);
-    //         if (crossProductResult < 0) {
-    //             isConvex = false;
-    //             break;
-    //         }
-    //     }
-    //     return isConvex;
-    // }
 
     function crossProduct(p1, p2, p3) {
         return (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0]);

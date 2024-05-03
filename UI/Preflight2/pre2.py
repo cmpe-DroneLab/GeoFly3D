@@ -5,6 +5,7 @@ import folium
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QDialog, QListWidgetItem, QWidget, QLabel
+from folium.plugins import MousePosition
 
 from RoutePlanner import route_planner
 from UI import draw
@@ -226,7 +227,8 @@ class Pre2(QWidget):
 
     # Update Start Mission button
     def update_start_button(self):
-        if (self.mission.coordinates != 'null') and (self.mission.coordinates is not None) and (int(self.ui.batt_provided_value.text()) > int(self.ui.batt_required_value.text())):
+        if (self.mission.coordinates != 'null') and (self.mission.coordinates is not None) and (
+                int(self.ui.batt_provided_value.text()) > int(self.ui.batt_required_value.text())):
             self.ui.btn_start.setEnabled(True)
         else:
             self.ui.btn_start.setEnabled(False)
@@ -234,7 +236,8 @@ class Pre2(QWidget):
     # Saves mission to the database
     def save_mission(self):
         if (self.mission.coordinates != 'null') and (self.mission.coordinates is not None):
-            self.mission.center_lat, self.mission.center_lon = calculate_center_point(json.loads(self.mission.coordinates))
+            self.mission.center_lat, self.mission.center_lon = calculate_center_point(
+                json.loads(self.mission.coordinates))
             self.draw_route()
         self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
@@ -272,6 +275,9 @@ class Pre2(QWidget):
                                       'marker': False,
                                       'circlemarker': False})
         self.map.add_child(drw)
+
+        self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False,))
+
         self.save_map()
 
     # Saves and shows the map
@@ -282,8 +288,9 @@ class Pre2(QWidget):
         self.webView.setHtml(open('./UI/Preflight2/pre2_map.html').read())
         self.webView.show()
 
-        # Listen for any drawings on the Map
+        # Listen for any events on the Map
         page.coords_printed.connect(self.selected_area_changed)
+        page.shapes_deleted.connect(self.selected_area_deleted)
 
     # Captures changes in the altitude spinbox and makes necessary updates
     def altitude_changed(self):
@@ -305,6 +312,14 @@ class Pre2(QWidget):
     # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
         self.mission.coordinates = json.dumps(invert_coordinates(coords_lon_lat))
+        self.mission.center_lat, self.mission.center_lon = calculate_center_point(json.loads(self.mission.coordinates))
+        self.update_area_metrics()
+
+    # Captures changes in the selected area and makes necessary updates
+    def selected_area_deleted(self):
+        self.mission.coordinates = None
+        self.mission.center_lat = None
+        self.mission.center_lon = None
         self.update_area_metrics()
 
     # Updates drone related metrics
@@ -332,7 +347,11 @@ class Pre2(QWidget):
 
     # Calculates selected area from coordinates
     def calculate_selected_area(self):
-        area = 0.0
+
+        if self.mission.coordinates == 'null' or self.mission.coordinates is None:
+            return 0
+
+        area = 0
         coords = json.loads(self.mission.coordinates)
         if len(coords) > 2:
             for i in range(len(coords) - 1):

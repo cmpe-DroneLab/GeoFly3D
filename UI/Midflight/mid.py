@@ -4,6 +4,7 @@ import folium
 from PyQt6.QtCore import QSize
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
+from folium.plugins import MousePosition
 
 import UI.Midflight.mid_design
 from RoutePlanner import route_planner
@@ -88,6 +89,9 @@ class Mid(QWidget):
         self.map = folium.Map(location=[35, 39],
                               zoom_start=5,
                               control_scale=True, )
+
+        self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False,))
+
         self.save_map()
 
         sw_point, ne_point = calculate_sw_ne_points(self.coords)

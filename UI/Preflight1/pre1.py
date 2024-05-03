@@ -4,6 +4,7 @@ import folium
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from folium.plugins import MousePosition, MarkerCluster
 
 from UI.Preflight2.pre2 import calculate_sw_ne_points
 from UI.web_engine_page import WebEnginePage
@@ -20,6 +21,7 @@ class Pre1(QWidget):
         self.ui.setupUi(self)
 
         self.map = None
+        self.marker_cluster = MarkerCluster()
         self.webView = QWebEngineView()
         self.setup_map(39, 35, 5)
         self.ui.v_lay_right.addWidget(self.webView)
@@ -36,6 +38,10 @@ class Pre1(QWidget):
         self.map = folium.Map(location=[lat, lon],
                               zoom_start=zoom,
                               control_scale=True, )
+
+        self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False,))
+        self.map.add_child(self.marker_cluster)
+
         self.save_map()
 
     # Saves and shows the Map
@@ -48,7 +54,7 @@ class Pre1(QWidget):
 
     # Adds marker to the Map
     def add_marker(self, lat, lon, popup_text):
-        folium.Marker([lat, lon], popup=popup_text).add_to(self.map)
+        folium.Marker([lat, lon], popup=popup_text).add_to(self.marker_cluster)
         self.save_map()
 
     # Deletes the mission selected from the list from the database
@@ -192,7 +198,7 @@ class Pre1(QWidget):
     def refresh_general_map(self):
 
         # Generate a new map in order to clear all markers
-        self.map = folium.Map(location=[39, 35], zoom_start=5, control_scale=True)
+        self.setup_map(39, 35, 5)
 
         # Get all missions from the database
         missions = get_all_missions()
