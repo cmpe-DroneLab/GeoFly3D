@@ -6,6 +6,7 @@ from std_msgs.msg import String
 import olympe
 import time
 import math
+from math import cos, sin, radians
 import os
 from olympe.messages.ardrone3.PilotingState import GpsLocationChanged
 from olympe.messages.ardrone3.Piloting import *
@@ -22,7 +23,7 @@ import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from node import Node
-from scan_area import Scan_area
+from scan_area import ScanArea
 
 from orthophoto_generator import generate_orthophoto
 
@@ -252,10 +253,25 @@ def command_callback(msg):
     if msg.data == "takeoff":
         takeoff()
 
+def calculate_bearing_angle(coord1, coord2):
+
+        lat_a, lon_a, _ = coord1
+        lat_b, lon_b, _ = coord2
+
+        X = cos(radians(lat_b)) * sin(radians(abs(lon_a - lon_b)))
+        Y = cos(radians(lat_a)) * sin(radians(lat_b)) - sin(radians(lat_a)) * cos(radians(lat_b)) * cos(
+            radians(abs(lon_a - lon_b)))
+
+        sign = 1 if lon_a < lon_b else -1
+        return sign * math.atan2(X, Y)
+
 def move_to(lat,lon,alt,drone_gps):
     print("moving...") 
+
+    heading = math.degrees(calculate_bearing_angle(drone_gps.get_current_position(), (lat, lon, 0)))
+
     # TODO: HEAD TO TARGET
-    drone(moveTo(lat, lon, alt, MoveTo_Orientation_mode.NONE, 0)).wait().success()
+    drone(moveTo(lat, lon, alt, MoveTo_Orientation_mode.HEADING_START, heading)).wait().success()
     while not drone_gps.has_reached_target(lat, lon):
         print("Drone has not reached the target yet. Waiting...")
         time.sleep(5) 
@@ -297,19 +313,31 @@ if __name__ == '__main__':
     # resolution = float(input("Enter orthophoto resolution cm/pixel: ").strip() or 1)
 
     # intersection_ratio = float(input("Enter intersection ratio: ").strip() or 0.8)
+    
+    print(sys.argv)
+    if sys.argv[1] == "test":
+        altitude = 200
+        intersection_ratio = 0.8
+        gimbal_angle = -90
+        route_angle = math.pi * 0 / 180
+        rotated_route_angle = math.pi * 20 / 180
 
-    if len(sys.argv) < 7:
-        print(sys.argv)
-        print("Usage: <altitude> <rotation_angle> <intersection_ratio> <vertex1_lat> <vertex1_lon> ... <vertexN_lon>")
-        sys.exit(1)
+        vertices = [(2.37, 48.8802),(2.372, 48.8802),(2.372, 48.88),(2.37, 48.88)]
+    else:
+        if len(sys.argv) < 7:
+            print("Usage: <altitude> <rotation_angle> <intersection_ratio> <vertex1_lon> <vertex1_lat> ... <vertexN_lat>")
+            sys.exit(1)
+        
+        altitude = float(sys.argv[1])
+        intersection_ratio = float(sys.argv[2])
+        gimbal_angle = float(sys.argv[3])
+        route_angle = math.pi * float(sys.argv[4]) / 180
+        rotated_route_angle = math.pi * float(sys.argv[5]) / 180
 
-    altitude = float(sys.argv[1])
-    rotation_angle = math.pi * max(0, min(20, float(sys.argv[2]))) / 180
-    intersection_ratio = float(sys.argv[3])
-    vertices = [(float(sys.argv[i]), float(sys.argv[i+1])) for i in range(4, len(sys.argv), 2)]
+        vertices = [(float(sys.argv[i]), float(sys.argv[i+1])) for i in range(6, len(sys.argv), 2)]
 
     # Create Node instances for each vertex
-    nodes = [Node(lon, lat, 0) for lon, lat in vertices]
+    # nodes = [Node(lon, lat, 0) for lon, lat in vertices]
 
     print("imports are done")
    
@@ -321,15 +349,13 @@ if __name__ == '__main__':
     print("Connection State: ", drone.connection_state())
     print("Creating Route...")
     takeoff_coord = drone_gps.get_current_position()
-    takeoff_node = Node(takeoff_coord[1], takeoff_coord[0], takeoff_coord[2])
+    # takeoff_node = Node(takeoff_coord[1], takeoff_coord[0], takeoff_coord[2])
 
-    edges = []
-    len_nodes = len(nodes)
-    for i in range(len_nodes):
-        edges.append([nodes[i], nodes[(i + 1) % len_nodes]])
+    print(takeoff_coord)
 
-    area = Scan_area(edges)
-    route, transformed_list, vertical_increment = area.create_route(takeoff_node, altitude, intersection_ratio, True, rotation_angle, None, None)
+
+    polygon = ScanArea(vertices)
+    route, rotated_route, vertical_increment = polygon.create_route(altitude, intersection_ratio, route_angle, rotated_route_angle)
 
     print("route has been created")
 
@@ -342,7 +368,7 @@ if __name__ == '__main__':
     time.sleep(2)
     print("setting gimball....")
     drone(set_target(gimbal_id=0,control_mode= control_mode.position, yaw_frame_of_reference=frame_of_reference.relative, yaw=0.0, 
-                     pitch_frame_of_reference=frame_of_reference.relative, pitch=-90, roll_frame_of_reference=frame_of_reference.relative,
+                     pitch_frame_of_reference=frame_of_reference.relative, pitch=gimbal_angle, roll_frame_of_reference=frame_of_reference.relative,
                      roll=0.0)).wait()
     
     time.sleep(5)
@@ -357,9 +383,9 @@ if __name__ == '__main__':
 
     for i,point in enumerate(route):
         
-        print(f"point {i+1}/{len(route)}: {point.coordinates}")
-        lat = point.coordinates[1]
-        lon = point.coordinates[0]
+        print(f"point {i+1}/{len(route)}: {point[::-1]}")
+        lat = point[1]
+        lon = point[0]
         move_to(lat, lon, alt,drone_gps)
 
         if is_gpslapse_on:
@@ -380,11 +406,11 @@ if __name__ == '__main__':
 
     alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
 
-    for i,point in enumerate(transformed_list):
+    for i,point in enumerate(rotated_route):
         
-        print(f"point {i+1}/{len(transformed_list)}: {point.coordinates}")
-        lat = point.coordinates[1]
-        lon = point.coordinates[0]
+        print(f"point {i+1}/{len(rotated_route)}: {point[::-1]}")
+        lat = point[1]
+        lon = point[0]
         move_to(lat, lon, alt,drone_gps)
 
         if is_gpslapse_on:
