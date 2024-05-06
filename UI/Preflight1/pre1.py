@@ -160,7 +160,7 @@ class Pre1(QWidget):
         test_mission_2 = Mission(
             center_lat=41.0854778,
             center_lon=29.040432199999998,
-            coordinates="[[41.085321, 29.040092], [41.085839, 29.040256], [41.085714, 29.040945], [41.085194, 29.040776], [41.085321, 29.040092]]",
+            coordinates="[[41.085275, 29.040304], [41.085803, 29.040478], [41.085679, 29.041173], [41.085148, 29.040999], [41.085275, 29.040304]]",
             mission_status="Draft",
             required_battery_capacity=0,
             selected_area=4087,
@@ -211,9 +211,11 @@ class Pre1(QWidget):
             lat = mission.center_lat
             lon = mission.center_lon
             if lat is not None:
-                popup_text = f"Mission ID: {mission.mission_id}, Status: {mission.mission_status}"
-                self.add_marker(lat, lon, popup_text)
-
+                popup_text = (f"<h5 style='text-align:center'>MISSION #{mission.mission_id}</h5>"
+                              f"<b>Mission Status:</b> {mission.mission_status}<br>"
+                              f"<b>Selected Area:</b> {mission.selected_area}m<sup>2</sup><br>")
+                popup = folium.Popup(popup_text, max_width=150, min_width=150)
+                self.add_marker(lat, lon, popup)
         # Save and display the updated map
         self.save_map()
 

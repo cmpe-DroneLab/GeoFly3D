@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.setCurrentIndex(1)
 
     # PRE1 to PRE2/MID/POST
-    def edit_mission_clicked(self):
+    def edit_mission_clicked(self, mission_id):
         selected_item = self.pre1.ui.listWidget.selectedItems()[0]
         mission_id = int(selected_item.text().split(":")[1].split(",")[0].strip())
         mission_status = selected_item.text().split(":")[2].strip().lower()
