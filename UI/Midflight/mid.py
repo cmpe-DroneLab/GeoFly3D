@@ -14,8 +14,6 @@ from drone_controller import DroneController
 
 
 class Mid(QWidget):
-    drone_position_updated = pyqtSignal(float, float)  # Define a signal to indicate updated drone position
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -30,8 +28,6 @@ class Mid(QWidget):
         self.has_taken_off = False
         self.threads = {}
 
-        self.drone_position_updated.connect(update_drone_position_on_map)
-        self.drone_position_updated.connect(self.update_live_data)
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -158,6 +154,7 @@ class Mid(QWidget):
         drone_controller_thread.started.connect(print)
         drone_controller_thread.progress_text.connect(print)
         drone_controller_thread.update_coord.connect(update_drone_position_on_map)
+        drone_controller_thread.update_coord.connect(self.update_live_data)
 
         self.threads[mission_id] = drone_controller_thread
         drone_controller_thread.start()

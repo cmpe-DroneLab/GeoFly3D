@@ -187,7 +187,7 @@ def update_drone_position_on_map(latitude, longitude, battery_percent):
     fr.close()
     # Update the coordinates
     data['features'][0]['geometry']['coordinates'] = [longitude, latitude]
-    data['features'][0]['battery_percent'] = battery_percent
+    data['features'][0]['properties']['battery'] = battery_percent
     # Write back the modified data
     with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
         json.dump(data, fw)
