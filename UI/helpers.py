@@ -179,14 +179,14 @@ class ServerThread(QThread):
             self.httpd.server_close()
 
 
-def update_drone_position_on_map(latitude, longitude):
+def update_drone_position_on_map(latitude, longitude, battery_percent):
     # Read the GeoJSON file
     with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
         data = json.load(fr)
     fr.close()
     # Update the coordinates
     data['features'][0]['geometry']['coordinates'] = [longitude, latitude]
-
+    data['features'][0]['battery_percent'] = battery_percent
     # Write back the modified data
     with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
         json.dump(data, fw)

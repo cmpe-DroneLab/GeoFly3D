@@ -9,7 +9,7 @@ import pexpect
 class DroneController(QThread):
     started = pyqtSignal(str)
     progress_text = pyqtSignal(str)
-    update_coord = pyqtSignal(float, float)
+    update_coord = pyqtSignal(float, float, float)
     finished = pyqtSignal(str, str, int)
 
     def __init__(self, vertices, mission_id=1, flight_altitude=100, rotation_angle=20, intersection_ratio=0.8, gimbal_angle=-90, route_angle=0, rotated_route_angle=20):
@@ -68,8 +68,8 @@ class DroneController(QThread):
                 coordinates = line.split(',')
                 latitude = float(coordinates[0][1:])
                 longitude = float(coordinates[1])
-                # battery_percent = float(line.strip().split("Battery: ")[-1][:-1])
-                self.update_coord.emit(latitude, longitude)
+                battery_percent = float(line.strip().split("Battery: ")[-1][:-1])
+                self.update_coord.emit(latitude, longitude, battery_percent)
             # elif "Battery State: " in line:
             #     try:
             #         battery_percent = line.strip().split(',')[-1][:-3]
