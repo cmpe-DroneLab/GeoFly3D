@@ -10,8 +10,8 @@ from PyQt6.QtWidgets import QDialog, QListWidgetItem, QWidget, QLabel
 from UI import draw
 from UI.database import Drone, session, Mission
 from UI.drone_dialog import Ui_drone_dialog
-from UI.drone import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage, calculate_center_point, invert_coordinates
+from UI.ListItems.drone_pre import Ui_Form
+from UI.helpers import RouteDrawer, WebEnginePage, calculate_center_point, invert_coordinates, get_current_time
 
 
 class Pre2(QWidget):
@@ -43,6 +43,7 @@ class Pre2(QWidget):
     def load_mission(self, mission_id):
         if mission_id == 0:
             self.mission = Mission(
+                creation_time=get_current_time(),
                 mission_status="Draft",
                 estimated_mission_time=0,
                 actual_mission_time=0,
@@ -137,13 +138,20 @@ class Pre2(QWidget):
     # Adds given drone to the Drone List
     def add_drone_to_list(self, drone):
         new_drone_item = QListWidgetItem()
-        new_drone_item.setSizeHint(QSize(self.ui.listWidget.lineWidth(), 80))
         new_drone_widget = QWidget()
         new_drone_ui = Ui_Form()
         new_drone_ui.setupUi(new_drone_widget)
         new_drone_ui.id_text.setText(str(drone.drone_id))
         new_drone_ui.model_text.setText(drone.model)
         new_drone_ui.spare_batt_text.setText(str(drone.battery_no))
+
+        # Calculate the height of the new_drone_widget
+        new_drone_widget.adjustSize()
+        widget_height = new_drone_widget.sizeHint().height()
+
+        # Set the size hint for the item
+        new_drone_item.setSizeHint(QSize(self.ui.listWidget.lineWidth(), widget_height))
+
         self.ui.listWidget.addItem(new_drone_item)
         self.ui.listWidget.setItemWidget(new_drone_item, new_drone_widget)
 
@@ -234,6 +242,7 @@ class Pre2(QWidget):
     def save_mission(self):
 
         self.draw_route()
+        self.mission.last_update_time = get_current_time()
 
         # Commit changes to the database
         session.commit()

@@ -1,1 +1,33 @@
-{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"model": "Anafi 4k", "droneId": "1", "battery": 100}, "geometry": {"type": "Point", "coordinates": [29.040359829529603, 41.08514828666524]}}]}
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "model": "Anafi 4k",
+        "objectid": "1",
+        "droneId": 1,
+        "battery": 99.5,
+        "status":"Not Provided"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [29.04064, 41.08527]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "model": "Anafi USA",
+        "objectid": "2",
+        "droneId": 2,
+        "battery": 83.7,
+        "status":"Not Provided"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [29.04106, 41.08547]
+      }
+    }
+  ]
+}

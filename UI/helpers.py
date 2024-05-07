@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from datetime import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 import folium
@@ -192,7 +193,6 @@ def update_drone_position_on_map(latitude, longitude, battery_percent):
         json.dump(data, fw)
     fw.close()
 
-
 # Calculates SW and NE points given coordinates
 def calculate_sw_ne_points(coords):
     if len(coords):
@@ -245,3 +245,9 @@ def resource_path(relative_path):
         base_path = os.path.abspath("./UI/Midflight")
 
     return os.path.join(base_path, relative_path)
+
+
+def get_current_time():
+    current_time = datetime.now()
+    time_format = "%H:%M:%S %d/%m/%y"
+    return current_time.strftime(time_format)

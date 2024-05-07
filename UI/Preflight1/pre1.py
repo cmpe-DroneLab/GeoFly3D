@@ -3,11 +3,12 @@ import folium
 import UI.Preflight1.pre1_design
 
 from folium.plugins import MousePosition, MarkerCluster
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QListWidgetItem
+from PyQt6.QtCore import Qt, pyqtSignal, QSize
+from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from UI.database import Mission, session, get_all_missions, Drone
-from UI.helpers import WebEnginePage, calculate_sw_ne_points
+from UI.ListItems.mission import Ui_Form
+from UI.helpers import WebEnginePage, calculate_sw_ne_points, get_current_time
 
 
 class Pre1(QWidget):
@@ -65,7 +66,7 @@ class Pre1(QWidget):
 
         # Find selected mission(s)
         for item in selected_items:
-            mission_id = int(item.text().split(":")[1].split(",")[0].strip())
+            mission_id = int(item.listWidget().itemWidget(item).findChild(QLabel, "id_text").text())
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
 
             # Delete the mission from the database
@@ -84,11 +85,13 @@ class Pre1(QWidget):
 
         # Find selected mission(s)
         for item in selected_items:
-            old_mission_id = int(item.text().split(":")[1].split(",")[0].strip())
+            old_mission_id = int(item.listWidget().itemWidget(item).findChild(QLabel, "id_text").text())
             old_mission = session.query(Mission).filter_by(mission_id=old_mission_id).first()
 
             # Create a new "Draft" mission
             new_mission = Mission(
+                creation_time=get_current_time(),
+                last_update_time=get_current_time(),
                 center_lat=old_mission.center_lat,
                 center_lon=old_mission.center_lon,
                 coordinates=old_mission.coordinates,
@@ -129,9 +132,10 @@ class Pre1(QWidget):
 
     # Creates test missions
     def create_test_missions(self):
-
         # Test Mission 1 RECTANGLE
         test_mission_1 = Mission(
+            creation_time=get_current_time(),
+            last_update_time=get_current_time(),
             center_lat=41.0855452,
             center_lon=29.0406428,
             coordinates="[[41.085815, 29.040274], [41.085334, 29.040121], [41.085137, 29.041192], [41.085625, 29.041353], [41.085815, 29.040274]]",
@@ -158,6 +162,8 @@ class Pre1(QWidget):
 
         # Test Mission 2 SQUARE
         test_mission_2 = Mission(
+            creation_time=get_current_time(),
+            last_update_time=get_current_time(),
             center_lat=41.0854778,
             center_lon=29.040432199999998,
             coordinates="[[41.085275, 29.040304], [41.085803, 29.040478], [41.085679, 29.041173], [41.085148, 29.040999], [41.085275, 29.040304]]",
@@ -193,11 +199,31 @@ class Pre1(QWidget):
         missions = get_all_missions()
         for mission in missions:
             # Add missions to the Mission List
-            item = QListWidgetItem(f"Mission ID: {mission.mission_id}, Status: {mission.mission_status}")
-            self.ui.listWidget.addItem(item)
+            self.add_mission_to_list(mission)
 
         # Disable Edit Mission and Delete Mission buttons
         self.disable_buttons()
+
+    # Adds given mission to the Mission List
+    def add_mission_to_list(self, mission):
+        new_mission_item = QListWidgetItem()
+        new_mission_widget = QWidget()
+        new_mission_ui = Ui_Form()
+        new_mission_ui.setupUi(new_mission_widget)
+        new_mission_ui.id_text.setText(str(mission.mission_id))
+        new_mission_ui.creation_time_text.setText(mission.creation_time)
+        new_mission_ui.last_update_time_text.setText(mission.last_update_time)
+        new_mission_ui.status_text.setText(mission.mission_status)
+
+        # Calculate the height of the new_mission_widget
+        new_mission_widget.adjustSize()
+        widget_height = new_mission_widget.sizeHint().height()
+
+        # Set the size hint for the item
+        new_mission_item.setSizeHint(QSize(self.ui.listWidget.lineWidth(), widget_height))
+
+        self.ui.listWidget.addItem(new_mission_item)
+        self.ui.listWidget.setItemWidget(new_mission_item, new_mission_widget)
 
     def refresh_general_map(self):
 
@@ -230,8 +256,8 @@ class Pre1(QWidget):
     # Zooms into the selected mission on the map
     def zoom_selected_mission(self):
         if len(self.ui.listWidget.selectedIndexes()):
-            selected_item = self.ui.listWidget.selectedItems()[0]
-            mission_id = int(selected_item.text().split(":")[1].split(",")[0].strip())
+            item = self.ui.listWidget.selectedItems()[0]
+            mission_id = int(item.listWidget().itemWidget(item).findChild(QLabel, "id_text").text())
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
 
             # Draw previously selected area if available in the database

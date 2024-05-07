@@ -36,6 +36,8 @@ class Mission(Base):
     __tablename__ = 'missions'
 
     mission_id = Column(Integer, primary_key=True)
+    creation_time = Column(String)
+    last_update_time = Column(String)
     center_lat = Column(Float)
     center_lon = Column(Float)
     coordinates = Column(String)
@@ -79,12 +81,17 @@ class Node(Base):
 def get_all_missions():
     Session = sessionmaker(bind=engine)
     session = Session()
-
     missions = session.query(Mission).all()
-
     session.close()
-
     return missions
+
+
+def get_mission_drones(mission_id):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    drones = session.query(Drone).filter_by(mission_id=mission_id).all()
+    session.close()
+    return drones
 
 
 # SQLite veritabanı motorunu oluşturma

@@ -4,7 +4,7 @@ import random
 import UI.main_design
 
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from UI.Preflight1.pre1 import Pre1
 from UI.Preflight2.pre2 import Pre2
 from UI.Preflight3.pre3 import Pre3
@@ -54,9 +54,9 @@ class MainWindow(QMainWindow):
 
     # PRE1 to PRE2/MID/POST
     def edit_mission_clicked(self, mission_id):
-        selected_item = self.pre1.ui.listWidget.selectedItems()[0]
-        mission_id = int(selected_item.text().split(":")[1].split(",")[0].strip())
-        mission_status = selected_item.text().split(":")[2].strip().lower()
+        item = self.pre1.ui.listWidget.selectedItems()[0]
+        mission_id = int(item.listWidget().itemWidget(item).findChild(QLabel, "id_text").text())
+        mission_status = item.listWidget().itemWidget(item).findChild(QLabel, "status_text").text().lower()
 
         # PRE1 to PRE2
         if mission_status == "draft":

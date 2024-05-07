@@ -3,7 +3,7 @@ import UI.Postflight.post_design
 from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
 from UI.database import session, Mission, Drone
-from UI.drone import Ui_Form
+from UI.ListItems.drone_mid import Ui_Form
 from orthophoto_generator import OrthophotoGenerator
 
 
@@ -55,13 +55,20 @@ class Post(QWidget):
     # Adds given drone to the Drone List
     def add_drone_to_list(self, drone):
         new_drone_item = QListWidgetItem()
-        new_drone_item.setSizeHint(QSize(self.ui.listWidget.lineWidth(), 80))
         new_drone_widget = QWidget()
         new_drone_ui = Ui_Form()
         new_drone_ui.setupUi(new_drone_widget)
         new_drone_ui.id_text.setText(str(drone.drone_id))
         new_drone_ui.model_text.setText(drone.model)
-        new_drone_ui.spare_batt_text.setText(str(drone.battery_no))
+        new_drone_ui.batt_text.setText(str(drone.battery_no))
+
+        # Calculate the height of the new_drone_widget
+        new_drone_widget.adjustSize()
+        widget_height = new_drone_widget.sizeHint().height()
+
+        # Set the size hint for the item
+        new_drone_item.setSizeHint(QSize(self.ui.listWidget.lineWidth(), widget_height))
+
         self.ui.listWidget.addItem(new_drone_item)
         self.ui.listWidget.setItemWidget(new_drone_item, new_drone_widget)
 
