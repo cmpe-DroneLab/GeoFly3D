@@ -3,6 +3,7 @@
 import rospy
 import math
 import olympe
+import time
 
 from std_msgs.msg import Float32, UInt8, UInt64
 from geometry_msgs.msg import Vector3Stamped
@@ -30,6 +31,7 @@ from olympe.enums.ardrone3.PilotingState import WindStateChanged_State
 from olympe.messages.common.CommonState import LinkSignalQuality
 from olympe.messages.common.CommonState import MassStorageInfoStateListChanged
 from olympe.messages.common.CommonState import SensorsStatesListChanged
+from olympe.messages.common.CommonState import AllStatesChanged, BatteryStateChanged
 from olympe.messages.rth import home_reachability as home_reachability_message
 from olympe.enums.rth import home_reachability as home_reachability_enum
 from olympe.messages.rth import rth_auto_trigger
@@ -52,7 +54,7 @@ from olympe.messages.ardrone3.GPSState import NumberOfSatelliteChanged
 from olympe.messages.ardrone3.PilotingState import AltitudeChanged
 from olympe.messages.ardrone3.PilotingState import AttitudeChanged
 from olympe.messages.ardrone3.PilotingState import GpsLocationChanged
-from olympe.messages.battery import voltage
+from olympe.messages.battery import voltage, health, capacity
 from olympe.messages.follow_me import target_trajectory
 from olympe.messages.gimbal import attitude as gimbal_attitude
 
@@ -69,6 +71,21 @@ def print_event(event):
     else:
         print(str(event))
 
+def get_timestamp():
+    current_time = rospy.get_rostime()
+
+    hour = current_time.secs // 3600 % 24
+    minute = (current_time.secs // 60) % 60
+    second = current_time.secs % 60
+    millisecond = current_time.nsecs // 1000000
+    day_of_week = time.strftime("%A", time.localtime(current_time.secs))
+    day_of_month = time.localtime(current_time.secs).tm_mday
+    month = time.strftime("%B", time.localtime(current_time.secs))
+    year = time.localtime(current_time.secs).tm_year
+    # Format the timestamp
+    timestamp = f"[{day_of_week}, {day_of_month} {month} {year} - {hour:02d}:{minute:02d}:{second:02d}.{millisecond:03d}]"
+    return timestamp
+
 def show_motors(motors):
 	show = ' '
 	for i in range(4):
@@ -78,49 +95,52 @@ def show_motors(motors):
 
 
 class EventListenerAnafi(olympe.EventListener):
-	def __init__(self, drone):
+	def __init__(self, drone, connection_callback):
 		self.drone = drone
-		super().__init__(drone.drone)
-		
+		self.connection_callback = connection_callback
+		super().__init__(drone)
+		print("EventListenerInitiliazed")
 		# Publishers
-		self.drone.pub_zoom = rospy.Publisher("camera/zoom", Float32, queue_size=1)
-		self.drone.pub_gps_satellites = rospy.Publisher("drone/gps/satellites", UInt8, queue_size=1)
-		self.drone.pub_altitude_above_TO = rospy.Publisher("drone/altitude_above_TO", Float32, queue_size=1)
-		self.drone.pub_rpy_slow = rospy.Publisher("drone/rpy_slow", Vector3Stamped, queue_size=1)
-		self.drone.pub_gps_location = rospy.Publisher("drone/gps/location", NavSatFix, queue_size=1)
-		self.drone.pub_battery_voltage = rospy.Publisher("battery/voltage", Float32, queue_size=1)
-		self.drone.pub_target_trajectory = rospy.Publisher("target/trajectory", TargetTrajectory, queue_size=1)
-		self.drone.pub_gimbal_relative = rospy.Publisher("gimbal/relative", Vector3Stamped, queue_size=1)
-		self.drone.pub_gimbal_absolute = rospy.Publisher("gimbal/absolute", Vector3Stamped, queue_size=1)
-		self.drone.pub_media_available = rospy.Publisher("media/available", UInt64, queue_size=1)
+		# self.drone.pub_zoom = rospy.Publisher("camera/zoom", Float32, queue_size=1)
+		# self.drone.pub_gps_satellites = rospy.Publisher("drone/gps/satellites", UInt8, queue_size=1)
+		# self.drone.pub_altitude_above_TO = rospy.Publisher("drone/altitude_above_TO", Float32, queue_size=1)
+		# self.drone.pub_rpy_slow = rospy.Publisher("drone/rpy_slow", Vector3Stamped, queue_size=1)
+		# self.drone.pub_gps_location = rospy.Publisher("drone/gps/location", NavSatFix, queue_size=1)
+		# self.drone.pub_battery_voltage = rospy.Publisher("battery/voltage", Float32, queue_size=1)
+		# self.drone.pub_target_trajectory = rospy.Publisher("target/trajectory", TargetTrajectory, queue_size=1)
+		# self.drone.pub_gimbal_relative = rospy.Publisher("gimbal/relative", Vector3Stamped, queue_size=1)
+		# self.drone.pub_gimbal_absolute = rospy.Publisher("gimbal/absolute", Vector3Stamped, queue_size=1)
+		# self.drone.pub_media_available = rospy.Publisher("media/available", UInt64, queue_size=1)
 
 		# Messages
 		self.msg_attitude = Vector3Stamped()
 		self.msg_gps_location = NavSatFix()
 		self.msg_trajectory = TargetTrajectory()
 		self.msg_gimbal = Vector3Stamped()
+  
 
-	""" 
-	FATAL ERRORS 
-	"""
-	@olympe.listen_event(MotorErrorStateChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_settings_state.html#olympe.messages.ardrone3.SettingsState.MotorErrorStateChanged
-	def onMotorErrorStateChanged(self, event, scheduler):
-		motor_error = event.args
-		if motor_error['motorError'] is not MotorErrorStateChanged_MotorError.noError: # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_settings_state.html#olympe.enums.ardrone3.SettingsState.MotorErrorStateChanged_MotorError
-			rospy.logfatal('Motor Error: motors = %s, error = %s',
-						   show_motors(motor_error['motorIds']), motor_error['motorError'].name)
 
-	@olympe.listen_event(authentication_failed(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_drone_manager.html#olympe.messages.drone_manager.authentication_failed
-	def on_authentication_failed(self, event, scheduler):
-		rospy.logfatal('Authentication failed because of a wrong key (passphrase)')
+	# """ 
+	# FATAL ERRORS 
+	# """
+	# @olympe.listen_event(MotorErrorStateChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_settings_state.html#olympe.messages.ardrone3.SettingsState.MotorErrorStateChanged
+	# def onMotorErrorStateChanged(self, event, scheduler):
+	# 	motor_error = event.args
+	# 	if motor_error['motorError'] is not MotorErrorStateChanged_MotorError.noError: # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_settings_state.html#olympe.enums.ardrone3.SettingsState.MotorErrorStateChanged_MotorError
+	# 		rospy.logfatal('Motor Error: motors = %s, error = %s',
+	# 					   show_motors(motor_error['motorIds']), motor_error['motorError'].name)
 
-	@olympe.listen_event(connection_refused(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_drone_manager.html#olympe.messages.drone_manager.connection_refused
-	def on_connection_refused(self, event, scheduler):
-		rospy.logfatal('Connection refused by the drone because another peer is already connected')
+	# @olympe.listen_event(authentication_failed(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_drone_manager.html#olympe.messages.drone_manager.authentication_failed
+	# def on_authentication_failed(self, event, scheduler):
+	# 	rospy.logfatal('Authentication failed because of a wrong key (passphrase)')
 
-	""" 
-	ERRORS 
-	"""
+	# @olympe.listen_event(connection_refused(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_drone_manager.html#olympe.messages.drone_manager.connection_refused
+	# def on_connection_refused(self, event, scheduler):
+	# 	rospy.logfatal('Connection refused by the drone because another peer is already connected')
+
+	# """ 
+	# ERRORS 
+	# """
 	@olympe.listen_event(battery_alert(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_battery.html#olympe.messages.battery.alert
 	def onBatteryAlert(self, event, scheduler):
 		alert = event.args
@@ -129,22 +149,22 @@ class EventListenerAnafi(olympe.EventListener):
 		if alert['level'] is alert_level.warning:
 			rospy.logwarn_throttle(60, "Battery Allert: " + alert['alert'].name)
 
-	@olympe.listen_event(gimbal_alert(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.alert
-	def onGimbalAlert(self, event, scheduler):
-		alert = event.args
-		for error in gimbal.error:
-			if (1<<error.value) & alert['error']:
-				rospy.logerr("Gimbal Allert: " + error.name)
+	# @olympe.listen_event(gimbal_alert(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.alert
+	# def onGimbalAlert(self, event, scheduler):
+	# 	alert = event.args
+	# 	for error in gimbal.error:
+	# 		if (1<<error.value) & alert['error']:
+	# 			rospy.logerr("Gimbal Allert: " + error.name)
 
-	@olympe.listen_event(format_result(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.format_result
-	def on_format_result(self, event, scheduler):
-		format_result = event.args['result']  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.enums.user_storage.formatting_result
-		if format_result is formatting_result.error:
-			rospy.logerr('Formatting failed')
-		if format_result is formatting_result.denied:
-			rospy.logwarn('Formatting was denied')
-		if format_result is formatting_result.success:
-			rospy.loginfo('Formatting succeeded')
+	# @olympe.listen_event(format_result(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.format_result
+	# def on_format_result(self, event, scheduler):
+	# 	format_result = event.args['result']  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.enums.user_storage.formatting_result
+	# 	if format_result is formatting_result.error:
+	# 		rospy.logerr('Formatting failed')
+	# 	if format_result is formatting_result.denied:
+	# 		rospy.logwarn('Formatting was denied')
+	# 	if format_result is formatting_result.success:
+	# 		rospy.loginfo('Formatting succeeded')
 
 	""" 
 	WARNINGS 
@@ -193,7 +213,8 @@ class EventListenerAnafi(olympe.EventListener):
 	@olympe.listen_event(MassStorageInfoStateListChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_common_common.html#olympe.messages.common.CommonState.MassStorageInfoStateListChanged
 	def onMassStorageInfoStateListChanged(self, event, scheduler):
 		mass_storage = event.args
-		rospy.loginfo_once('Mass storage info: id = %i, size = %iMB, used = %iMB',
+		rospy.loginfo_once('%s Mass storage info: id = %i, size = %iMB, used = %iMB',
+					 		get_timestamp(),
 						   mass_storage['mass_storage_id'], mass_storage['size'], mass_storage['used_size'])
 		if mass_storage['plugged'] == 0:
 			rospy.logwarn_throttle(60, 'Mass storage is not plugged')
@@ -224,100 +245,104 @@ class EventListenerAnafi(olympe.EventListener):
 		if rth_auto_trigger is auto_trigger_reason.battery_critical_soon:
 			rospy.logwarn_throttle(60, 'Battery will soon be critical')
 
-	"""
-	INFO
-	"""
-	@olympe.listen_event(NavigateHomeStateChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.NavigateHomeStateChanged
-	def onNavigateHomeStateChanged(self, event, scheduler):
-		navigate_home_state = event.args
-		rospy.loginfo("Navigate Home State: state = %s, reason = %s",
-					  navigate_home_state['state'].name, navigate_home_state['reason'].name)
+	# """
+	# INFO
+	# """
+	# @olympe.listen_event(NavigateHomeStateChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.NavigateHomeStateChanged
+	# def onNavigateHomeStateChanged(self, event, scheduler):
+	# 	navigate_home_state = event.args
+	# 	rospy.loginfo("Navigate Home State: state = %s, reason = %s",
+	# 				  navigate_home_state['state'].name, navigate_home_state['reason'].name)
 
-	@olympe.listen_event(MavlinkFilePlayingStateChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_common_mavlink.html#olympe.messages.common.MavlinkState.MavlinkFilePlayingStateChanged
-	def onMissionItemExecuted(self, event, scheduler):
-		rospy.loginfo('FlightPlan state is %s', event.args['state'].name)  # https://developer.parrot.com/docs/olympe/arsdkng_common_mavlink.html#olympe.messages.common.MavlinkState.MavlinkFilePlayingStateChanged
+	# @olympe.listen_event(MavlinkFilePlayingStateChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_common_mavlink.html#olympe.messages.common.MavlinkState.MavlinkFilePlayingStateChanged
+	# def onMissionItemExecuted(self, event, scheduler):
+	# 	rospy.loginfo('FlightPlan state is %s', event.args['state'].name)  # https://developer.parrot.com/docs/olympe/arsdkng_common_mavlink.html#olympe.messages.common.MavlinkState.MavlinkFilePlayingStateChanged
 
-	@olympe.listen_event(MissionItemExecuted(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_common_mavlink.html#olympe.messages.common.MavlinkState.MissionItemExecuted
-	def onMissionItemExecuted(self, event, scheduler):
-		rospy.loginfo('Mission item #%i executed', event.args['idx'])
+	# @olympe.listen_event(MissionItemExecuted(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_common_mavlink.html#olympe.messages.common.MavlinkState.MissionItemExecuted
+	# def onMissionItemExecuted(self, event, scheduler):
+	# 	rospy.loginfo('Mission item #%i executed', event.args['idx'])
 
 	@olympe.listen_event(connection_state(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_drone_manager.html#olympe.messages.drone_manager.connection_state
 	def on_connection_state(self, event, scheduler):
-		rospy.loginfo("connection_state: " + str(event.args))
+		# print(str(event.args))
+		rospy.loginfo(get_timestamp() + " connection_state: " + str(event.args))
+		# self.connection_callback(event)
 
-	@olympe.listen_event(follow_me_state(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_followme.html#olympe.messages.follow_me.state
-	def on_follow_me_state(self, event, scheduler):
-		follow_me = event.args
-		if follow_me['mode'] != mode.none:
-			rospy.loginfo('FollowMe state: mode=%s, behavior=%s, animation=%s',
-						  follow_me['mode'].name, follow_me['behavior'].name, follow_me['animation'].name)
 
-	@olympe.listen_event(calibration_result(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.calibration_result
-	def on_gimbal_calibration_result(self, event, scheduler):
-		calibration_result = event.args
-		rospy.loginfo('Gimbal calibration result: ' + calibration_result['result'].name)
+	# @olympe.listen_event(follow_me_state(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_followme.html#olympe.messages.follow_me.state
+	# def on_follow_me_state(self, event, scheduler):
+	# 	follow_me = event.args
+	# 	if follow_me['mode'] != mode.none:
+	# 		rospy.loginfo('FollowMe state: mode=%s, behavior=%s, animation=%s',
+	# 					  follow_me['mode'].name, follow_me['behavior'].name, follow_me['animation'].name)
+
+	# @olympe.listen_event(calibration_result(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.calibration_result
+	# def on_gimbal_calibration_result(self, event, scheduler):
+	# 	calibration_result = event.args
+	# 	rospy.loginfo('Gimbal calibration result: ' + calibration_result['result'].name)
 
 	@olympe.listen_event(move_info(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_move.html#olympe.messages.move.info
 	def on_move_info(self, event, scheduler):
 		move_info = event.args
-		rospy.loginfo('Move info: ' + str(move_info))
+		rospy.loginfo(get_timestamp() + ' Move info: ' + str(move_info))
 
 	@olympe.listen_event(moveToChanged(_policy="wait"))  # from olympe.messages.ardrone3.PilotingState import FlyingStateChanged, moveToChanged
 	def on_moveToChanged(self, event, scheduler):
-		rospy.loginfo(event)
-
+		# rospy.loginfo(event)
+		# print(event)
 		move_info = event.args
-		rospy.loginfo('MoveToChanged: ' + str(move_info))
+		rospy.loginfo(get_timestamp() + ' MoveToChanged: ' + str(move_info))
+		# self.connection_callback(move_info)
 
-	@olympe.listen_event(rth_state(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_rth.html#olympe.messages.rth.state
-	def on_rth_state(self, event, scheduler):
-		state = event.args
-		rospy.loginfo('RTH: state=%s, reason=%s', state['state'].name, state['reason'].name)
 
-	@olympe.listen_event(format_progress(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.format_progress
-	def on_format_progress(self, event, scheduler):
-		format_progress = event.args
-		rospy.loginfo('Formatting --> %s (%i%%)', format_progress['step'].name, format_progress['percentage'])
+	# @olympe.listen_event(rth_state(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_rth.html#olympe.messages.rth.state
+	# def on_rth_state(self, event, scheduler):
+	# 	state = event.args
+	# 	rospy.loginfo('RTH: state=%s, reason=%s', state['state'].name, state['reason'].name)
+
+	# @olympe.listen_event(format_progress(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.format_progress
+	# def on_format_progress(self, event, scheduler):
+	# 	format_progress = event.args
+	# 	rospy.loginfo('Formatting --> %s (%i%%)', format_progress['step'].name, format_progress['percentage'])
 
 	@olympe.listen_event(user_storage_info(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.info
 	def on_user_storage_info(self, event, scheduler):
 		capacity = event.args['capacity']
-		available_bytes = self.drone.drone.get_state(user_storage_monitor)['available_bytes']  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.monitor
-		rospy.loginfo_once('Available space: %.1f/%.1fGB', available_bytes/(2**30), capacity/(2**30))
+		available_bytes = self.drone.get_state(user_storage_monitor)['available_bytes']  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.monitor
+		rospy.loginfo_once('%s Available space: %.1f/%.1fGB', get_timestamp(), available_bytes/(2**30), capacity/(2**30))
 
-	""" 
-	DEBUG  
-	"""
-	@olympe.listen_event(calibration_state(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.calibration_state
-	def on_gimbal_calibration_state(self, event, scheduler):
-		calibration_state = event.args
-		rospy.logdebug('Gimbal calibration state: ' + calibration_state['state'].name)
+	# """ 
+	# DEBUG  
+	# """
+	# @olympe.listen_event(calibration_state(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.calibration_state
+	# def on_gimbal_calibration_state(self, event, scheduler):
+	# 	calibration_state = event.args
+	# 	rospy.logdebug('Gimbal calibration state: ' + calibration_state['state'].name)
 
-	"""
-	PUBLISHERS
-	"""
-	@olympe.listen_event(zoom_level(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_camera.html#olympe.messages.camera.zoom_level
-	def onZoomLevel(self, event, scheduler):
-		self.drone.pub_zoom.publish(event.args['level'])
+	# """
+	# PUBLISHERS
+	# """
+	# @olympe.listen_event(zoom_level(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_camera.html#olympe.messages.camera.zoom_level
+	# def onZoomLevel(self, event, scheduler):
+	# 	self.drone.pub_zoom.publish(event.args['level'])
 
 	@olympe.listen_event(NumberOfSatelliteChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_gps.html#olympe.messages.ardrone3.GPSState.NumberOfSatelliteChanged
 	def onNumberOfSatelliteChanged(self, event, scheduler):
-		print(event.args)
-		self.drone.pub_gps_satellites.publish(event.args['numberOfSatellite'])
+		rospy.loginfo(get_timestamp() + " Number of Satellite: " + str(event.args))
 
-	@olympe.listen_event(AltitudeChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.AltitudeChanged
-	def onAltitudeChanged(self, event, scheduler):
-		self.drone.pub_altitude_above_TO.publish(event.args['altitude'])
+	# @olympe.listen_event(AltitudeChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.AltitudeChanged
+	# def onAltitudeChanged(self, event, scheduler):
+	# 	print(event.args['altitude'])
 
-	@olympe.listen_event(AttitudeChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.AttitudeChanged
-	def onAttitudeChanged(self, event, scheduler):  # publishes at lower rate (5Hz) than 'pub_rpy' (30Hz) but has higher reaction time (approx. 100ms faster)
-		attitude = event.args
-		self.msg_attitude.header.stamp = rospy.Time.now()
-		self.msg_attitude.header.frame_id = '/world'
-		self.msg_attitude.vector.x = attitude['roll']*180/math.pi
-		self.msg_attitude.vector.y = -attitude['pitch']*180/math.pi
-		self.msg_attitude.vector.z = -attitude['yaw']*180/math.pi
-		self.drone.pub_rpy_slow.publish(self.msg_attitude)
+	# @olympe.listen_event(AttitudeChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.AttitudeChanged
+	# def onAttitudeChanged(self, event, scheduler):  # publishes at lower rate (5Hz) than 'pub_rpy' (30Hz) but has higher reaction time (approx. 100ms faster)
+	# 	attitude = event.args
+	# 	self.msg_attitude.header.stamp = rospy.Time.now()
+	# 	self.msg_attitude.header.frame_id = '/world'
+	# 	self.msg_attitude.vector.x = attitude['roll']*180/math.pi
+	# 	self.msg_attitude.vector.y = -attitude['pitch']*180/math.pi
+	# 	self.msg_attitude.vector.z = -attitude['yaw']*180/math.pi
+	# 	self.drone.pub_rpy_slow.publish(self.msg_attitude)
 
 	@olympe.listen_event(GpsLocationChanged(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.GpsLocationChanged
 	def onGpsLocationChanged(self, event, scheduler):
@@ -329,12 +354,8 @@ class EventListenerAnafi(olympe.EventListener):
 		if self.drone.model == "4k" or self.drone.model == "thermal":
 			self.msg_gps_location.status.service = \
 				self.msg_gps_location.status.SERVICE_GPS + \
-				self.msg_gps_location.status.SERVICE_GLONASS;
-		if self.drone.model == "usa" or self.drone.model == "ai":
-			self.msg_gps_location.status.service = \
-				self.msg_gps_location.status.SERVICE_GPS + \
-				self.msg_gps_location.status.SERVICE_GLONASS + \
-				self.msg_gps_location.status.SERVICE_GALILEO;
+				self.msg_gps_location.status.SERVICE_GLONASS
+		
 		self.msg_gps_location.latitude = (gps_location['latitude'] if gps_location['latitude'] != 500 else float('nan'))
 		self.msg_gps_location.longitude = (gps_location['longitude'] if gps_location['longitude'] != 500 else float('nan'))
 		self.msg_gps_location.altitude = (gps_location['altitude'] if gps_location['altitude'] != 500 else float('nan'))
@@ -345,44 +366,61 @@ class EventListenerAnafi(olympe.EventListener):
 		self.msg_gps_location.position_covariance[8] = \
 			(math.sqrt(gps_location['altitude_accuracy']) if gps_location['altitude_accuracy'] > 0 else float('nan'))
 		self.msg_gps_location.position_covariance_type = self.msg_gps_location.COVARIANCE_TYPE_DIAGONAL_KNOWN
-		self.drone.pub_gps_location.publish(self.msg_gps_location)
+		rospy.loginfo(get_timestamp() + " " + self.msg_gps_location)
 
 	@olympe.listen_event(voltage(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_battery.html#olympe.messages.battery.voltage
 	def onBatteryVoltage(self, event, scheduler):
-		self.drone.pub_battery_voltage.publish(event.args['voltage']/1000)
+		pass
+		# rospy.loginfo(event.args['voltage']/1000)
 
-	@olympe.listen_event(target_trajectory(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_followme.html#olympe.messages.follow_me.target_trajectory
-	def on_target_trajectory(self, event, scheduler):
-		trajectory = event.args
-		rospy.loginfo('target_trajectory: ' + str(trajectory))
-		self.msg_trajectory.header.stamp = rospy.Time.now()
-		self.msg_trajectory.header.frame_id = '/world'
-		self.msg_trajectory.latitude = trajectory['latitude']
-		self.msg_trajectory.longitude = trajectory['longitude']
-		self.msg_trajectory.altitude = trajectory['altitude']
-		self.msg_trajectory.north_speed = trajectory['north_speed']
-		self.msg_trajectory.east_speed = trajectory['east_speed']
-		self.msg_trajectory.down_speed = trajectory['down_speed']
-		self.drone.pub_target_trajectory.publish(self.msg_trajectory)
+	@olympe.listen_event(AllStatesChanged(_policy="wait")) # https://developer.parrot.com/docs/olympe/arsdkng_common_common.html#olympe.messages.common.CommonState.AllStatesChanged
+	def onAllStatesChange(self, event, scheduler):
+		rospy.logdebug(get_timestamp() + " AllStatesChanged: "  + str(event.args))
 
-	@olympe.listen_event(gimbal_attitude(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.attitude
-	def onGimbalAttitude(self, event, scheduler):
-		gimbal = event.args
-		self.msg_gimbal.header.stamp = rospy.Time.now()
-		self.msg_gimbal.header.frame_id = '/world'
-		self.msg_gimbal.vector.x = gimbal['roll_absolute']
-		self.msg_gimbal.vector.y = -gimbal['pitch_absolute']
-		self.msg_gimbal.vector.z = -gimbal['yaw_absolute']
-		self.drone.pub_gimbal_absolute.publish(self.msg_gimbal)
-		self.msg_gimbal.header.frame_id = 'body'
-		self.msg_gimbal.vector.x = gimbal['roll_relative']
-		self.msg_gimbal.vector.y = -gimbal['pitch_relative']
-		self.msg_gimbal.vector.z = -gimbal['yaw_relative']
-		self.drone.pub_gimbal_relative.publish(self.msg_gimbal)
+	@olympe.listen_event(BatteryStateChanged(_policy="wait")) # https://developer.parrot.com/docs/olympe/arsdkng_common_common.html#olympe.messages.common.CommonState.BatteryStateChanged
+	def onBatteryStateChange(self, event, scheduler):
+		rospy.loginfo(get_timestamp() + " Battery State: " + str(event.args))
 
-	@olympe.listen_event(user_storage_monitor(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.monitor
-	def on_user_storage_monitor(self, event, scheduler):
-		self.drone.pub_media_available.publish(event.args['available_bytes'])
+	@olympe.listen_event(health(_policy="wait")) # https://developer.parrot.com/docs/olympe/arsdkng_battery.html#olympe.messages.battery.health
+	def onBatteryHealth(self, event, scheduler):
+		rospy.loginfo(get_timestamp() + " Battery Health: " + str(event.args))
+ 
+	@olympe.listen_event(capacity(_policy="wait")) # https://developer.parrot.com/docs/olympe/arsdkng_battery.html#olympe.messages.battery.capacity
+	def onBatteryCapacity(self, event, scheduler):
+		rospy.loginfo(get_timestamp() + " Battery Capacity: " + str(event.args))
+
+	# @olympe.listen_event(target_trajectory(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_followme.html#olympe.messages.follow_me.target_trajectory
+	# def on_target_trajectory(self, event, scheduler):
+	# 	trajectory = event.args
+	# 	rospy.loginfo('target_trajectory: ' + str(trajectory))
+	# 	self.msg_trajectory.header.stamp = rospy.Time.now()
+	# 	self.msg_trajectory.header.frame_id = '/world'
+	# 	self.msg_trajectory.latitude = trajectory['latitude']
+	# 	self.msg_trajectory.longitude = trajectory['longitude']
+	# 	self.msg_trajectory.altitude = trajectory['altitude']
+	# 	self.msg_trajectory.north_speed = trajectory['north_speed']
+	# 	self.msg_trajectory.east_speed = trajectory['east_speed']
+	# 	self.msg_trajectory.down_speed = trajectory['down_speed']
+	# 	self.drone.pub_target_trajectory.publish(self.msg_trajectory)
+
+	# @olympe.listen_event(gimbal_attitude(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_gimbal.html#olympe.messages.gimbal.attitude
+	# def onGimbalAttitude(self, event, scheduler):
+	# 	gimbal = event.args
+	# 	self.msg_gimbal.header.stamp = rospy.Time.now()
+	# 	self.msg_gimbal.header.frame_id = '/world'
+	# 	self.msg_gimbal.vector.x = gimbal['roll_absolute']
+	# 	self.msg_gimbal.vector.y = -gimbal['pitch_absolute']
+	# 	self.msg_gimbal.vector.z = -gimbal['yaw_absolute']
+	# 	self.drone.pub_gimbal_absolute.publish(self.msg_gimbal)
+	# 	self.msg_gimbal.header.frame_id = 'body'
+	# 	self.msg_gimbal.vector.x = gimbal['roll_relative']
+	# 	self.msg_gimbal.vector.y = -gimbal['pitch_relative']
+	# 	self.msg_gimbal.vector.z = -gimbal['yaw_relative']
+	# 	self.drone.pub_gimbal_relative.publish(self.msg_gimbal)
+
+	# @olympe.listen_event(user_storage_monitor(_policy="wait"))  # https://developer.parrot.com/docs/olympe/arsdkng_user_storage.html#olympe.messages.user_storage.monitor
+	# def on_user_storage_monitor(self, event, scheduler):
+	# 	self.drone.pub_media_available.publish(event.args['available_bytes'])
 
 	""" 
 	All other events
