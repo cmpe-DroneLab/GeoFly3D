@@ -39,7 +39,7 @@ class DroneController(QThread):
         coords = [str(coord) for vertex in self.vertices for coord in vertex]
 
         # rosrun_command = f"rosrun route_control main.py {self.flight_altitude} {self.rotation_angle} {self.intersection_ratio} {coords}"
-        rosrun_command = ["rosrun", "route_control", "main.py",
+        rosrun_command = ["rosrun", "route_control", "main.py", str(self.mission_id),
                            str(self.flight_altitude), str(self.intersection_ratio),
                              str(self.gimbal_angle), str(self.route_angle), str(self.rotated_route_angle), *coords]
 
@@ -50,6 +50,9 @@ class DroneController(QThread):
 
         process = pexpect.spawn(command, encoding='utf-8')
         process.logfile = open(f"logs/output{str(self.mission_id)}.log", "w")
+
+        battery_percent = None
+
         while not process.eof():
             line = str(process.readline())
 
@@ -65,7 +68,13 @@ class DroneController(QThread):
                 coordinates = line.split(',')
                 latitude = float(coordinates[0][1:])
                 longitude = float(coordinates[1])
+                # battery_percent = float(line.strip().split("Battery: ")[-1][:-1])
                 self.update_coord.emit(latitude, longitude)
+            # elif "Battery State: " in line:
+            #     try:
+            #         battery_percent = line.strip().split(',')[-1][:-3]
+            #     except Exception as e:
+            #         print(e)
 
             # (48.880642477419514, 2.3696386128612215, 226.89425659179688)'
             print(">>> " + line)

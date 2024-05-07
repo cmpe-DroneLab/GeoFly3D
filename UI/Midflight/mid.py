@@ -126,7 +126,7 @@ class Mid(QWidget):
 
         drone_controller_thread.started.connect(print)
         drone_controller_thread.progress_text.connect(print)
-        drone_controller_thread.update_coord.connect(lambda lat, lon: self.drone_position_updated.emit(lat, lon))
+        drone_controller_thread.update_coord.connect(update_drone_position_on_map)
 
         self.threads[mission_id] = drone_controller_thread
         drone_controller_thread.start()
