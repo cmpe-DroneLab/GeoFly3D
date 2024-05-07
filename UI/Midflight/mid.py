@@ -89,13 +89,22 @@ class Mid(QWidget):
 
         rt = Realtime(
             'http://localhost:9000/UI/Midflight/rt_drone_info.geojson',
-            get_drone_model=JsCode("(f) => { return f.properties.model; }"),
-            get_drone_id=JsCode("(f) => { return f.properties.droneId; }"),
-            get_notes=JsCode("(f) => { return f.properties.notes; }"),
-            point_to_layer=JsCode(
-                "(f, latlng) => { return L.circleMarker(latlng, {radius: 8, fillOpacity: 0.2})}"
-            ),
-            interval=1000,
+            point_to_layer=JsCode("""
+                (f, latlng, get_battery) => { 
+                    return L.marker(latlng, {
+                        icon: L.icon({
+                            iconUrl: 'http://localhost:9000/UI/Images/drone.gif', 
+                            iconSize:[50, 48], 
+                            iconAnchor:[25, 24]
+                        })
+                    }).bindPopup(
+                        '<b>ID:</b> ' + f.properties.droneId + '<br>' +
+                        '<b>Model:</b> ' + f.properties.model + '<br>' +
+                        '<b>Battery:</b> ' + f.properties.battery
+                    ).openPopup();
+                }
+            """),
+        interval=1000,
         )
 
         self.map.add_child(rt)
