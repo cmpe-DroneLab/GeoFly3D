@@ -144,6 +144,7 @@ class Ui_Form(object):
         self.label_drones.setObjectName("label_drones")
         self.verticalLayout_2.addWidget(self.label_drones)
         self.listWidget = QtWidgets.QListWidget(parent=self.gb_drones)
+        self.listWidget.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
         self.listWidget.setObjectName("listWidget")
         self.verticalLayout_2.addWidget(self.listWidget)
         self.v_lay_left.addWidget(self.gb_drones)

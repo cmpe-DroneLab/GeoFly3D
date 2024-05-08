@@ -84,8 +84,8 @@ class DroneController(QThread):
                 is_calibration_started = bool(int(line.strip()[-1]))
                 print("Is calibration started: ", is_calibration_started)
             elif "Axis to Calibrate: " in line:
-                is_calibration_required = bool(int(line.strip()[-1]))
-                print("Axis to calibrate: ", is_calibration_required)
+                axis_to_calibrate = bool(int(line.strip()[-1]))
+                print("Axis to calibrate: ", axis_to_calibrate)
 
 
             # (48.880642477419514, 2.3696386128612215, 226.89425659179688)'
