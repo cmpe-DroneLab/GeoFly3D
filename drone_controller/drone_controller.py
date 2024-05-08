@@ -65,16 +65,28 @@ class DroneController(QThread):
                 # >>> b'Mission Finished: project\r\n'
                 project_folder = line[len("Mission Finished: ")].strip()
             elif line.startswith("("):
-                coordinates = line.split(',')
-                latitude = float(coordinates[0][1:])
-                longitude = float(coordinates[1])
-                battery_percent = float(line.strip().split("Battery: ")[-1][:-1])
-                self.update_coord.emit(latitude, longitude, battery_percent)
-            # elif "Battery State: " in line:
-            #     try:
-            #         battery_percent = line.strip().split(',')[-1][:-3]
-            #     except Exception as e:
-            #         print(e)
+                try:
+                    coordinates = line.split(',')
+                    latitude = float(coordinates[0][1:])
+                    longitude = float(coordinates[1])
+                    battery_percent = float(line.strip().split("Battery: ")[-1][:-1])
+                except Exception as e:
+                    print(repr(e))
+                else:
+                    self.update_coord.emit(latitude, longitude, battery_percent)
+            elif line.startswith("Connection State: "):
+                 connection_state = True if line[len("Connection State: "):].strip() == "True" else False
+                 print("Is connected: ", connection_state)
+            elif "Calibration Required: " in line:
+                is_calibration_required = bool(int(line.strip()[-1]))
+                print("Is calibration required: ", is_calibration_required)
+            elif "Calibration Started: " in line:
+                is_calibration_started = bool(int(line.strip()[-1]))
+                print("Is calibration started: ", is_calibration_started)
+            elif "Axis to Calibrate: " in line:
+                is_calibration_required = bool(int(line.strip()[-1]))
+                print("Axis to calibrate: ", is_calibration_required)
+
 
             # (48.880642477419514, 2.3696386128612215, 226.89425659179688)'
             print(">>> " + line)
