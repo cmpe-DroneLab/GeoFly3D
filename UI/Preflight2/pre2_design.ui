@@ -15,7 +15,7 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,4">
    <item>
-    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0">
+    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0,0">
      <property name="spacing">
       <number>10</number>
      </property>
@@ -29,6 +29,21 @@
        </property>
        <property name="text">
         <string>Mission Planning</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="font">
+        <font>
+         <italic>true</italic>
+        </font>
+       </property>
+       <property name="text">
+        <string>Draw an area on the map and add drone(s).</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>

@@ -266,13 +266,12 @@ class Pre2(QWidget):
                         show_geometry_on_click=True,
                         filename='my_data.geojson',
                         draw_options={'polyline': False,
-                                      'polygone': True,
+                                      'polygon': True,
                                       'rectangle': True,
                                       'circle': False,
                                       'marker': False,
                                       'circlemarker': False})
         self.map.add_child(drw)
-
         self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False,))
 
         self.save_map()
@@ -286,8 +285,8 @@ class Pre2(QWidget):
         self.webView.show()
 
         # Listen for any events on the Map
-        page.coords_printed.connect(self.selected_area_changed)
-        page.shapes_deleted.connect(self.selected_area_deleted)
+        page.polygon_coords_printed.connect(self.selected_area_changed)
+        page.drawings_deleted.connect(self.selected_area_deleted)
 
     # Captures changes in the altitude spinbox and makes necessary updates
     def altitude_changed(self):

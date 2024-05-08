@@ -40,6 +40,8 @@ class Mission(Base):
     last_update_time = Column(String)
     center_lat = Column(Float)
     center_lon = Column(Float)
+    gcs_lat = Column(Float)
+    gcs_lon = Column(Float)
     coordinates = Column(String)
     mission_status = Column(String)
     estimated_mission_time = Column(Integer)

@@ -4,11 +4,12 @@ import UI.Preflight3.pre3_design
 
 from folium.plugins import MousePosition
 from PyQt6.QtCore import QSize
-from PyQt6.QtWidgets import QWidget, QListWidgetItem
+from PyQt6.QtWidgets import QWidget, QListWidgetItem, QMessageBox
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from UI import draw
 from UI.database import session, Mission, Drone
 from UI.ListItems.drone_pre import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage
+from UI.helpers import RouteDrawer, WebEnginePage, calculate_geographic_distance
 
 
 class Pre3(QWidget):
@@ -47,6 +48,9 @@ class Pre3(QWidget):
         # Draw route
         self.draw_route()
 
+        # Update Takeoff Button
+        self.update_takeoff_button()
+
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
@@ -83,6 +87,19 @@ class Pre3(QWidget):
                               zoom_start=zoom,
                               control_scale=True, )
 
+        drw = draw.Draw(export=False,
+                        show_geometry_on_click=True,
+                        filename='my_data.geojson',
+                        draw_options={'polyline': False,
+                                      'polygon': False,
+                                      'rectangle': False,
+                                      'circle': False,
+                                      'marker': True,
+                                      'circlemarker': False},
+                        edit_options={'edit': False,
+                                      'remove': False})
+        self.map.add_child(drw)
+
         self.map.add_child(MousePosition(position="topright", separator=" | ", empty_string="NaN", lng_first=False,))
 
         self.save_map()
@@ -95,8 +112,43 @@ class Pre3(QWidget):
         self.webView.setHtml(open('./UI/Preflight3/pre3_map.html').read())
         self.webView.show()
 
+        # Listen for any events on the Map
+        page.point_coords_printed.connect(self.gcs_changed)
+
     def draw_route(self):
         if self.mission:
-            self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
-            RouteDrawer.draw_route(self.map, self.mission)
+            RouteDrawer.draw_route(self.map, self.mission, draw_coverage=True)
             self.save_map()
+
+    # Captures changes in the Ground Control Station marker and makes necessary updates
+    def gcs_changed(self, coords_lon_lat):
+        self.mission.gcs_lat = coords_lon_lat[1]
+        self.mission.gcs_lon = coords_lon_lat[0]
+        session.commit()
+        self.update_takeoff_button()
+        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+        self.draw_route()
+
+
+    # Update (Enable/Disable) Takeoff Button
+    def update_takeoff_button(self):
+        if (self.mission.gcs_lat == 'null') or (self.mission.gcs_lon is None):
+            self.ui.btn_take_off.setEnabled(False)
+            return
+
+        areaInCoverage = True
+        for vertex in json.loads(self.mission.coordinates):
+            gcs = [self.mission.gcs_lat, self.mission.gcs_lon]
+            distance = calculate_geographic_distance(vertex, gcs)
+            print(distance)
+            if distance > 2000:
+                areaInCoverage = False
+                break
+
+        if not areaInCoverage:
+            QMessageBox().warning(self, "Coverage Error!", "The area to be scanned is out of coverage.\n"
+                                                           "Select a new GCS (Ground Control Station) point so that the area to be scanned is "
+                                                           "within coverage.!")
+            self.ui.btn_take_off.setEnabled(False)
+        else:
+            self.ui.btn_take_off.setEnabled(True)

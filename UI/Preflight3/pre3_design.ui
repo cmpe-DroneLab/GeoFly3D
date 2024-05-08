@@ -15,7 +15,7 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,4">
    <item>
-    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0">
+    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0">
      <property name="spacing">
       <number>10</number>
      </property>
@@ -32,6 +32,21 @@
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="font">
+        <font>
+         <italic>true</italic>
+        </font>
+       </property>
+       <property name="text">
+        <string>Add GCS point to the map and connect drone(s).</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
@@ -239,6 +254,9 @@
       <layout class="QGridLayout" name="g_lay_buttons">
        <item row="0" column="1" colspan="2">
         <widget class="QPushButton" name="btn_take_off">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Take Off ᐅ</string>
          </property>
