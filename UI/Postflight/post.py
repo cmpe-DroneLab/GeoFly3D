@@ -60,7 +60,7 @@ class Post(QWidget):
         new_drone_ui.setupUi(new_drone_widget)
         new_drone_ui.id_text.setText(str(drone.drone_id))
         new_drone_ui.model_text.setText(drone.model)
-        new_drone_ui.batt_text.setText(str(drone.battery_no))
+        new_drone_ui.battery_text.setText(str(drone.battery_no))
 
         # Calculate the height of the new_drone_widget
         new_drone_widget.adjustSize()

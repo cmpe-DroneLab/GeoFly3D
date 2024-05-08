@@ -4,7 +4,7 @@
     {
       "type": "Feature",
       "properties": {
-        "model": "Anafi 4k",
+        "model": "Parrot Anafi 4k",
         "objectid": "1",
         "droneId": 1,
         "battery": 99.5,
@@ -18,7 +18,7 @@
     {
       "type": "Feature",
       "properties": {
-        "model": "Anafi USA",
+        "model": "Parrot Anafi USA",
         "objectid": "2",
         "droneId": 2,
         "battery": 83.7,

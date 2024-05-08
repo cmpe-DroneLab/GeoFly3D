@@ -4,7 +4,7 @@ import UI.Midflight.mid_design
 
 from folium import JsCode
 from folium.plugins import MousePosition, Realtime
-from PyQt6.QtCore import QSize, pyqtSignal, QTimer
+from PyQt6.QtCore import QSize
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
 from UI.database import session, Mission, Drone
@@ -27,7 +27,6 @@ class Mid(QWidget):
 
         self.has_taken_off = False
         self.threads = {}
-
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -117,14 +116,12 @@ class Mid(QWidget):
                                     iconAnchor:[25, 24]
                                 })
                             }).bindPopup(
-                                '<b>ID:</b> ' + f.properties.droneId + '<br>' +
-                                '<b>Model:</b> ' + f.properties.model + '<br>' +
-                                '<b>Battery:</b> ' + f.properties.battery + '<br>' +
-                                '<b>Status:</b> ' + f.properties.status
+                                '<h5>DRONE #' + f.properties.droneId + '</h5>' + 
+                                 f.properties.model
                             ).openPopup();
                         }
                     """),
-            interval=10000,
+            interval=2000,
         ).add_to(self.map)
 
     def update_live_data(self):
@@ -140,7 +137,7 @@ class Mid(QWidget):
             fr.close()
             for feature in data['features']:
                 if feature['properties']['droneId'] == int(drone_id):
-                    battery_field.setText(str(feature['properties'].get('battery')))
+                    battery_field.setText(str(int(feature['properties'].get('battery'))))
                     status_field.setText(feature['properties'].get('status'))
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
