@@ -13,272 +13,282 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,4">
+  <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0">
-     <property name="spacing">
-      <number>10</number>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
-     <item>
-      <widget class="QLabel" name="label_header">
-       <property name="font">
-        <font>
-         <pointsize>21</pointsize>
-         <bold>true</bold>
-        </font>
+     <widget class="QWidget" name="">
+      <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0,0">
+       <property name="spacing">
+        <number>10</number>
        </property>
-       <property name="text">
-        <string>Pre-Flight Checking</string>
+       <property name="rightMargin">
+        <number>15</number>
        </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
-       </property>
-       <property name="text">
-        <string>Add GCS point to the map and connect drone(s).</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="gb_mission">
-       <property name="title">
-        <string/>
-       </property>
-       <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,1,0">
-        <item row="7" column="3">
-         <widget class="QLabel" name="batt_provided_unit">
-          <property name="text">
-           <string>min</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="2">
-         <widget class="QLabel" name="batt_required_value">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_mission_information">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-            <italic>true</italic>
-           </font>
-          </property>
-          <property name="text">
-           <string>Mission #</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="7" column="2">
-         <widget class="QLabel" name="batt_provided_value">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <widget class="QLabel" name="id_label">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-            <italic>true</italic>
-           </font>
-          </property>
-          <property name="text">
-           <string>0</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0" colspan="4">
-         <widget class="Line" name="line_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="2">
-         <widget class="QLabel" name="selected_area_value">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="selected_area_label">
-          <property name="text">
-           <string>Selected Area</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="2">
-         <widget class="QLabel" name="mission_time_value">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="3">
-         <widget class="QLabel" name="mission_time_unit">
-          <property name="text">
-           <string>min</string>
-          </property>
-         </widget>
-        </item>
-        <item row="7" column="0">
-         <widget class="QLabel" name="batt_provided_label">
-          <property name="text">
-           <string>Provided Battery Capacity</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="mission_time_label">
-          <property name="text">
-           <string>Estimated Mission Time</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="3">
-         <widget class="QLabel" name="selected_area_unit">
-          <property name="text">
-           <string>m²</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="0">
-         <widget class="QLabel" name="batt_required_label">
-          <property name="text">
-           <string>Required Battery Capacity</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="3">
-         <widget class="QLabel" name="batt_required_unit">
-          <property name="text">
-           <string>min</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QLabel" name="colon_1">
-          <property name="text">
-           <string>:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
-         <widget class="QLabel" name="colon_2">
-          <property name="text">
-           <string>:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="1">
-         <widget class="QLabel" name="colon_3">
-          <property name="text">
-           <string>:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="7" column="1">
-         <widget class="QLabel" name="colon_4">
-          <property name="text">
-           <string>:</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="gb_drones">
-       <property name="title">
-        <string/>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <widget class="QLabel" name="label_drones">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-            <italic>true</italic>
-           </font>
-          </property>
-          <property name="text">
-           <string>Drone List</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QListWidget" name="listWidget">
-          <property name="selectionMode">
-           <enum>QAbstractItemView::NoSelection</enum>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <layout class="QGridLayout" name="g_lay_buttons">
-       <item row="0" column="1" colspan="2">
-        <widget class="QPushButton" name="btn_take_off">
-         <property name="enabled">
-          <bool>false</bool>
+       <item>
+        <widget class="QLabel" name="label_header">
+         <property name="font">
+          <font>
+           <pointsize>21</pointsize>
+           <bold>true</bold>
+          </font>
          </property>
          <property name="text">
-          <string>Take Off ᐅ</string>
+          <string>Pre-Flight Checking</string>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::AutoText</enum>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
-       <item row="0" column="0">
-        <widget class="QPushButton" name="btn_return_back">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <italic>true</italic>
+          </font>
+         </property>
          <property name="text">
-          <string>ᐊ Go Back</string>
+          <string>Add GCS point to the map and connect drone(s).</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="gb_mission">
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,1,0">
+          <item row="7" column="3">
+           <widget class="QLabel" name="batt_provided_unit">
+            <property name="text">
+             <string>min</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="2">
+           <widget class="QLabel" name="batt_required_value">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_mission_information">
+            <property name="font">
+             <font>
+              <pointsize>15</pointsize>
+              <italic>true</italic>
+             </font>
+            </property>
+            <property name="text">
+             <string>Mission #</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="2">
+           <widget class="QLabel" name="batt_provided_value">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="id_label">
+            <property name="font">
+             <font>
+              <pointsize>15</pointsize>
+              <italic>true</italic>
+             </font>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="4">
+           <widget class="Line" name="line_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLabel" name="selected_area_value">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="selected_area_label">
+            <property name="text">
+             <string>Selected Area</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QLabel" name="mission_time_value">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="3">
+           <widget class="QLabel" name="mission_time_unit">
+            <property name="text">
+             <string>min</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="batt_provided_label">
+            <property name="text">
+             <string>Provided Battery Capacity</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="mission_time_label">
+            <property name="text">
+             <string>Estimated Mission Time</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QLabel" name="selected_area_unit">
+            <property name="text">
+             <string>m²</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <widget class="QLabel" name="batt_required_label">
+            <property name="text">
+             <string>Required Battery Capacity</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="3">
+           <widget class="QLabel" name="batt_required_unit">
+            <property name="text">
+             <string>min</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="colon_1">
+            <property name="text">
+             <string>:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="colon_2">
+            <property name="text">
+             <string>:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QLabel" name="colon_3">
+            <property name="text">
+             <string>:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QLabel" name="colon_4">
+            <property name="text">
+             <string>:</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="gb_drones">
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QLabel" name="label_drones">
+            <property name="font">
+             <font>
+              <pointsize>15</pointsize>
+              <italic>true</italic>
+             </font>
+            </property>
+            <property name="text">
+             <string>Drone List</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="listWidget">
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="g_lay_buttons">
+         <item row="0" column="1" colspan="2">
+          <widget class="QPushButton" name="btn_take_off">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Take Off ᐅ</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btn_return_back">
+           <property name="text">
+            <string>ᐊ Go Back</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="v_lay_right"/>
+     </widget>
+     <widget class="QWidget" name="">
+      <layout class="QVBoxLayout" name="v_lay_right"/>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>

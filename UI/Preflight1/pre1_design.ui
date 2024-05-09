@@ -13,127 +13,137 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,4">
+  <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0">
-     <property name="spacing">
-      <number>10</number>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
-     <item>
-      <widget class="QLabel" name="labe_header">
-       <property name="font">
-        <font>
-         <pointsize>21</pointsize>
-         <bold>true</bold>
-        </font>
+     <widget class="QWidget" name="layoutWidget">
+      <layout class="QVBoxLayout" name="v_lay_left" stretch="0,0,0,0">
+       <property name="spacing">
+        <number>10</number>
        </property>
-       <property name="text">
-        <string>GeoFly3D Main Page</string>
+       <property name="rightMargin">
+        <number>15</number>
        </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="font">
-        <font>
-         <italic>true</italic>
-        </font>
-       </property>
-       <property name="text">
-        <string>Create a new mission or select from the list.</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="gb_missions">
-       <property name="title">
-        <string/>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <widget class="QLabel" name="label_missions">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-            <italic>true</italic>
-           </font>
-          </property>
-          <property name="text">
-           <string>Mission List</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QListWidget" name="listWidget"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_test_missions">
-          <property name="text">
-           <string>Create Test Missions</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="h_lay_drone_buttons">
-          <item>
-           <widget class="QPushButton" name="btn_create_mission">
-            <property name="text">
-             <string>Create</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_duplicate_mission">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="text">
-             <string>Duplicate</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_delete_mission">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="text">
-             <string>Delete</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <layout class="QGridLayout" name="g_lay_buttons">
-       <item row="1" column="0">
-        <widget class="QPushButton" name="btn_edit_mission">
+       <item>
+        <widget class="QLabel" name="label_header">
+         <property name="font">
+          <font>
+           <pointsize>21</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="text">
-          <string>Continue with Selected Mission ᐅ</string>
+          <string>GeoFly3D Main Page</string>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::AutoText</enum>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QLabel" name="label_description">
+         <property name="font">
+          <font>
+           <italic>true</italic>
+          </font>
+         </property>
+         <property name="text">
+          <string>Create a new mission or select from the list.</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="gb_missions">
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QLabel" name="label_missions">
+            <property name="font">
+             <font>
+              <pointsize>15</pointsize>
+              <italic>true</italic>
+             </font>
+            </property>
+            <property name="text">
+             <string>Mission List</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="listWidget"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_test_missions">
+            <property name="text">
+             <string>Create Test Missions</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="h_lay_drone_buttons">
+            <item>
+             <widget class="QPushButton" name="btn_create_mission">
+              <property name="text">
+               <string>Create</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btn_duplicate_mission">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Duplicate</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btn_delete_mission">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Delete</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="g_lay_buttons">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btn_edit_mission">
+           <property name="text">
+            <string>Continue with Selected Mission ᐅ</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
       </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="v_lay_right"/>
+     </widget>
+     <widget class="QWidget" name="layoutWidget">
+      <layout class="QVBoxLayout" name="v_lay_right"/>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>
