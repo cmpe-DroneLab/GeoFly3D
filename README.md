@@ -8,8 +8,8 @@ The aim of this project is to leverage advancements in drone technology to condu
 * Detection and Mapping of Earthquake-Induced Fissures and Landslides:
 Utilizing drones equipped with high-resolution cameras for autonomously detecting and mapping fissures and landslides resulting from earthquakes. This is crucial for disaster response and risk assessment.
 
-* 3D Modeling of Buildings, Both Inside and Outside:
-Employing drones to perform detailed 3D scans of buildings, encompassing both interiors and exteriors. This facilitates accurate modeling for various applications, including construction planning and analysis.
+* 3D Modeling of Buildings' exteriors:
+Employing drones to perform detailed 3D scans of buildings' exteriors. This facilitates accurate modeling for various applications, including construction planning and analysis.
 
 These objectives showcase the potential of drone technology to enhance safety, disaster management, and urban development through precise data collection and analysis.
 
@@ -30,7 +30,7 @@ Utilize photogrammetry methods to reconstruct 3D models of the terrain, enabling
 To accomplish this goal, we propose the following approach:
 
 * Comprehensive Building Scans:
-Utilize drones for detailed scans of buildings, encompassing both internal and external structures.
+Utilize drones for detailed scans of buildings' facades.
 
 * Photogrammetry for Building Modeling:
 Apply photogrammetry techniques to create precise 3D models of the buildings using the images captured during the drone scans.
