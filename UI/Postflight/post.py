@@ -23,7 +23,7 @@ class Post(QWidget):
         self.ui.btn_process.clicked.connect(self.generate_orthophoto)
 
     # Loads mission information from database into relevant fields
-    def load_mission(self, project_folder, mission_id):
+    def load_mission(self, mission_id):
 
         if mission_id == 0:
             exit(-1)
@@ -31,7 +31,7 @@ class Post(QWidget):
             self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
 
         self.mission_id = self.mission.mission_id
-        self.project_folder = project_folder
+        self.project_folder = self.mission.project_folder
 
         # Set mission id in the header box
         self.ui.id_label.setText(str(self.mission_id))

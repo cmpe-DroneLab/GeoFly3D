@@ -3,14 +3,17 @@ import sys
 import time
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 import subprocess
+from UI.database import session, Mission
 
 import pexpect
 
 class DroneController(QThread):
     started = pyqtSignal(str)
     progress_text = pyqtSignal(str)
+    progress = pyqtSignal(tuple)
     update_coord = pyqtSignal(float, float, float)
-    finished = pyqtSignal(str, str, int)
+    update_status = pyqtSignal(str)
+    finished = pyqtSignal(str, int)
 
     def __init__(self, vertices, mission_id=1, flight_altitude=100, rotation_angle=20, intersection_ratio=0.8, gimbal_angle=-90, route_angle=0, rotated_route_angle=20):
         super().__init__()
@@ -61,9 +64,15 @@ class DroneController(QThread):
                 roscore_process.kill()
                 self.progress_text.emit("Parameter error!")
                 break
-            elif line.startswith("Mission Finished"):
-                # >>> b'Mission Finished: project\r\n'
-                project_folder = line[len("Mission Finished: ")].strip()
+            # elif line.startswith("Mission Finished"):
+            #     # >>> b'Mission Finished: project\r\n'
+            #     project_folder = line[len("Mission Finished: ")].strip()
+            elif "Project folder created: " in line:
+                project_folder = line.split(':')[-1].strip()
+                print(project_folder)
+                mission = session.query(Mission).filter_by(mission_id=self.mission_id).first()
+                mission.project_folder = project_folder
+                session.commit()
             elif line.startswith("("):
                 try:
                     coordinates = line.split(',')
@@ -74,6 +83,11 @@ class DroneController(QThread):
                     print(repr(e))
                 else:
                     self.update_coord.emit(latitude, longitude, battery_percent)
+            elif line.startswith("moving end"):
+                words = line.split(" ")
+                lat = float(words[-2])
+                lon = float(words[-1])
+                self.progress.emit((lat, lon))
             elif line.startswith("Connection State: "):
                  connection_state = True if line[len("Connection State: "):].strip() == "True" else False
                  print("Is connected: ", connection_state)
@@ -86,6 +100,11 @@ class DroneController(QThread):
             elif "Axis to Calibrate: " in line:
                 axis_to_calibrate = bool(int(line.strip()[-1]))
                 print("Axis to calibrate: ", axis_to_calibrate)
+            elif "flying_state: " in line:
+                status = str(line.split(".")[-1]).strip().capitalize()
+                print(status)
+                self.update_status.emit(status)
+                
 
 
             # (48.880642477419514, 2.3696386128612215, 226.89425659179688)'
@@ -96,4 +115,4 @@ class DroneController(QThread):
         
     
 
-        self.finished.emit(f"Mission #{self.mission_id} ---- END", project_folder, self.mission_id)
+        self.finished.emit(f"Mission #{self.mission_id} ---- END", self.mission_id)

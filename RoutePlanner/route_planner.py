@@ -1,4 +1,6 @@
 import math
+import haversine as hs
+from haversine import Unit
 from .scan_area import ScanArea
 
 
@@ -44,11 +46,24 @@ def plan_route(coords, altitude, intersection_ratio=0.8, route_angle_deg=0, rota
     # plt.show()
 
     optimal_route_coords = []
+    previous_node = optimal_route_nodes[0]
+    optimal_path_length = 0
     for node in optimal_route_nodes:
+        dist_btw_nodes = hs.haversine(point1=(previous_node[1], previous_node[0]), point2=(node[1], node[0]), unit=Unit.METERS)
+        optimal_path_length += dist_btw_nodes
         optimal_route_coords.append((node[1], node[0]))
 
+        previous_node = node
+
     rotated_route_coords = []
+    previous_node = rotated_route_nodes[0]
+    rotated_path_length = 0
     for node in rotated_route_nodes:
+        dist_btw_nodes = hs.haversine(point1=(previous_node[1], previous_node[0]), point2=(node[1], node[0]), unit=Unit.METERS)
+        rotated_path_length += dist_btw_nodes
         rotated_route_coords.append((node[1], node[0]))
 
-    return optimal_route_coords, rotated_route_coords
+        previous_node = node
+
+
+    return optimal_route_coords, optimal_path_length, rotated_route_coords, rotated_path_length

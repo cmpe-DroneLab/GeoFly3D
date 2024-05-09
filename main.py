@@ -134,14 +134,13 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.setCurrentIndex(3)
 
     # MID to POST Automatically
-    def scan_finished(self, msg, project_folder, mission_id):
+    def scan_finished(self, msg, mission_id):
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Post Flight"
         mission.flight_finish_time = QDateTime.currentDateTime().toString()
-        mission.project_folder = project_folder
         session.commit()
 
-        self.post.load_mission(project_folder, mission_id)
+        self.post.load_mission(mission_id)
         self.mid.threads.clear()
         self.mid.has_taken_off = False
         self.ui.stackedWidget.setCurrentIndex(4)
