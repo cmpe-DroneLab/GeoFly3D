@@ -3,7 +3,7 @@ import sys
 import random
 import UI.main_design
 
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, QDateTime
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from UI.Preflight1.pre1 import Pre1
 from UI.Preflight2.pre2 import Pre2
@@ -137,6 +137,7 @@ class MainWindow(QMainWindow):
     def scan_finished(self, msg, mission_id):
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Post Flight"
+        mission.flight_finish_time = QDateTime.currentDateTime().toString()
         session.commit()
 
         self.post.load_mission(mission_id)
@@ -146,6 +147,10 @@ class MainWindow(QMainWindow):
 
     # MID/POST to PRE1
     def go_to_main_clicked(self):
+        # MID to PRE1
+        if (self.ui.stackedWidget.currentIndex() == 3) and (self.mid.timer.isActive()):
+            self.mid.timer.stop()
+            self.mid.timer.disconnect()
         self.pre1.refresh_mission_list()
         self.pre1.refresh_general_map()
         self.ui.stackedWidget.setCurrentIndex(0)
