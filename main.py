@@ -139,7 +139,7 @@ class MainWindow(QMainWindow):
         mission.mission_status = "Post Flight"
         session.commit()
 
-        self.post.load_mission(project_folder, mission_id)
+        self.post.load_mission(mission_id)
         self.mid.threads.clear()
         self.mid.has_taken_off = False
         self.ui.stackedWidget.setCurrentIndex(4)
