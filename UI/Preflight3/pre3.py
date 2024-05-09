@@ -41,7 +41,7 @@ class Pre3(QWidget):
         self.refresh_drone_list()
 
         # Set mission id in the header box
-        self.ui.id_label.setText(str(self.mission.mission_id))
+        self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
 
         # Set up the Map
         self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)

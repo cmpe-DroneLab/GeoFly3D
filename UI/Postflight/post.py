@@ -34,7 +34,7 @@ class Post(QWidget):
         self.project_folder = self.mission.project_folder
 
         # Set mission id in the header box
-        self.ui.id_label.setText(str(self.mission_id))
+        self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
 
         # Set mission information box
         self.ui.scanned_area_value.setText(str(self.mission.scanned_area))

@@ -69,7 +69,7 @@ class Pre2(QWidget):
         self.calculate_provided_capacity()
 
         # Set mission id in the header box
-        self.ui.id_label.setText(str(self.mission.mission_id))
+        self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
 
         # Set up the Map
         if self.mission.center_lat is None:

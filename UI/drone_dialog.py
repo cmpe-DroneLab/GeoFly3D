@@ -1,27 +1,26 @@
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtGui import QIcon
-import os
-import sys
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath("./UI")
-
-    return os.path.join(base_path, relative_path)
 
 
 class Ui_drone_dialog(object):
 
     def setupUi(self, drone_dialog):
-        drone_dialog.setStyleSheet(open(resource_path('style.qss'), "r").read())
         drone_dialog.setObjectName("drone_dialog")
         drone_dialog.setWindowTitle("Drone Details")
         drone_dialog.resize(300, 200)
+        drone_dialog.setStyleSheet("QPushButton {\n"
+                                   "    color: #111111;\n"
+                                   "    background-color: #ffffff;\n"
+                                   "    padding: 5px 10px;\n"
+                                   "    font-weight: 500;\n"
+                                   "    border-radius: 5px;\n"
+                                   "    border: 0px;\n"
+                                   "}\n"
+                                   "\n"
+                                   "QPushButton:focus { border: 1px solid darkgrey; }\n"
+                                   "QPushButton:hover { background-color: #bebebe; }\n"
+                                   "QPushButton:pressed { color: white; background-color: #5c5c5c; }\n"
+                                   "QPushButton:disabled { color: grey; background-color: #bbbbbb; }\n"
+                                   "")
         drone_dialog.setMinimumSize(QtCore.QSize(300, 200))
         drone_dialog.setMaximumSize(QtCore.QSize(300, 200))
 
