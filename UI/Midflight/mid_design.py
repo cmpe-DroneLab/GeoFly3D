@@ -88,7 +88,7 @@ class Ui_Form(object):
         self.selected_area_value.setObjectName("selected_area_value")
         self.gridLayout.addWidget(self.selected_area_value, 2, 2, 1, 1)
         self.progress_bar = QtWidgets.QProgressBar(parent=self.gb_mission)
-        self.progress_bar.setProperty("value", 24)
+        self.progress_bar.setProperty("value", 0)
         self.progress_bar.setObjectName("progress_bar")
         self.gridLayout.addWidget(self.progress_bar, 7, 0, 1, 4)
         self.scanned_area_unit = QtWidgets.QLabel(parent=self.gb_mission)

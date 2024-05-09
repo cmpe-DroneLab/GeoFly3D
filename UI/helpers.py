@@ -125,6 +125,8 @@ class RouteDrawer:
         sw_point, ne_point = calculate_sw_ne_points(coords)
         map_obj.fit_bounds([sw_point, ne_point])
 
+        return optimal_path_length, rotated_path_length
+
 
 class WebEnginePage(QtWebEngineCore.QWebEnginePage):
     polygon_coords_printed = pyqtSignal(list)
@@ -224,19 +226,30 @@ class ServerThread(QThread):
             self.httpd.server_close()
 
 
-def update_drone_position_on_map(latitude, longitude, battery_percent):
+def update_drone_position_on_map(latitude, longitude):
     # Read the GeoJSON file
     with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
         data = json.load(fr)
     fr.close()
     # Update the coordinates
     data['features'][0]['geometry']['coordinates'] = [longitude, latitude]
+    # Write back the modified data
+    with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
+        json.dump(data, fw)
+    fw.close()
+
+def update_drone_battery(battery_percent):
+    # Read the GeoJSON file
+    with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
+        data = json.load(fr)
+    fr.close()
+    # Update the coordinates
     data['features'][0]['properties']['battery'] = battery_percent
     # Write back the modified data
     with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
         json.dump(data, fw)
     fw.close()
-    
+
 def update_drone_status(status:str):
     # Read the GeoJSON file
     with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
