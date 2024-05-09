@@ -96,6 +96,25 @@ def partition_polygon(polygon,division_line):
     else:
         return []
 
+def stretch_line(line,distance):
+    # Get the coordinates of the endpoints of the original LineString
+    start_point = Point(line.coords[0])
+    end_point = Point(line.coords[-1])
+    
+    # Calculate the unit vector along the original LineString
+    dx = end_point.x - start_point.x
+    dy = end_point.y - start_point.y
+    length = line.length
+    unit_vector = (dx / length, dy / length)
+    
+    # Create new points by extending from the original endpoints
+    extended_start_point = Point(start_point.x - distance * unit_vector[0], start_point.y - distance * unit_vector[1])
+    extended_end_point = Point(end_point.x + distance * unit_vector[0], end_point.y + distance * unit_vector[1])
+    
+    # Create a new LineString using the extended points
+    extended_line = LineString([extended_start_point, extended_end_point])
+    
+    return extended_line
 
 
 def parallel_partitions(polygon, partition_line,start_vertex):
@@ -110,6 +129,9 @@ def parallel_partitions(polygon, partition_line,start_vertex):
         rot_sign = 1
     else:
         rot_sign = -1
+    partition_line  = stretch_line(partition_line,distance)
+    ideal_partition = None
+    min_val         = float("inf")
     for counter in range(number_partition):
         line_start, _  = partition_line.coords
         rotation_point = Point(line_start)
@@ -117,20 +139,25 @@ def parallel_partitions(polygon, partition_line,start_vertex):
             angle_radians      = math.radians(i*rot_sign)  
             rotated_line       = rotate_line(partition_line,angle_radians)
             partitioned_shapes = partition_polygon(polygon,rotated_line)
-            if len(partitioned_shapes) < 2:
-                continue
-            value              = optimization_function(partitioned_shapes[0],partitioned_shapes[1])
-            partition_list.append([partitioned_shapes[0],partitioned_shapes[1],value])
+            if len(partitioned_shapes) == 2:
+                value              = optimization_function(partitioned_shapes[0],partitioned_shapes[1])
+                if min_val > value:
+                    min_val = value
+                    ideal_partition = [partitioned_shapes[0],partitioned_shapes[1]]            
+            #partition_list.append([partitioned_shapes[0],partitioned_shapes[1],value])
         partition_line = partition_line.parallel_offset(interpartition_disp, side=partition_direction)
-    return len(partition_list)
+        #plt.show()
+    return ideal_partition
 
 
 def get_partitions(polygon_coords,line_start,line_end):
     # Create a Polygon
     polygon        = Polygon(polygon_coords)
     partition_line = LineString([line_start, line_end])
-    part_len       = parallel_partitions(polygon,partition_line,Point(line_start))
-    print(part_len)
+    ideal_partition= parallel_partitions(polygon,partition_line,Point(line_start))
+    #print(ideal_partition)
+    plot_partition(ideal_partition[0])
+    plot_partition(ideal_partition[1])
 
 
 # Extract the x and y coordinates of the polygon exterior
