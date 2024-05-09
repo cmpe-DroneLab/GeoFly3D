@@ -4,7 +4,7 @@ import UI.Midflight.mid_design
 
 from folium import JsCode
 from folium.plugins import MousePosition, Realtime
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QSize, QDateTime, QTimer
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
 from UI.database import session, Mission, Drone
@@ -24,9 +24,9 @@ class Mid(QWidget):
         self.map = None
         self.webView = QWebEngineView()
         self.ui.v_lay_right.addWidget(self.webView)
-
         self.has_taken_off = False
         self.threads = {}
+        self.timer = QTimer(self)
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -38,7 +38,6 @@ class Mid(QWidget):
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
         self.ui.mission_time_value.setText(str(self.mission.estimated_mission_time))
-        self.ui.scanned_area_value.setText(str(self.mission.scanned_area))
 
         # Load drones
         self.refresh_drone_list()
@@ -51,6 +50,11 @@ class Mid(QWidget):
 
         # Draw route
         self.draw_route()
+
+        # Start timer for update elapsed time
+        self.ui.elapsed_time_value.setText("")
+        self.timer.timeout.connect(self.update_elapsed_time)
+        self.timer.start(1000)  # Update every second
 
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
@@ -140,6 +144,16 @@ class Mid(QWidget):
                     battery_field.setText(str(int(feature['properties'].get('battery'))))
                     status_field.setText(feature['properties'].get('status'))
 
+    def update_elapsed_time(self):
+        current_time = QDateTime.currentDateTime()
+        flight_start_time = QDateTime.fromString(self.mission.flight_start_time)
+        elapsed_seconds = flight_start_time.secsTo(current_time)
+        hours = elapsed_seconds // 3600
+        minutes = (elapsed_seconds % 3600) // 60
+        seconds = elapsed_seconds % 60
+        elapsed_time_string = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
+        self.ui.elapsed_time_value.setText(elapsed_time_string)
+
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.threads:
             return
@@ -158,6 +172,7 @@ class Mid(QWidget):
         self.has_taken_off = True
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Mid Flight"
+        mission.flight_start_time = QDateTime.currentDateTime().toString()
         session.commit()
 
         return drone_controller_thread

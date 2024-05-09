@@ -38,6 +38,8 @@ class Mission(Base):
     mission_id = Column(Integer, primary_key=True)
     creation_time = Column(String)
     last_update_time = Column(String)
+    flight_start_time = Column(String)
+    flight_finish_time = Column(String)
     center_lat = Column(Float)
     center_lon = Column(Float)
     gcs_lat = Column(Float)
