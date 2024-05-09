@@ -23,7 +23,7 @@ class Pre3(QWidget):
         self.map = None
         self.webView = QWebEngineView()
         self.ui.v_lay_right.addWidget(self.webView)
-        self.is_area_in_coverage = False
+        self.is_area_in_coverage = True
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
