@@ -83,33 +83,18 @@ def plot_partition(polygon):
     plt.show()
 
 
-def partition_polygon(polygon,line):
-    intersection_points = line.intersection(polygon.boundary)
-    
-    # Sort the intersection points along the line
-    sorted_intersection_points = sorted(intersection_points, key=lambda point: line.project(point))
-    
-    # If there are no intersection points, the line does not intersect the polygon
-    if not sorted_intersection_points:
-        return [polygon]
-    
-    # Create a list of coordinates representing the parts of the polygon divided by the line
-    divided_polygon_coords = []
-    for i in range(len(sorted_intersection_points) + 1):
-        if i == 0:
-            # Append the coordinates of the part of the polygon before the first intersection point
-            divided_polygon_coords.append([point for point in polygon.boundary.coords if Point(point) != sorted_intersection_points[i]])
-        elif i == len(sorted_intersection_points):
-            # Append the coordinates of the part of the polygon after the last intersection point
-            divided_polygon_coords.append([point for point in polygon.boundary.coords if Point(point) != sorted_intersection_points[i - 1]])
-        else:
-            # Append the coordinates of the part of the polygon between two consecutive intersection points
-            divided_polygon_coords.append([point for point in polygon.boundary.coords if Point(point) == sorted_intersection_points[i - 1] or Point(point) == sorted_intersection_points[i]])
-    
-    # Create polygons from the divided parts
-    divided_polygons = [Polygon(part) for part in divided_polygon_coords]
-    
-    return divided_polygons
+def partition_polygon(polygon,division_line):
+    separator        = division_line.buffer(0.000001)  #is polygon
+    # the `difference` operation between 2 polygons
+    partitions       = polygon.difference(separator)
+    geom_type_check  = partitions.geom_type
+    if geom_type_check == 'MultiPolygon':
+        polygons = list(partitions.geoms)
+        return polygons
+    elif geom_type_check == 'Polygon':
+        return [partitions]
+    else:
+        return []
 
 
 
@@ -132,7 +117,7 @@ def parallel_partitions(polygon, partition_line,start_vertex):
             angle_radians      = math.radians(i*rot_sign)  
             rotated_line       = rotate_line(partition_line,angle_radians)
             partitioned_shapes = partition_polygon(polygon,rotated_line)
-            if len(partitioned_shapes) == 1:
+            if len(partitioned_shapes) < 2:
                 continue
             value              = optimization_function(partitioned_shapes[0],partitioned_shapes[1])
             partition_list.append([partitioned_shapes[0],partitioned_shapes[1],value])
