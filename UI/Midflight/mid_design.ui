@@ -14,25 +14,8 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton {
-    color: #111111;
-    background-color: #ffffff;
-    padding: 5px 10px;
-    font-weight: 500;
-    border-radius: 5px;
-    border: 0px;
-}
-
-QPushButton:focus { border: 1px solid darkgrey; }
-QPushButton:hover { background-color: #bebebe; }
-QPushButton:pressed { color: white; background-color: #5c5c5c; }
-QPushButton:disabled { color: grey; background-color: #bbbbbb; }
-
-#btn_return_to_home { color: #b85a5a; }
-#btn_return_to_home:hover { background-color: #f5c9c9; }
-#btn_return_to_home:pressed { color: white; background-color: #b85656; }
-#btn_return_to_home:disabled { color: grey; background-color: #bbbbbb; }
-</string>
+   <string notr="true">QPushButton { padding: 7px 10px; font-weight: 500; }
+#btn_return_to_home { color: #b85a5a; }</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
@@ -75,7 +58,7 @@ QPushButton:disabled { color: grey; background-color: #bbbbbb; }
           </font>
          </property>
          <property name="text">
-          <string/>
+          <string>You can monitor the mission live.</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -237,7 +220,7 @@ QPushButton:disabled { color: grey; background-color: #bbbbbb; }
          <item row="0" column="0">
           <widget class="QPushButton" name="btn_main">
            <property name="text">
-            <string>ᐊ Go Home</string>
+            <string>ᐊ Home</string>
            </property>
           </widget>
          </item>

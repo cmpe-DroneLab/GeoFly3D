@@ -13,40 +13,11 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1024, 768)
-        Form.setStyleSheet("QPushButton {\n"
-"    color: #111111;\n"
-"    background-color: #ffffff;\n"
-"    padding: 5px 10px;\n"
-"    font-weight: 500;\n"
-"    border-radius: 5px;\n"
-"    border: 0px;\n"
-"}\n"
-"\n"
-"QPushButton:focus { border: 1px solid darkgrey; }\n"
-"QPushButton:hover { background-color: #bebebe; }\n"
-"QPushButton:pressed { color: white; background-color: #5c5c5c; }\n"
-"QPushButton:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
+        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }\n"
 "#btn_save { color: #5e9459; }\n"
-"#btn_save:hover { background-color: #d3e6d1;}\n"
-"#btn_save:pressed { color: white; background-color: #71946d; }\n"
-"#btn_save:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
 "#btn_delete_drone { color: #b85a5a; }\n"
-"#btn_delete_drone:hover { background-color: #f5c9c9; }\n"
-"#btn_delete_drone:pressed { color: white; background-color: #b85656; }\n"
-"#btn_delete_drone:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
 "#btn_add_drone { color: #406d91; }\n"
-"#btn_add_drone:hover { background-color: #bcd4e8; }\n"
-"#btn_add_drone:pressed { color: white; background-color: #5785ad; }\n"
-"#btn_add_drone:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
-"#btn_start { color: #a33ea3; }\n"
-"#btn_start:hover { background-color: #f7c3f7; }\n"
-"#btn_start:pressed { color: white; background-color: #a33ea3; }\n"
-"#btn_start:disabled { color: grey; background-color: #bbbbbb; }\n"
-"")
+"#btn_start { color: #a33ea3; }")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.splitter = QtWidgets.QSplitter(parent=Form)

@@ -13,24 +13,8 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1024, 768)
-        Form.setStyleSheet("QPushButton {\n"
-"    color: #111111;\n"
-"    background-color: #ffffff;\n"
-"    padding: 5px 10px;\n"
-"    font-weight: 500;\n"
-"    border-radius: 5px;\n"
-"    border: 0px;\n"
-"}\n"
-"\n"
-"QPushButton:focus { border: 1px solid darkgrey; }\n"
-"QPushButton:hover { background-color: #bebebe; }\n"
-"QPushButton:pressed { color: white; background-color: #5c5c5c; }\n"
-"QPushButton:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
+        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }\n"
 "#btn_process { color: #a33ea3; }\n"
-"#btn_process:hover { background-color: #f7c3f7; }\n"
-"#btn_process:pressed { color: white; background-color: #a33ea3; }\n"
-"#btn_process:disabled { color: grey; background-color: #bbbbbb; }\n"
 "")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout.setObjectName("horizontalLayout")
@@ -142,7 +126,7 @@ class Ui_Form(object):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
         self.label_header.setText(_translate("Form", "Mission Results"))
-        self.label_description.setText(_translate("Form", "TextLabel"))
+        self.label_description.setText(_translate("Form", "Click Process button to generate orthophoto."))
         self.gb_mission.setTitle(_translate("Form", "Mission #0"))
         self.colon_2.setText(_translate("Form", ":"))
         self.colon_3.setText(_translate("Form", ":"))
@@ -154,7 +138,7 @@ class Ui_Form(object):
         self.scanned_area_unit.setText(_translate("Form", "m²"))
         self.batt_required_label.setText(_translate("Form", "Photos Taken"))
         self.gb_drones.setTitle(_translate("Form", "Drone List"))
-        self.btn_main.setText(_translate("Form", "ᐊ Go Main"))
+        self.btn_main.setText(_translate("Form", "ᐊ Home"))
         self.btn_process.setText(_translate("Form", "Process ᐅ"))
 
 

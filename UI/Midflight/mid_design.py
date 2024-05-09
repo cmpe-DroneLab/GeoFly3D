@@ -13,25 +13,8 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1024, 768)
-        Form.setStyleSheet("QPushButton {\n"
-"    color: #111111;\n"
-"    background-color: #ffffff;\n"
-"    padding: 5px 10px;\n"
-"    font-weight: 500;\n"
-"    border-radius: 5px;\n"
-"    border: 0px;\n"
-"}\n"
-"\n"
-"QPushButton:focus { border: 1px solid darkgrey; }\n"
-"QPushButton:hover { background-color: #bebebe; }\n"
-"QPushButton:pressed { color: white; background-color: #5c5c5c; }\n"
-"QPushButton:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
-"#btn_return_to_home { color: #b85a5a; }\n"
-"#btn_return_to_home:hover { background-color: #f5c9c9; }\n"
-"#btn_return_to_home:pressed { color: white; background-color: #b85656; }\n"
-"#btn_return_to_home:disabled { color: grey; background-color: #bbbbbb; }\n"
-"")
+        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }\n"
+"#btn_return_to_home { color: #b85a5a; }")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.splitter = QtWidgets.QSplitter(parent=Form)
@@ -56,7 +39,6 @@ class Ui_Form(object):
         font = QtGui.QFont()
         font.setItalic(True)
         self.label_description.setFont(font)
-        self.label_description.setText("")
         self.label_description.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.label_description.setObjectName("label_description")
         self.v_lay_left.addWidget(self.label_description)
@@ -150,6 +132,7 @@ class Ui_Form(object):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
         self.label_header.setText(_translate("Form", "Flight Monitoring"))
+        self.label_description.setText(_translate("Form", "You can monitor the mission live."))
         self.gb_mission.setTitle(_translate("Form", "Mission #0"))
         self.progress_label.setText(_translate("Form", "Progress"))
         self.colon_4.setText(_translate("Form", ":"))
@@ -162,7 +145,7 @@ class Ui_Form(object):
         self.colon_1.setText(_translate("Form", ":"))
         self.colon_2.setText(_translate("Form", ":"))
         self.gb_drones.setTitle(_translate("Form", "Drone List"))
-        self.btn_main.setText(_translate("Form", "ᐊ Go Home"))
+        self.btn_main.setText(_translate("Form", "ᐊ Home"))
         self.btn_return_to_home.setText(_translate("Form", "Return to Home ᐁ"))
 
 

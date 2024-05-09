@@ -13,35 +13,10 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1024, 768)
-        Form.setStyleSheet("QPushButton {\n"
-"    color: #111111;\n"
-"    background-color: #ffffff;\n"
-"    padding: 5px 10px;\n"
-"    font-weight: 500;\n"
-"    border-radius: 5px;\n"
-"    border: 0px;\n"
-"}\n"
-"\n"
-"QPushButton:focus { border: 1px solid darkgrey; }\n"
-"QPushButton:hover { background-color: #bebebe; }\n"
-"QPushButton:pressed { color: white; background-color: #5c5c5c; }\n"
-"QPushButton:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
+        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }\n"
 "#btn_delete_mission { color: #b85a5a; }\n"
-"#btn_delete_mission:hover { background-color: #f5c9c9; }\n"
-"#btn_delete_mission:pressed { color: white; background-color: #b85656; }\n"
-"#btn_delete_mission:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
 "#btn_create_mission { color: #406d91; }\n"
-"#btn_create_mission:hover { background-color: #bcd4e8; }\n"
-"#btn_create_mission:pressed { color: white; background-color: #5785ad; }\n"
-"#btn_create_mission:disabled { color: grey; background-color: #bbbbbb; }\n"
-"\n"
-"#btn_edit_mission { color: #a33ea3; }\n"
-"#btn_edit_mission:hover { background-color: #f7c3f7; }\n"
-"#btn_edit_mission:pressed { color: white; background-color: #a33ea3; }\n"
-"#btn_edit_mission:disabled { color: grey; background-color: #bbbbbb; }\n"
-"")
+"#btn_edit_mission { color: #a33ea3; }")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.splitter = QtWidgets.QSplitter(parent=Form)
