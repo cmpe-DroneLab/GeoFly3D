@@ -61,7 +61,7 @@ class RouteDrawer:
         map_obj.add_child(fg_selected)
 
         # Calculate Optimal and Rotated Route
-        (optimal_route, rotated_route) = route_planner.plan_route(coords=coords_lon_lat[:-1],
+        (optimal_route, optimal_path_length, rotated_route, rotated_path_length) = route_planner.plan_route(coords=coords_lon_lat[:-1],
                                                                   altitude=mission.altitude,
                                                                   intersection_ratio=0.8,
                                                                   route_angle_deg=mission.route_angle,
@@ -232,6 +232,18 @@ def update_drone_position_on_map(latitude, longitude, battery_percent):
     # Update the coordinates
     data['features'][0]['geometry']['coordinates'] = [longitude, latitude]
     data['features'][0]['properties']['battery'] = battery_percent
+    # Write back the modified data
+    with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
+        json.dump(data, fw)
+    fw.close()
+    
+def update_drone_status(status:str):
+    # Read the GeoJSON file
+    with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
+        data = json.load(fr)
+    fr.close()
+    # Update the coordinates
+    data['features'][0]['properties']['status'] = status
     # Write back the modified data
     with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
         json.dump(data, fw)

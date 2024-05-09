@@ -9,7 +9,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
 from UI.database import session, Mission, Drone
 from UI.ListItems.drone_mid import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage, update_drone_position_on_map, resource_path
+from UI.helpers import RouteDrawer, WebEnginePage, update_drone_position_on_map, update_drone_status, resource_path, calculate_geographic_distance
 from drone_controller import DroneController
 
 
@@ -27,6 +27,9 @@ class Mid(QWidget):
 
         self.has_taken_off = False
         self.threads = {}
+
+        self.actual_length = 0
+
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -137,8 +140,25 @@ class Mid(QWidget):
             fr.close()
             for feature in data['features']:
                 if feature['properties']['droneId'] == int(drone_id):
-                    battery_field.setText(str(int(feature['properties'].get('battery'))))
+                    battery_field.setText(str(int(feature['properties'].get('battery'))) + "%")
                     status_field.setText(feature['properties'].get('status'))
+
+    def update_progress_bar(self, increment):
+        # progress = self.actual_length + increment / 
+        pass
+
+    def drone_position_changed(self, lat, lon, battery):
+        update_drone_position_on_map(lat, lon, battery)
+        # length_increment = calculate_geographic_distance((lat, lon), (self.mission.last_visited_node_lat, self.mission.last_visited_node_lon))
+        # self.update_progress_bar(length_increment)
+
+    def last_visited_node_changed(self, lat, lon):
+        print(lat, lon)
+        self.actual_length = calculate_geographic_distance((self.mission.last_visited_node_lat, self.mission.last_visited_node_lon), (lat, lon))
+
+        self.mission.last_visited_node_lat = lat
+        self.mission.last_visited_node_lon = lon
+        session.commit()
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.threads:
@@ -150,8 +170,11 @@ class Mid(QWidget):
 
         drone_controller_thread.started.connect(print)
         drone_controller_thread.progress_text.connect(print)
-        drone_controller_thread.update_coord.connect(update_drone_position_on_map)
+        drone_controller_thread.progress.connect(self.last_visited_node_changed)
+        drone_controller_thread.update_coord.connect(self.drone_position_changed)
         drone_controller_thread.update_coord.connect(self.update_live_data)
+        drone_controller_thread.update_status.connect(update_drone_status)
+        drone_controller_thread.update_status.connect(self.update_live_data)
 
         self.threads[mission_id] = drone_controller_thread
         drone_controller_thread.start()

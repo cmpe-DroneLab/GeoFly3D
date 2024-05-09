@@ -55,6 +55,8 @@ class Mission(Base):
     rotated_route_angle = Column(Integer)
     mission_drones = relationship("Drone", cascade="all, delete", back_populates="mission")
     project_folder = Column(String)
+    last_visited_node_lat = Column(Float)
+    last_visited_node_lon = Column(Float)
 
 
 class Event(Base):
