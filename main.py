@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
         # PRE1 to POST
         elif mission_status == "post flight":
             mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-            self.post.load_mission(mission.project_folder, mission_id)
+            self.post.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(4)
 
     def delete_mission_clicked(self, mission_id):
