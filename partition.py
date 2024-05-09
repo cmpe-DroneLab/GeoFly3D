@@ -140,6 +140,8 @@ def parallel_partitions(polygon, partition_line,start_vertex):
             rotated_line       = rotate_line(partition_line,angle_radians)
             partitioned_shapes = partition_polygon(polygon,rotated_line)
             if len(partitioned_shapes) == 2:
+                #plot_partition(partitioned_shapes[0])
+                #plot_partition(partitioned_shapes[1])
                 value              = optimization_function(partitioned_shapes[0],partitioned_shapes[1])
                 if min_val > value:
                     min_val = value
