@@ -1,6 +1,8 @@
-from shapely.geometry import LineString,Polygon, Point,MultiPolygon
+from shapely.geometry import LineString,Polygon, Point
+from shapely.ops import split
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def furthest_vertex(polygon, reference_vertex):
@@ -17,6 +19,42 @@ def furthest_vertex(polygon, reference_vertex):
             furthest_vertex = vertex
     
     return furthest_vertex,max_distance
+
+def translate_along_line(line_to_translate, reference_line, distance):
+    x_diff = line_to_translate.coords[1][0] - line_to_translate.coords[0][0]
+    y_diff = line_to_translate.coords[1][1] - line_to_translate.coords[0][1]
+    length = np.sqrt(x_diff**2 + y_diff**2)
+    unit_vector = (x_diff / length, y_diff / length)
+
+    # Calculate the perpendicular vector to the reference line
+    x_diff_ref = reference_line.coords[1][0] - reference_line.coords[0][0]
+    y_diff_ref = reference_line.coords[1][1] - reference_line.coords[0][1]
+    perpendicular_vector = (-y_diff_ref, x_diff_ref)
+
+    # Normalize the perpendicular vector
+    length_ref = np.sqrt(perpendicular_vector[0]**2 + perpendicular_vector[1]**2)
+    unit_perpendicular_vector = (perpendicular_vector[0] / length_ref, perpendicular_vector[1] / length_ref)
+
+    # Multiply the unit perpendicular vector by the distance to obtain the translation vector
+    translation_vector = (unit_perpendicular_vector[0] * distance, unit_perpendicular_vector[1] * distance)
+
+    # Translate each point of the line parallel to the reference line by adding the translation vector
+    translated_points = []
+    for point in line_to_translate.coords:
+        translated_point = (point[0] + translation_vector[0], point[1] + translation_vector[1])
+        translated_points.append(translated_point)
+
+    # Create a new LineString with translated points
+    translated_line = LineString(translated_points)
+    """
+    x,y = translated_line.xy
+    plt.plot(x,y,label="Translated Line")
+    x,y = line_to_translate.xy
+    plt.plot(x,y,label="Line to be translated")
+    x,y = reference_line.xy
+    plt.plot(x,y,label="Reference Line")
+    plt.show()"""
+    return translated_line
 
 def orientation_decider(polygon,partition_line):
     center_polygon       = polygon.centroid
@@ -84,6 +122,10 @@ def plot_partition(polygon):
 
 
 def partition_polygon(polygon,division_line):
+    result = split(polygon, division_line)
+    geom_list = list(result.geoms)
+    return geom_list
+    """
     separator        = division_line.buffer(0.000001)  #is polygon
     # the `difference` operation between 2 polygons
     partitions       = polygon.difference(separator)
@@ -95,6 +137,7 @@ def partition_polygon(polygon,division_line):
         return [partitions]
     else:
         return []
+    """
 
 def stretch_line(line,distance):
     # Get the coordinates of the endpoints of the original LineString
@@ -118,13 +161,12 @@ def stretch_line(line,distance):
 
 
 def parallel_partitions(polygon, partition_line,start_vertex):
-    rotation_point       = start_vertex
-    far_vertex,distance  = furthest_vertex(polygon,start_vertex)
-    number_partition     = 20    
-    interpartition_disp  = distance / (number_partition + 1)
-    partition_direction  = orientation_decider(polygon,partition_line)
-    partition_list       = []
-    rot_sign             = None
+    farthest_vertex,distance  = furthest_vertex(polygon,start_vertex)
+    reference_line            = LineString([start_vertex, farthest_vertex])
+    number_partition          = 20    
+    interpartition_disp       = distance / (number_partition + 1)
+    partition_direction       = orientation_decider(polygon,partition_line)
+    rot_sign                  = None
     if partition_direction == "left":
         rot_sign = 1
     else:
@@ -133,8 +175,6 @@ def parallel_partitions(polygon, partition_line,start_vertex):
     ideal_partition = None
     min_val         = float("inf")
     for counter in range(number_partition):
-        line_start, _  = partition_line.coords
-        rotation_point = Point(line_start)
         for i in range(1,23):
             angle_radians      = math.radians(i*rot_sign)  
             rotated_line       = rotate_line(partition_line,angle_radians)
@@ -147,8 +187,9 @@ def parallel_partitions(polygon, partition_line,start_vertex):
                     min_val = value
                     ideal_partition = [partitioned_shapes[0],partitioned_shapes[1]]            
             #partition_list.append([partitioned_shapes[0],partitioned_shapes[1],value])
-        partition_line = partition_line.parallel_offset(interpartition_disp, side=partition_direction)
+        partition_line = translate_along_line(partition_line,reference_line, interpartition_disp)
         #plt.show()
+    
     return ideal_partition
 
 
