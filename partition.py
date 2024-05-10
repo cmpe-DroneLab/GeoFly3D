@@ -4,7 +4,6 @@ from shapely.geometry import LineString,Polygon, Point
 from shapely.ops import split
 import math
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def furthest_vertex(polygon, reference_vertex):
