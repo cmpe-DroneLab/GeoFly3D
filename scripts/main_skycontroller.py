@@ -5,7 +5,6 @@ import rospy
 from std_msgs.msg import String
 import olympe
 import time
-from datetime import datetime
 import math
 from math import cos, sin, radians
 import os
@@ -13,8 +12,6 @@ from olympe.messages.ardrone3.PilotingState import GpsLocationChanged, moveToCha
 from olympe.messages.ardrone3.Piloting import *
 from olympe.messages.ardrone3.Piloting import moveTo, moveBy
 from olympe.messages.common.CommonState import BatteryStateChanged
-from olympe.messages.common.Calibration import MagnetoCalibration
-from olympe.messages.common.CalibrationState import MagnetoCalibrationRequiredState, MagnetoCalibrationStartedChanged
 from olympe.enums.gimbal import control_mode, frame_of_reference
 from olympe.messages.gimbal import set_target
 from olympe.enums.ardrone3.Piloting import MoveTo_Orientation_mode
@@ -33,15 +30,14 @@ from scan_area import ScanArea
 
 from event_listener import EventListener
 
-DRONE_IP = os.environ.get("DRONE_IP", "10.202.0.1")
-# Skycontroller
-# DRONE_IP = os.environ.get("DRONE_IP", "192.168.53.1") 
+# DRONE_IP = os.environ.get("DRONE_IP", "10.202.0.1")
+DRONE_IP = os.environ.get("DRONE_IP", "192.168.53.1")
 
+# ANAFI_URL = "http://{}/".format(DRONE_IP) Simulation
 ANAFI_URL = "http://{}".format(DRONE_IP)
 
-ANAFI_MEDIA_API_URL = ANAFI_URL + "/api/v1/media/medias/"
-# Skycontroller
-# ANAFI_MEDIA_API_URL = ANAFI_URL + ":180/api/v1/media/medias/"
+# ANAFI_MEDIA_API_URL = ANAFI_URL + "api/v1/media/medias/"
+ANAFI_MEDIA_API_URL = ANAFI_URL + ":180/api/v1/media/medias/"
 
 XMP_TAGS_OF_INTEREST = (
     "CameraRollDegree",
@@ -78,8 +74,8 @@ class DroneGPS:
         Check if the current GPS position is within a certain tolerance of the target position.
         The default tolerance is roughly equivalent to 11 meters.
         """
-        print(str(self.get_current_position())
-              + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
+        print(str(self.get_current_position()))
+            #   + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
         if self.latitude is None or self.longitude is None:
             return False
         lat_diff = abs(self.latitude - target_latitude)
@@ -120,6 +116,38 @@ def position_changed_callback(event, controller):
     print(f"Latitude: {latitude}, Longitude: {longitude}, Altitude: {altitude}")
 
 
+def take_photo_single(drone):
+    check_connection()
+    print("taking photo")
+    photo_saved = drone(photo_progress(result="photo_saved", _policy="wait"))
+    drone(take_photo(cam_id=0)).wait()
+    photo_saved.wait()
+    # media_id = photo_saved.received_events().last().args["media_id"]
+
+
+    # media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
+    # media_info_response.raise_for_status()
+    # download_dir = tempfile.mkdtemp()
+    # for resource in media_info_response.json()["resources"]:
+    #     image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
+    #     download_path = os.path.join(download_dir, resource["resource_id"])
+    #     image_response.raise_for_status()
+    #     with open(download_path, "wb") as image_file:
+    #         shutil.copyfileobj(image_response.raw, image_file)
+
+       
+    #     with open(download_path, "rb") as image_file:
+    #         image_data = image_file.read()
+    #         image_xmp_start = image_data.find(b"<x:xmpmeta")
+    #         image_xmp_end = image_data.find(b"</x:xmpmeta")
+    #         image_xmp = ET.fromstring(image_data[image_xmp_start : image_xmp_end + 12])
+    #         for image_meta in image_xmp[0][0]:
+    #             xmp_tag = re.sub(r"{[^}]*}", "", image_meta.tag)
+    #             xmp_value = image_meta.text
+                
+    #             if xmp_tag in XMP_TAGS_OF_INTEREST:
+    #                 print(resource["resource_id"], xmp_tag, xmp_value)
+
 
 
 
@@ -140,97 +168,88 @@ def setup_photo_gpslapse_mode(drone):
 
 def download_photos():
     check_connection()
+    print("downloading...")
+    time.sleep(5)
     num_media = 0
     download_folder = ""
+    dir_name = ""
+    if drone.media(indexing_state(state="indexed")).wait(_timeout=10).success():  # FIXME: fails on some drones
+        media_id = olympe.Media.list_media(drone.media)
+        num_media = len(media_id)
 
-    x = int(mission_id)
-    while True:
-        dir_name = ("project" + (str(x) if x != 0 else '') + "-" + str(math.degrees(route_angle)) + "-" + str(math.degrees(rotated_route_angle))).strip()
-        if not os.path.exists(dir_name):
-            download_folder = "./" + dir_name + "/images"
-            os.mkdir(dir_name)
-            os.mkdir(download_folder)
-            rospy.loginfo("Project folder created: %s", download_folder)
-            break
-        else:
-            x = x + 1
+        if num_media > 0:
+            x = int(mission_id)
+            while True:
+                dir_name = ("project" + (str(x) if x != 0 else '') + "-" + str(math.degrees(route_angle)) + "-" + str(math.degrees(rotated_route_angle))).strip()
+                if not os.path.exists(dir_name):
+                    download_folder = "./" + dir_name + "/images"
+                    os.mkdir(dir_name)
+                    os.mkdir(download_folder)
+                    rospy.loginfo("Folder '%s' created", download_folder)
+                    break
+                else:
+                    x = x + 1
 
-    drone.media(indexing_state(state="indexed")).wait(_timeout=100)  # FIXME: fails on some drones
-    media_id = olympe.Media.list_media(drone.media)
-    num_media = len(media_id)
+           
+            drone.media.download_dir = download_folder  # download the photos associated with this media id
 
-    if num_media > 0:
-        drone.media.download_dir = download_folder  # download the photos associated with this media id
+            rospy.loginfo("Downloading %i media", num_media)
 
-        media_info = olympe.Media.media_info(drone.media, media_id = media_id[-1])
-        run_id = media_info.run_id
+            media_count = 1
+            for media in media_id:
+                media_info = olympe.Media.media_info(drone.media, media_id = media)
+                rospy.loginfo("Media %i/%i: downloading %.1fMB", media_count, num_media, media_info.size/(2**20))
+                media_download = drone(download_media(media))
+                resources = media_download.as_completed(timeout=100)
+                rospy.loginfo("Media %i/%i: downloaded %.1fMB", media_count, num_media, media_info.size/(2**20))
 
-        for mid in range(num_media - 1, 0, -1):
-            media_info = olympe.Media.media_info(drone.media, media_id = media_id[mid])
-            rid = media_info.run_id
-            if rid != run_id:
-                break
+                for resource in resources:
+                    if not resource.success():
+                        rospy.logerr("Failed to download %s", str(resource.resource_id))
+                        continue
 
-        num_media = num_media - mid - 1
-        rospy.loginfo("Downloading %i media", num_media)
-        media_id = media_id[mid+1:]
-        media_count = 1
-        for media in media_id:
-            media_info = olympe.Media.media_info(drone.media, media_id = media)
-            rospy.logwarn(media_info)
-            rospy.loginfo("Media %i/%i: downloading %.1fMB", media_count, num_media, media_info.size/(2**20))
-            media_download = drone(download_media(media))
-            resources = media_download.as_completed(timeout=100)
-            rospy.loginfo("Media %i/%i: downloaded %.1fMB", media_count, num_media, media_info.size/(2**20))
-
-            for resource in resources:
-                if not resource.success():
-                    rospy.logerr("Failed to download %s", str(resource.resource_id))
-                    continue
-
-            media_count += 1
+                media_count += 1
 
             # if cut_media:
             #     drone(delete_all_media())
             
-        # else:
-        #     rospy.loginfo("No media found")
-        #     rospy.loginfo(drone.media.indexing_state)
+        else:
+            rospy.loginfo("No media found")
     else:
         rospy.logwarn("Media is not indexed :(")
     return num_media, dir_name
 
-def take_photo_single(drone):
-    check_connection()
-    print("taking photo")
-    photo_saved = drone(photo_progress(result="photo_saved", _policy="wait"))
-    drone(take_photo(cam_id=0)).wait()
-    photo_saved.wait()
-    media_id = photo_saved.received_events().last().args["media_id"]
+# def take_photo_single(drone):
+#     check_connection()
+#     print("taking photo")
+#     photo_saved = drone(photo_progress(result="photo_saved", _policy="wait"))
+#     drone(take_photo(cam_id=0)).wait()
+#     photo_saved.wait()
+#     media_id = photo_saved.received_events().last().args["media_id"]
 
 
-    media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
-    media_info_response.raise_for_status()
-    download_dir = tempfile.mkdtemp()
-    for resource in media_info_response.json()["resources"]:
-        image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
-        download_path = os.path.join(download_dir, resource["resource_id"])
-        image_response.raise_for_status()
-        with open(download_path, "wb") as image_file:
-            shutil.copyfileobj(image_response.raw, image_file)
+#     media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
+#     media_info_response.raise_for_status()
+#     download_dir = tempfile.mkdtemp()
+#     for resource in media_info_response.json()["resources"]:
+#         image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
+#         download_path = os.path.join(download_dir, resource["resource_id"])
+#         image_response.raise_for_status()
+#         with open(download_path, "wb") as image_file:
+#             shutil.copyfileobj(image_response.raw, image_file)
 
        
-        with open(download_path, "rb") as image_file:
-            image_data = image_file.read()
-            image_xmp_start = image_data.find(b"<x:xmpmeta")
-            image_xmp_end = image_data.find(b"</x:xmpmeta")
-            image_xmp = ET.fromstring(image_data[image_xmp_start : image_xmp_end + 12])
-            for image_meta in image_xmp[0][0]:
-                xmp_tag = re.sub(r"{[^}]*}", "", image_meta.tag)
-                xmp_value = image_meta.text
+#         with open(download_path, "rb") as image_file:
+#             image_data = image_file.read()
+#             image_xmp_start = image_data.find(b"<x:xmpmeta")
+#             image_xmp_end = image_data.find(b"</x:xmpmeta")
+#             image_xmp = ET.fromstring(image_data[image_xmp_start : image_xmp_end + 12])
+#             for image_meta in image_xmp[0][0]:
+#                 xmp_tag = re.sub(r"{[^}]*}", "", image_meta.tag)
+#                 xmp_value = image_meta.text
                 
-                if xmp_tag in XMP_TAGS_OF_INTEREST:
-                    print(resource["resource_id"], xmp_tag, xmp_value)
+#                 if xmp_tag in XMP_TAGS_OF_INTEREST:
+#                     print(resource["resource_id"], xmp_tag, xmp_value)
 
 
 def setup_photo_single_mode(drone):
@@ -287,7 +306,7 @@ def move_to(lat, lon, alt, drone_gps):
 
             while not drone_gps.has_reached_target(lat, lon):
                 print("Drone has not reached the target yet. Waiting...")
-                time.sleep(2)
+                time.sleep(5)
         except Exception as e:
             print("Connection failed! Reconnecting and moving! " +  repr(e))
             check_connection()
@@ -295,7 +314,7 @@ def move_to(lat, lon, alt, drone_gps):
         else:
             break  # Exit the loop if successful
 
-    print(f"moving end {lat} {lon}")
+    print("moving end...")
 
         
 
@@ -372,27 +391,13 @@ if __name__ == '__main__':
         connection_rate.sleep()
     
 
-    while True:
-        try:
-            print(drone.get_state(MagnetoCalibrationRequiredState))
-            if drone.get_state(MagnetoCalibrationRequiredState)['required'] == 1 and drone.get_state(MagnetoCalibrationStartedChanged)['started'] == 0:
-                assert drone(MagnetoCalibration(1)).wait().success()
-
-            while drone.get_state(MagnetoCalibrationRequiredState)['required'] == 1:
-                time.sleep(10)
-
-        except:
-            check_connection()
-            continue
-        else:
-            break
 
     print("Creating Route...")
     takeoff_coord = drone_gps.get_current_position()
     # takeoff_node = Node(takeoff_coord[1], takeoff_coord[0], takeoff_coord[2])
 
-    print(str(takeoff_coord)
-          + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
+    print(str(takeoff_coord))
+        #   + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
 
     polygon = ScanArea(vertices)
     route, rotated_route, vertical_increment = polygon.create_route(altitude, intersection_ratio, route_angle, rotated_route_angle)
@@ -421,8 +426,6 @@ if __name__ == '__main__':
         else:
             break
 
-    takeoff_date = datetime.now().isoformat()
-    rospy.loginfo("Takeoff date and time in ISO 8601 format: " + str(takeoff_date))
 
     time.sleep(5)
    
@@ -486,22 +489,16 @@ if __name__ == '__main__':
     drone(set_target(gimbal_id=0,control_mode= control_mode.position, yaw_frame_of_reference=frame_of_reference.relative, yaw=0.0, 
                      pitch_frame_of_reference=frame_of_reference.relative, pitch=90, roll_frame_of_reference=frame_of_reference.relative,
                      roll=0.0)).wait()
-
+    
     move_to(takeoff_coord[0], takeoff_coord[1], alt, drone_gps)
     land()
 
-    land_date = datetime.now().isoformat()
-    rospy.loginfo("Land date and time in ISO 8601 format: " + str(land_date))
-
-    print("Fetching current position...")
-    print(str(drone_gps.get_current_position())
-          + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
-    
-    time.sleep(15)
+    time.sleep(3)
     num_photos, project_folder = download_photos()
 
 
-    
+    print("Fetching current position...")
+    print(drone_gps.get_current_position())
     drone_gps.stop()
     drone.disconnect()
     event_listener.unsubscribe()
