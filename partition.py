@@ -1,5 +1,7 @@
 from shapely.geometry import LineString,Polygon, Point
 from shapely.ops import split
+from shapely.geometry import LineString,Polygon, Point
+from shapely.ops import split
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -114,6 +116,10 @@ def partition_polygon(polygon,division_line):
     geom_list = list(result.geoms)
     return geom_list
     """
+    result = split(polygon, division_line)
+    geom_list = list(result.geoms)
+    return geom_list
+    """
     separator        = division_line.buffer(0.000001)  #is polygon
     # the `difference` operation between 2 polygons
     partitions       = polygon.difference(separator)
@@ -125,6 +131,7 @@ def partition_polygon(polygon,division_line):
         return [partitions]
     else:
         return []
+    """
     """
 
 def stretch_line(line,distance):
@@ -155,6 +162,12 @@ def parallel_partitions(polygon, partition_line,start_vertex):
     interpartition_disp       = distance / (number_partition + 1)
     partition_direction       = orientation_decider(polygon,partition_line)
     rot_sign                  = None
+    farthest_vertex,distance  = furthest_vertex(polygon,start_vertex)
+    reference_line            = LineString([start_vertex, farthest_vertex])
+    number_partition          = 20    
+    interpartition_disp       = distance / (number_partition + 1)
+    partition_direction       = orientation_decider(polygon,partition_line)
+    rot_sign                  = None
     if partition_direction == "left":
         rot_sign = 1
     else:
@@ -176,7 +189,9 @@ def parallel_partitions(polygon, partition_line,start_vertex):
                     ideal_partition = [partitioned_shapes[0],partitioned_shapes[1]]            
             #partition_list.append([partitioned_shapes[0],partitioned_shapes[1],value])
         partition_line = translate_along_line(partition_line,reference_line, interpartition_disp)
+        partition_line = translate_along_line(partition_line,reference_line, interpartition_disp)
         #plt.show()
+    
     
     return ideal_partition
 
