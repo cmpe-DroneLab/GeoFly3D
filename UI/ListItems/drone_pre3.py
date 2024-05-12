@@ -12,6 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
+        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }")
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setVerticalSpacing(0)
         self.gridLayout.setObjectName("gridLayout")
@@ -61,7 +62,7 @@ class Ui_Form(object):
         self.spare_batt_label.setText(_translate("Form", "Spare Batt"))
         self.colon_3.setText(_translate("Form", ":"))
         self.id_text.setText(_translate("Form", "1"))
-        self.btn_connect.setText(_translate("Form", "Not Connected, Click to Connect"))
+        self.btn_connect.setText(_translate("Form", "Click to Connect"))
 
 
 if __name__ == "__main__":

@@ -114,9 +114,12 @@ class Ui_Form(object):
         self.btn_main = QtWidgets.QPushButton(parent=self.layoutWidget)
         self.btn_main.setObjectName("btn_main")
         self.g_lay_buttons.addWidget(self.btn_main, 0, 0, 1, 1)
+        self.btn_pause_continue = QtWidgets.QPushButton(parent=self.layoutWidget)
+        self.btn_pause_continue.setObjectName("btn_pause_resume")
+        self.g_lay_buttons.addWidget(self.btn_pause_continue, 0, 3, 1, 1)
         self.btn_return_to_home = QtWidgets.QPushButton(parent=self.layoutWidget)
         self.btn_return_to_home.setObjectName("btn_return_to_home")
-        self.g_lay_buttons.addWidget(self.btn_return_to_home, 0, 1, 1, 2)
+        self.g_lay_buttons.addWidget(self.btn_return_to_home, 0, 4, 1, 1)
         self.v_lay_left.addLayout(self.g_lay_buttons)
         self.layoutWidget1 = QtWidgets.QWidget(parent=self.splitter)
         self.layoutWidget1.setObjectName("layoutWidget1")
@@ -146,7 +149,8 @@ class Ui_Form(object):
         self.colon_2.setText(_translate("Form", ":"))
         self.gb_drones.setTitle(_translate("Form", "Drone List"))
         self.btn_main.setText(_translate("Form", "ᐊ Home"))
-        self.btn_return_to_home.setText(_translate("Form", "Return to Home ᐁ"))
+        self.btn_pause_continue.setText(_translate("Form", "Pause Mission"))
+        self.btn_return_to_home.setText(_translate("Form", "Return to Home"))
 
 
 if __name__ == "__main__":

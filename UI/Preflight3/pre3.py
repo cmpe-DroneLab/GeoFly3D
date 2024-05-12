@@ -176,6 +176,6 @@ class Pre3(QWidget):
             print("Connecting to Drone #", drone_id)
             self.update_takeoff_button()
         else:
-            button.setText("Not Connected, Click to Connect")
+            button.setText("Click to Connect")
             print("Disconnecting from Drone #", drone_id)
             self.update_takeoff_button()
