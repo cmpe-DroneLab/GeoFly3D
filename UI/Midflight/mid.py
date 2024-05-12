@@ -27,7 +27,7 @@ class Mid(QWidget):
         self.ui.v_lay_right.addWidget(self.webView)
 
         self.has_taken_off = False
-        self.threads = {}
+        self.mission_threads = {}
         self.timer = QTimer(self)
 
         self.actual_length = 0
@@ -194,7 +194,7 @@ class Mid(QWidget):
 
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
-        if mission_id in self.threads:
+        if mission_id in self.mission_threads:
             return
 
         drone_controller_thread = DroneController(vertices=vertices, mission_id=mission_id, flight_altitude=flight_altitude,
@@ -211,7 +211,7 @@ class Mid(QWidget):
         drone_controller_thread.update_battery.connect(update_drone_battery)
         drone_controller_thread.update_battery.connect(self.update_live_data)
 
-        self.threads[mission_id] = drone_controller_thread
+        self.mission_threads[mission_id] = drone_controller_thread
         drone_controller_thread.start()
         self.has_taken_off = True
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()

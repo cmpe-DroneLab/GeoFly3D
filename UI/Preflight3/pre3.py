@@ -3,7 +3,7 @@ import folium
 import UI.Preflight3.pre3_design
 
 from folium.plugins import MousePosition
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QSize, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QMessageBox, QPushButton
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from UI import draw
@@ -13,6 +13,9 @@ from UI.helpers import RouteDrawer, WebEnginePage, calculate_geographic_distance
 
 
 class Pre3(QWidget):
+
+    drone_connect_click_signal = pyqtSignal(int)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -71,7 +74,7 @@ class Pre3(QWidget):
         new_drone_ui.model_text.setText(drone.model)
         new_drone_ui.spare_batt_text.setText(str(drone.battery_no))
         new_drone_ui.btn_connect.clicked.connect(
-            lambda is_checked, button=new_drone_ui.btn_connect, did=drone.drone_id: self.connect_drone(button, is_checked, did))
+            lambda is_checked, button=new_drone_ui.btn_connect, did=drone.drone_id: self.connect_drone_clicked(button, is_checked, did))
 
         # Calculate the height of the new_drone_widget
         new_drone_widget.adjustSize()
@@ -170,7 +173,7 @@ class Pre3(QWidget):
 
         self.ui.btn_take_off.setEnabled(True)
 
-    def connect_drone(self, button, is_checked, drone_id):
+    def connect_drone_clicked(self, button, is_checked, drone_id):
         if is_checked:
             button.setText("Connected, Click to Disconnect")
             print("Connecting to Drone #", drone_id)
@@ -179,3 +182,5 @@ class Pre3(QWidget):
             button.setText("Click to Connect")
             print("Disconnecting from Drone #", drone_id)
             self.update_takeoff_button()
+
+        self.drone_connect_click_signal.emit(drone_id)
