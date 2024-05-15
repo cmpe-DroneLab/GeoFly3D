@@ -9,7 +9,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QDialog, QListWidgetItem, QWidget, QLabel
 from UI import draw
 from UI.database import Drone, session, Mission
-from UI.drone_dialog import Ui_drone_dialog
+from UI.Dialogs.drone_dialog import Ui_Dialog
 from UI.ListItems.drone_pre import Ui_Form
 from UI.helpers import RouteDrawer, WebEnginePage, calculate_center_point, invert_coordinates, get_current_time
 
@@ -112,27 +112,21 @@ class Pre2(QWidget):
 
     # Creates a Drone
     def create_drone(self):
-        # Open add drone dialog
+        # Open create drone dialog
         dialog_win = QDialog()
-        dialog_ui = Ui_drone_dialog()
+        dialog_ui = Ui_Dialog()
         dialog_ui.setupUi(dialog_win)
-        dialog_win.setWindowTitle("Add Drone")
-        dialog_ui.btn_save.setText("Add")
-        dialog_ui.spin_spare_batt.setValue(0)
         response = dialog_win.exec()
 
         if response == 1:
-            # Get values from dialog
-            new_drone_model = dialog_ui.combo_model.currentText()
-            new_drone_spare = dialog_ui.spin_spare_batt.value()
-
             # Create the drone object and add it to the database session
-            draft_drone = Drone(model=new_drone_model,
-                                battery_no=new_drone_spare,
+            draft_drone = Drone(model=dialog_ui.model_combo.currentText(),
+                                ip_address=dialog_ui.ip_text.text(),
+                                battery_no=dialog_ui.spare_spin.value(),
                                 mission_id=self.mission.mission_id)
             session.add(draft_drone)
 
-            # Refresh drone list after adding the drone
+            # Refresh drone list after creating the drone
             self.refresh_drone_list()
 
     # Adds given drone to the Drone List
@@ -143,6 +137,7 @@ class Pre2(QWidget):
         new_drone_ui.setupUi(new_drone_widget)
         new_drone_ui.id_text.setText(str(drone.drone_id))
         new_drone_ui.model_text.setText(drone.model)
+        new_drone_ui.ip_text.setText(drone.ip_address)
         new_drone_ui.spare_batt_text.setText(str(drone.battery_no))
 
         # Calculate the height of the new_drone_widget
@@ -157,31 +152,29 @@ class Pre2(QWidget):
 
     # Edits selected Drone
     def edit_drone(self):
-        # Get the selected item
+        # Get the selected item and widget associated with it
         selected_item = self.ui.listWidget.selectedItems()[0]
-        # Get the widget associated with the item  and get the drone id
         selected_drone_widget = self.ui.listWidget.itemWidget(selected_item)
+
         drone_id = int(selected_drone_widget.findChild(QLabel, "id_text").text())
         # Query the database for the drone with the given id
         drone = session.query(Drone).filter_by(drone_id=drone_id).first()
 
         # Open edit drone dialog
         dialog_win = QDialog()
-        dialog_ui = Ui_drone_dialog()
+        dialog_ui = Ui_Dialog()
         dialog_ui.setupUi(dialog_win)
-        dialog_win.setWindowTitle("Edit Drone")
-        dialog_ui.btn_save.setText("Save")
-        dialog_ui.combo_model.setCurrentText(drone.model)
-        dialog_ui.spin_spare_batt.setValue(drone.battery_no)
+        dialog_win.setWindowTitle("Edit Drone #" + str(drone_id))
+        dialog_ui.model_combo.setCurrentText(drone.model)
+        dialog_ui.ip_text.setText(drone.ip_address)
+        dialog_ui.spare_spin.setValue(drone.battery_no)
         response = dialog_win.exec()
 
         if response == 1:
-            # Get values from dialog
-            new_model = dialog_ui.combo_model.currentText()
-            new_spare = dialog_ui.spin_spare_batt.value()
-
-            drone.model = new_model
-            drone.battery_no = new_spare
+            # Edit the drone object and add it to the database session
+            drone.model = dialog_ui.model_combo.currentText()
+            drone.ip_address = dialog_ui.ip_text.text()
+            drone.battery_no = dialog_ui.spare_spin.value()
 
             # Refresh drone list after updating the drone
             self.refresh_drone_list()

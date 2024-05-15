@@ -69,6 +69,7 @@ class Pre3(QWidget):
         new_drone_ui.setupUi(new_drone_widget)
         new_drone_ui.id_text.setText(str(drone.drone_id))
         new_drone_ui.model_text.setText(drone.model)
+        new_drone_ui.ip_text.setText(drone.ip_address)
         new_drone_ui.spare_batt_text.setText(str(drone.battery_no))
         new_drone_ui.btn_connect.clicked.connect(
             lambda is_checked, button=new_drone_ui.btn_connect, did=drone.drone_id: self.connect_drone(button, is_checked, did))

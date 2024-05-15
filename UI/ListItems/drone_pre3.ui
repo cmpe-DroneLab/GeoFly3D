@@ -2,59 +2,25 @@
 <ui version="4.0">
  <class>Form</class>
  <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>141</width>
+    <height>108</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QPushButton { padding: 7px 10px; font-weight: 500; }</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,1">
+  <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,1,0">
    <property name="verticalSpacing">
     <number>0</number>
    </property>
-   <item row="2" column="3" colspan="2">
-    <widget class="QLabel" name="spare_batt_text">
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QLabel" name="model_label">
-     <property name="text">
-      <string>Model</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="3" colspan="2">
-    <widget class="QLabel" name="model_text">
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QLabel" name="colon_2">
-     <property name="text">
-      <string>:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QLabel" name="spare_batt_label">
-     <property name="text">
-      <string>Spare Batt</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="2">
-    <widget class="QLabel" name="colon_3">
-     <property name="text">
-      <string>:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0" rowspan="2">
+   <item row="1" column="0" rowspan="3">
     <widget class="QLabel" name="id_text">
      <property name="font">
       <font>
@@ -70,7 +36,70 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0" colspan="5">
+   <item row="1" column="2">
+    <widget class="QLabel" name="colon_1">
+     <property name="text">
+      <string>:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
+    <widget class="QLabel" name="colon_3">
+     <property name="text">
+      <string>:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QLabel" name="model_label">
+     <property name="text">
+      <string>Model</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLabel" name="spare_batt_label">
+     <property name="text">
+      <string>Spare Batt</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLabel" name="ip_label">
+     <property name="text">
+      <string>Ip Address</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLabel" name="colon_2">
+     <property name="text">
+      <string>:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="3">
+    <widget class="QLabel" name="model_text">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="3">
+    <widget class="QLabel" name="ip_text">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="3">
+    <widget class="QLabel" name="spare_batt_text">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="4">
     <widget class="QPushButton" name="btn_connect">
      <property name="styleSheet">
       <string notr="true">#btn_connect {color:#b85a5a; margin: 5px 0px; border:1px solid lightgrey; }

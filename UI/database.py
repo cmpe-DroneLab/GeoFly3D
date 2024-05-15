@@ -4,17 +4,12 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, Float, ForeignKey
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
-
 
 class Drone(Base):
     __tablename__ = 'drones'
 
     drone_id = Column(Integer, primary_key=True)
+    ip_address = Column(String)
     model = Column(String)
     battery_no = Column(Integer)
     flight_status = Column(String)

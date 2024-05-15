@@ -2,32 +2,17 @@
 <ui version="4.0">
  <class>Form</class>
  <widget class="QWidget" name="Form">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>130</width>
-    <height>50</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,1">
+  <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,1,0">
    <property name="verticalSpacing">
     <number>0</number>
    </property>
-   <item row="1" column="3" colspan="2">
-    <widget class="QLabel" name="model_text">
+   <item row="3" column="2">
+    <widget class="QLabel" name="colon_3">
      <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QLabel" name="spare_batt_label">
-     <property name="text">
-      <string>Spare Batt</string>
+      <string>:</string>
      </property>
     </widget>
    </item>
@@ -38,28 +23,21 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="3" colspan="2">
-    <widget class="QLabel" name="spare_batt_text">
+   <item row="3" column="1">
+    <widget class="QLabel" name="spare_batt_label">
      <property name="text">
-      <string/>
+      <string>Spare Batt</string>
      </property>
     </widget>
    </item>
    <item row="1" column="2">
-    <widget class="QLabel" name="colon_2">
+    <widget class="QLabel" name="colon_1">
      <property name="text">
       <string>:</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="2">
-    <widget class="QLabel" name="colon_3">
-     <property name="text">
-      <string>:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0" rowspan="2">
+   <item row="1" column="0" rowspan="3">
     <widget class="QLabel" name="id_text">
      <property name="font">
       <font>
@@ -72,6 +50,41 @@
      </property>
      <property name="margin">
       <number>5</number>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLabel" name="ip_label">
+     <property name="text">
+      <string>Ip Address</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLabel" name="colon_2">
+     <property name="text">
+      <string>:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="3">
+    <widget class="QLabel" name="model_text">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="3">
+    <widget class="QLabel" name="ip_text">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="3">
+    <widget class="QLabel" name="spare_batt_text">
+     <property name="text">
+      <string/>
      </property>
     </widget>
    </item>
