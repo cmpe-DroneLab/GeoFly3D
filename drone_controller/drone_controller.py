@@ -1,14 +1,19 @@
 import os
 import sys
 import time
-from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot
 import subprocess
 from UI.database import session, Mission
 
 import pexpect
 
+import rospy
+from std_srvs.srv import Trigger, TriggerRequest
+from std_msgs.msg import Empty
+
 class DroneController(QThread):
     started = pyqtSignal(str)
+    services_started = pyqtSignal(QThread)
     progress_text = pyqtSignal(str)
     progress = pyqtSignal(tuple)
     update_coord = pyqtSignal(float, float)
@@ -29,6 +34,11 @@ class DroneController(QThread):
         self.gimbal_angle = gimbal_angle
         self.route_angle = route_angle
         self.rotated_route_angle = rotated_route_angle
+
+        self.startt = False
+
+        rospy.init_node('drone_controller')
+        
 
     def run(self):
         self.started.emit(f"Mission #{self.mission_id} ---- START")
@@ -54,10 +64,38 @@ class DroneController(QThread):
 
         process = pexpect.spawn(command, encoding='utf-8')
         process.logfile = open(f"logs/output{str(self.mission_id)}.log", "w")
-
+        
         battery_percent = None
 
+        process.expect("Ready to connect")
+
+        rospy.wait_for_service('/drone/connect')
+        self.connect_service = rospy.ServiceProxy('/drone/connect', Trigger)
+
+        rospy.wait_for_service('/drone/calibrate')
+        self.calibrate_service = rospy.ServiceProxy("drone/calibrate", Trigger)
+
+        # rospy.wait_for_service("drone/start_mission")
+        self.start_mission_service = rospy.Publisher("drone/start_mission", Empty, queue_size=10)
+
+        rospy.wait_for_service("drone/pause_mission")
+        self.pause_mission_service = rospy.ServiceProxy("drone/pause_mission", Trigger)
+
+        rospy.wait_for_service("drone/land")
+        self.land_service = rospy.ServiceProxy("drone/land", Trigger)
+
+        rospy.wait_for_service("drone/rth")
+        self.rth_service = rospy.ServiceProxy("drone/rth", Trigger)
+
+        rospy.wait_for_service("drone/download_photos")        
+        self.download_photos_service = rospy.ServiceProxy("drone/download_photos", Trigger)        
+
+
+        self.services_started.emit(self)
+
+
         while not process.eof():
+
             line = str(process.readline())
 
             if line.startswith("Usage:"):
@@ -118,3 +156,29 @@ class DroneController(QThread):
     
 
         self.finished.emit(f"Mission #{self.mission_id} ---- END", self.mission_id)
+    
+    def connect_drone(self):
+        print(self.connect_service(TriggerRequest()))
+
+    def calibrate_drone(self):
+        print(self.calibrate_service(TriggerRequest()))
+
+    def start_mission(self):
+        # self.startt = True
+        # print(self.start_mission_service.publish())
+        self.start_mission_service.publish()
+        while self.start_mission_service.get_num_connections() == 0:
+            rospy.sleep(1)
+        
+    def pause_mission(self):
+        print(self.pause_mission_service(TriggerRequest()))
+        
+    def land_drone(self):
+        print(self.land_service(TriggerRequest()))
+        
+    def rth_drone(self):
+        print(self.rth_service(TriggerRequest()))
+        
+    def download_photos(self):
+        print(self.download_photos_service(TriggerRequest()))
+        

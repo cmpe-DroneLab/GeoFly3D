@@ -1,6 +1,7 @@
 import json
 import sys
 import random
+import time
 import UI.main_design
 
 from PyQt6.QtCore import QTimer, QDateTime
@@ -10,9 +11,10 @@ from UI.Preflight2.pre2 import Pre2
 from UI.Preflight3.pre3 import Pre3
 from UI.Midflight.mid import Mid
 from UI.Postflight.post import Post
-from UI.database import session, Mission
-from UI.helpers import ServerThread, calculate_sw_ne_points, invert_coordinates
+from UI.database import Drone, session, Mission
+from UI.helpers import ServerThread, calculate_sw_ne_points, invert_coordinates, update_drone_status, update_drone_battery
 
+from drone_controller import DroneController
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -40,11 +42,18 @@ class MainWindow(QMainWindow):
         self.pre2.ui.btn_cancel.clicked.connect(self.cancel_mission_clicked)
         self.pre2.ui.btn_start.clicked.connect(self.start_mission_clicked)
 
-        self.pre3.ui.btn_return_back.clicked.connect(self.return_back_clicked)
+        self.pre3.drone_connect_click_signal.connect(self.connect_drone)
+        self.pre3.ui.btn_return_back.clicked.connect(self.go_to_main_clicked)
         self.pre3.ui.btn_take_off.clicked.connect(self.take_off_clicked)
 
         self.mid.ui.btn_main.clicked.connect(self.go_to_main_clicked)
+        self.mid.ui.btn_pause_continue.clicked.connect(self.pause_continue_clicked)
+        self.mid.ui.btn_return_to_home.clicked.connect(self.rth_clicked)
+
         self.post.ui.btn_main.clicked.connect(self.go_to_main_clicked)
+
+        self.mission_threads = {}
+        self.started = False
 
     # PRE1 to PRE2
     def create_mission_clicked(self):
@@ -73,17 +82,18 @@ class MainWindow(QMainWindow):
             self.ui.stackedWidget.setCurrentIndex(4)
 
     def delete_mission_clicked(self, mission_id):
-        threads = self.mid.threads
+        threads = self.mid.mission_threads
         if mission_id in threads:
-            mission_thread = threads.pop(mission_id)
-            mission_thread.terminate()
+            while len(threads[mission_id]) > 0:
+                controller_thread = threads.pop()
+                controller_thread.terminate()
             print(f"Mission {mission_id} Thread Aborted!")
 
         if len(threads.keys()) == 1:
             server_thread = threads.pop(0)
             server_thread.terminate()
             print(f"Server Thread Aborted!")
-        print(self.mid.threads)
+        print(self.mid.mission_threads)
 
     # PRE2 to PRE1
     def cancel_mission_clicked(self):
@@ -95,9 +105,16 @@ class MainWindow(QMainWindow):
     def return_back_clicked(self):
         self.ui.stackedWidget.setCurrentIndex(1)
 
+    #TODO: PRE1 TO P3
+    # MISSION THREAD
+
     # PRE2 to PRE3
     def start_mission_clicked(self):
         self.pre2.save_mission()
+
+        if self.pre2.mission.mission_id not in self.mission_threads:
+            self.mission_threads[self.pre2.mission.mission_id] = {}
+
         self.pre3.ui.batt_provided_value.setText(self.pre2.ui.batt_provided_value.text())
         self.pre3.load_mission(self.pre2.mission.mission_id)
         self.ui.stackedWidget.setCurrentIndex(2)
@@ -105,29 +122,51 @@ class MainWindow(QMainWindow):
     # PRE3 to MID
     def take_off_clicked(self):
 
-        coords = json.loads(self.pre3.mission.coordinates)
-        coords_lon_lat = invert_coordinates(coords)
+        # coords = json.loads(self.pre3.mission.coordinates)
+        # coords_lon_lat = invert_coordinates(coords)
 
         mission_id = self.pre3.mission.mission_id
-        vertices = coords_lon_lat
-        altitude = self.pre3.mission.altitude
-        gimbal_angle = self.pre3.mission.gimbal_angle
-        route_angle = self.pre3.mission.route_angle
-        rotated_route_angle = self.pre3.mission.rotated_route_angle
+        # vertices = coords_lon_lat
+        # altitude = self.pre3.mission.altitude
+        # gimbal_angle = self.pre3.mission.gimbal_angle
+        # route_angle = self.pre3.mission.route_angle
+        # rotated_route_angle = self.pre3.mission.rotated_route_angle
 
         self.mid.load_mission(mission_id)
 
-        mission_thread = self.mid.take_off(
-            vertices=vertices,
-            flight_altitude=altitude,
-            mission_id=mission_id,
-            gimbal_angle=gimbal_angle,
-            route_angle=route_angle,
-            rotated_route_angle=rotated_route_angle
-        )
-        mission_thread.finished.connect(self.scan_finished)
+        # mission_thread = self.mid.take_off(
+        #     vertices=vertices,
+        #     flight_altitude=altitude,
+        #     mission_id=mission_id,
+        #     gimbal_angle=gimbal_angle,
+        #     route_angle=route_angle,
+        #     rotated_route_angle=rotated_route_angle
+        # )
 
-        if 0 not in self.mid.threads:
+        # mission_thread.finished.connect(self.scan_finished)
+ 
+        
+
+        self.mid.has_taken_off = True
+        
+        mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+        mission.mission_status = "Mid Flight"
+        mission.flight_start_time = QDateTime.currentDateTime().toString()
+        session.commit()
+
+        for drone_controller_thread in self.mission_threads[mission_id].values():
+            drone_controller_thread.started.connect(print)
+            drone_controller_thread.progress_text.connect(print)
+            drone_controller_thread.progress.connect(self.mid.last_visited_node_changed)
+            drone_controller_thread.update_coord.connect(self.mid.drone_position_changed)
+            drone_controller_thread.update_coord.connect(self.mid.update_live_data)
+            drone_controller_thread.update_status.connect(update_drone_status)
+            drone_controller_thread.update_status.connect(self.mid.update_live_data)  
+            drone_controller_thread.update_battery.connect(update_drone_battery)
+            drone_controller_thread.update_battery.connect(self.mid.update_live_data)
+            drone_controller_thread.start_mission()
+
+        if 0 not in self.mid.mission_threads:
             self.start_server()
         # self.simulate_drone_flight()
 
@@ -141,7 +180,7 @@ class MainWindow(QMainWindow):
         session.commit()
 
         self.post.load_mission(mission_id)
-        self.mid.threads.clear()
+        self.mid.mission_threads.clear()
         self.mid.has_taken_off = False
         self.ui.stackedWidget.setCurrentIndex(4)
 
@@ -154,6 +193,42 @@ class MainWindow(QMainWindow):
         self.pre1.refresh_mission_list()
         self.pre1.refresh_general_map()
         self.ui.stackedWidget.setCurrentIndex(0)
+
+
+    def connect_drone(self, drone_id):
+
+        drone = session.query(Drone).filter_by(drone_id=drone_id).first()
+        mission = drone.mission
+        coords = json.loads(mission.coordinates)
+        coords = invert_coordinates(coords)
+        drone_controller_thread = DroneController(vertices=coords, mission_id=mission.mission_id, flight_altitude=mission.altitude,
+                                                  gimbal_angle=mission.gimbal_angle, route_angle=mission.route_angle,
+                                                  rotated_route_angle=mission.rotated_route_angle)
+        
+        drone_controller_thread.services_started.connect(self.on_services_started)
+        drone_controller_thread.finished.connect(self.scan_finished)
+
+    
+
+        self.mission_threads[mission.mission_id][drone_id] = drone_controller_thread
+        print(self.mission_threads)
+        
+        drone_controller_thread.start()
+
+        
+    def on_services_started(self, thread : DroneController):
+        thread.connect_drone()
+
+    def pause_continue_clicked(self):
+        # TODO: CONTINUE 
+        for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
+            drone_controller.pause_mission()
+
+    def rth_clicked(self):
+        for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
+            # drone_controller.pause_mission()
+            # time.wait(5)
+            drone_controller.rth_drone()
 
     def simulate_drone_flight(self):
         print("Drone started flying")
@@ -176,7 +251,7 @@ class MainWindow(QMainWindow):
     # Method to start the HTTP server
     def start_server(self):
         server_thread = ServerThread()
-        self.mid.threads[0] = server_thread
+        self.mid.mission_threads[0] = server_thread
         server_thread.start()
 
 
