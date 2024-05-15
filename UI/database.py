@@ -80,25 +80,17 @@ class Node(Base):
 
 
 def get_all_missions():
-    Session = sessionmaker(bind=engine)
-    session = Session()
     missions = session.query(Mission).all()
-    session.close()
     return missions
 
 
 def get_mission_drones(mission_id):
-    Session = sessionmaker(bind=engine)
-    session = Session()
     drones = session.query(Drone).filter_by(mission_id=mission_id).all()
-    session.close()
     return drones
 
 
-# SQLite veritabanı motorunu oluşturma
 engine = create_engine('sqlite:///database.db')
 Base.metadata.create_all(engine)
 
-# Session oluştur
 Session = sessionmaker(bind=engine)
 session = Session()

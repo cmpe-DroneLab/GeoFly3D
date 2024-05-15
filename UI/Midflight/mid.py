@@ -51,6 +51,7 @@ class Mid(QWidget):
 
         # Load drones
         self.refresh_drone_list()
+        self.create_geojson()
 
         # Set mission id in the header box
         self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
@@ -60,6 +61,7 @@ class Mid(QWidget):
 
         # Draw route
         self.draw_route()
+
         # Start timer for update elapsed time
         self.ui.elapsed_time_value.setText("")
         self.timer.timeout.connect(self.update_elapsed_time)
@@ -113,8 +115,42 @@ class Mid(QWidget):
             self.total_length = self.optimal_route_length + rotated_route_length
             self.save_map()
 
+    def create_geojson(self):
+        # Create an empty GeoJSON structure
+        geojson_data = {
+            "type": "FeatureCollection",
+            "features": []
+        }
+
+        # Add each drone as a feature to the GeoJSON
+        for drone in get_mission_drones(self.mission.mission_id):
+            feature = {
+                "type": "Feature",
+                "properties": {
+                    "objectid": str(drone.drone_id),
+                    "model": drone.model,
+                    "drone_id": drone.drone_id,
+                    "ip_address": drone.ip_address,
+                    "battery": None,
+                    "status": None,
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": None
+                }
+            }
+            geojson_data["features"].append(feature)
+
+        # Convert the GeoJSON data to a string
+        geojson_str = json.dumps(geojson_data, indent=2)
+
+        # Write the GeoJSON string to a file with mission_id in the filename
+        filename = f"./UI/LiveData/mission_{self.mission.mission_id}_drones.geojson"
+        with open(filename, "w") as geojson_file:
+            geojson_file.write(geojson_str)
+
     def add_drone_markers(self):
-        source = "http://localhost:9000/UI/Midflight/rt_drone_info.geojson"
+        source = f"http://localhost:9000/UI/LiveData/mission_{self.mission.mission_id}_drones.geojson"
         Realtime(
             source,
             get_feature_id=JsCode("(f) => { return f.properties.objectid }"),
@@ -127,7 +163,7 @@ class Mid(QWidget):
                                     iconAnchor:[25, 24]
                                 })
                             }).bindPopup(
-                                '<h5>DRONE #' + f.properties.droneId + '</h5>' + 
+                                '<h5>DRONE #' + f.properties.drone_id + '</h5>' + 
                                  f.properties.model
                             ).openPopup();
                         }
@@ -143,11 +179,12 @@ class Mid(QWidget):
             status_field = item.listWidget().itemWidget(item).findChild(QLabel, "status_text")
 
             # Read the GeoJSON file
-            with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
+            filename = f"./UI/LiveData/mission_{self.mission.mission_id}_drones.geojson"
+            with open(resource_path(filename), 'r') as fr:
                 data = json.load(fr)
             fr.close()
             for feature in data['features']:
-                if feature['properties']['droneId'] == int(drone_id):
+                if feature['properties']['drone_id'] == int(drone_id):
                     battery_field.setText(str(int(feature['properties'].get('battery'))))
                     status_field.setText(feature['properties'].get('status'))
 
@@ -168,7 +205,8 @@ class Mid(QWidget):
     def drone_position_changed(self, lat, lon):
         update_drone_position_on_map(lat, lon)
         if self.mission.last_visited_node_lat and not self.stop_progress:
-            length_increment = calculate_geographic_distance((lat, lon), (self.mission.last_visited_node_lat, self.mission.last_visited_node_lon))
+            length_increment = calculate_geographic_distance((lat, lon), (
+            self.mission.last_visited_node_lat, self.mission.last_visited_node_lon))
             self.update_progress_bar(length_increment)
 
     def last_visited_node_changed(self, coords):
@@ -176,7 +214,8 @@ class Mid(QWidget):
 
         if self.mission.last_visited_node_lat:
             if not self.stop_progress:
-                self.actual_length += calculate_geographic_distance((self.mission.last_visited_node_lat, self.mission.last_visited_node_lon), (lat, lon))
+                self.actual_length += calculate_geographic_distance(
+                    (self.mission.last_visited_node_lat, self.mission.last_visited_node_lon), (lat, lon))
                 self.update_progress_bar(0)
 
                 if self.actual_length == self.optimal_route_length:
@@ -190,7 +229,6 @@ class Mid(QWidget):
         self.mission.last_visited_node_lat = lat
         self.mission.last_visited_node_lon = lon
         session.commit()
-
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.mission_threads:
@@ -206,7 +244,7 @@ class Mid(QWidget):
         drone_controller_thread.update_coord.connect(self.drone_position_changed)
         drone_controller_thread.update_coord.connect(self.update_live_data)
         drone_controller_thread.update_status.connect(update_drone_status)
-        drone_controller_thread.update_status.connect(self.update_live_data)  
+        drone_controller_thread.update_status.connect(self.update_live_data)
         drone_controller_thread.update_battery.connect(update_drone_battery)
         drone_controller_thread.update_battery.connect(self.update_live_data)
 
