@@ -14,9 +14,9 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton { padding: 7px 10px; font-weight: 500; }</string>
+   <string notr="true">QPushButton { padding:10px;}</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,1,0">
+  <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,1">
    <property name="verticalSpacing">
     <number>0</number>
    </property>
@@ -101,12 +101,12 @@
    </item>
    <item row="4" column="0" colspan="4">
     <widget class="QPushButton" name="btn_connect">
-     <property name="styleSheet">
-      <string notr="true">#btn_connect {color:#b85a5a; margin: 5px 0px; border:1px solid lightgrey; }
-#btn_connect:checked { color:white; background-color: #71946d}</string>
-     </property>
      <property name="text">
       <string>Click to Connect</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>./UI/Images/connected.png</normaloff>./UI/Images/connected.png</iconset>
      </property>
      <property name="checkable">
       <bool>true</bool>

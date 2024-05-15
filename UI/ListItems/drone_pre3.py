@@ -13,7 +13,7 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(141, 108)
-        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }")
+        Form.setStyleSheet("QPushButton { padding:10px;}")
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setVerticalSpacing(0)
         self.gridLayout.setObjectName("gridLayout")
@@ -55,8 +55,9 @@ class Ui_Form(object):
         self.spare_batt_text.setObjectName("spare_batt_text")
         self.gridLayout.addWidget(self.spare_batt_text, 3, 3, 1, 1)
         self.btn_connect = QtWidgets.QPushButton(parent=Form)
-        self.btn_connect.setStyleSheet("#btn_connect {color:#b85a5a; margin: 5px 0px; border:1px solid lightgrey; }\n"
-"#btn_connect:checked { color:white; background-color: #71946d}")
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("./UI/Images/connected.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.btn_connect.setIcon(icon)
         self.btn_connect.setCheckable(True)
         self.btn_connect.setObjectName("btn_connect")
         self.gridLayout.addWidget(self.btn_connect, 4, 0, 1, 4)

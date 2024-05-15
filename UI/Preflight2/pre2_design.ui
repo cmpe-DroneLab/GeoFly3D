@@ -14,11 +14,7 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton { padding: 7px 10px; font-weight: 500; }
-#btn_save { color: #5e9459; }
-#btn_delete_drone { color: #b85a5a; }
-#btn_add_drone { color: #406d91; }
-#btn_start { color: #a33ea3; }</string>
+   <string notr="true">QPushButton { padding:10px;}</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
@@ -346,12 +342,20 @@
               <property name="text">
                <string>Create</string>
               </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../Images/add.png</normaloff>../Images/add.png</iconset>
+              </property>
              </widget>
             </item>
             <item>
              <widget class="QPushButton" name="btn_edit_drone">
               <property name="text">
                <string>Edit</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../Images/edit.png</normaloff>../Images/edit.png</iconset>
               </property>
              </widget>
             </item>
@@ -362,6 +366,10 @@
               </property>
               <property name="text">
                <string>Delete</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../Images/delete.png</normaloff>../Images/delete.png</iconset>
               </property>
              </widget>
             </item>
@@ -375,7 +383,11 @@
          <item row="3" column="0">
           <widget class="QPushButton" name="btn_cancel">
            <property name="text">
-            <string>ᐊ Home</string>
+            <string>Home</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../Images/home.png</normaloff>../Images/home.png</iconset>
            </property>
           </widget>
          </item>
@@ -383,6 +395,10 @@
           <widget class="QPushButton" name="btn_save">
            <property name="text">
             <string>Save</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../Images/save.png</normaloff>../Images/save.png</iconset>
            </property>
           </widget>
          </item>
@@ -392,7 +408,11 @@
             <bool>false</bool>
            </property>
            <property name="text">
-            <string>Start the Mission ᐅ</string>
+            <string>Start the Mission</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../Images/arrow-right.png</normaloff>../Images/arrow-right.png</iconset>
            </property>
           </widget>
          </item>

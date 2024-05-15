@@ -2,6 +2,9 @@ import json
 import sys
 import random
 import time
+
+from PyQt6.QtGui import QIcon
+
 import UI.main_design
 
 from PyQt6.QtCore import QTimer, QDateTime
@@ -225,14 +228,14 @@ class MainWindow(QMainWindow):
             self.mid.ui.btn_land.setVisible(False)
             self.mid.ui.btn_return_to_home.setVisible(False)
             self.mid.ui.btn_pause_resume.setText("Pause")
-
+            self.mid.ui.btn_pause_resume.setIcon(QIcon('./UI/Images/pause.png'))
             self.mid.mission.mission_status = "Mid Flight"
             session.commit()
         else:
             self.mid.ui.btn_land.setVisible(True)
             self.mid.ui.btn_return_to_home.setVisible(True)
             self.mid.ui.btn_pause_resume.setText("Resume")
-
+            self.mid.ui.btn_pause_resume.setIcon(QIcon('./UI/Images/play.png'))
             self.mid.mission.mission_status = "Paused"
             session.commit()
 

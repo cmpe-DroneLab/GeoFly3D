@@ -1,5 +1,7 @@
 import json
 import folium
+from PyQt6.QtGui import QIcon
+
 import UI.Preflight3.pre3_design
 
 from folium.plugins import MousePosition
@@ -174,10 +176,12 @@ class Pre3(QWidget):
     def connect_drone_clicked(self, button, is_checked, drone_id):
         if is_checked:
             button.setText("Connected, Click to Disconnect")
+            button.setIcon(QIcon('./UI/Images/disconnected.png'))
             print("Connecting to Drone #", drone_id)
             self.update_takeoff_button()
         else:
             button.setText("Click to Connect")
+            button.setIcon(QIcon('./UI/Images/connected.png'))
             print("Disconnecting from Drone #", drone_id)
             self.update_takeoff_button()
 

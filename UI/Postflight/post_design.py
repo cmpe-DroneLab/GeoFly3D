@@ -13,9 +13,7 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1024, 768)
-        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }\n"
-"#btn_process { color: #a33ea3; }\n"
-"")
+        Form.setStyleSheet("QPushButton { padding:10px;}")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.splitter = QtWidgets.QSplitter(parent=Form)
@@ -106,9 +104,15 @@ class Ui_Form(object):
         self.g_lay_buttons = QtWidgets.QGridLayout()
         self.g_lay_buttons.setObjectName("g_lay_buttons")
         self.btn_main = QtWidgets.QPushButton(parent=self.layoutWidget)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("./UI/Images/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.btn_main.setIcon(icon)
         self.btn_main.setObjectName("btn_main")
         self.g_lay_buttons.addWidget(self.btn_main, 0, 0, 1, 1)
         self.btn_process = QtWidgets.QPushButton(parent=self.layoutWidget)
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap("./UI/Images/process.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.btn_process.setIcon(icon1)
         self.btn_process.setObjectName("btn_process")
         self.g_lay_buttons.addWidget(self.btn_process, 0, 1, 1, 1)
         self.v_lay_left.addLayout(self.g_lay_buttons)
@@ -138,8 +142,8 @@ class Ui_Form(object):
         self.scanned_area_unit.setText(_translate("Form", "m²"))
         self.batt_required_label.setText(_translate("Form", "Photos Taken"))
         self.gb_drones.setTitle(_translate("Form", "Drone List"))
-        self.btn_main.setText(_translate("Form", "ᐊ Home"))
-        self.btn_process.setText(_translate("Form", "Process ᐅ"))
+        self.btn_main.setText(_translate("Form", "Home"))
+        self.btn_process.setText(_translate("Form", "Process"))
 
 
 if __name__ == "__main__":

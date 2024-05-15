@@ -13,8 +13,7 @@ class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1024, 768)
-        Form.setStyleSheet("QPushButton { padding: 7px 10px; font-weight: 500; }\n"
-"#btn_take_off { color: #a33ea3; }")
+        Form.setStyleSheet("QPushButton { padding:10px;}")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.splitter = QtWidgets.QSplitter(parent=Form)
@@ -120,10 +119,16 @@ class Ui_Form(object):
         self.g_lay_buttons = QtWidgets.QGridLayout()
         self.g_lay_buttons.setObjectName("g_lay_buttons")
         self.btn_return_back = QtWidgets.QPushButton(parent=self.layoutWidget)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("./UI/Images/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.btn_return_back.setIcon(icon)
         self.btn_return_back.setObjectName("btn_return_back")
         self.g_lay_buttons.addWidget(self.btn_return_back, 0, 0, 1, 1)
         self.btn_take_off = QtWidgets.QPushButton(parent=self.layoutWidget)
         self.btn_take_off.setEnabled(False)
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap("./UI/Images/arrow-up.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.btn_take_off.setIcon(icon1)
         self.btn_take_off.setObjectName("btn_take_off")
         self.g_lay_buttons.addWidget(self.btn_take_off, 0, 1, 1, 1)
         self.v_lay_left.addLayout(self.g_lay_buttons)
@@ -156,8 +161,8 @@ class Ui_Form(object):
         self.selected_area_label.setText(_translate("Form", "Selected Area"))
         self.batt_required_unit.setText(_translate("Form", "min"))
         self.gb_drones.setTitle(_translate("Form", "Drone List"))
-        self.btn_return_back.setText(_translate("Form", "ᐊ Home"))
-        self.btn_take_off.setText(_translate("Form", "Take Off ᐅ"))
+        self.btn_return_back.setText(_translate("Form", "Home"))
+        self.btn_take_off.setText(_translate("Form", "Take Off"))
 
 
 if __name__ == "__main__":
