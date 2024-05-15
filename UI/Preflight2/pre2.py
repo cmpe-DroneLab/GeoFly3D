@@ -8,7 +8,7 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QDialog, QListWidgetItem, QWidget, QLabel
 from UI import draw
-from UI.database import Drone, session, Mission
+from UI.database import Drone, session, Mission, get_mission_drones
 from UI.Dialogs.drone_dialog import Ui_Dialog
 from UI.ListItems.drone_pre import Ui_Form
 from UI.helpers import RouteDrawer, WebEnginePage, calculate_center_point, invert_coordinates, get_current_time
@@ -98,10 +98,7 @@ class Pre2(QWidget):
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
-
-        # Find all drones matching the Mission
-        drones = session.query(Drone).filter_by(mission_id=self.mission.mission_id).all()
-        for drone in drones:
+        for drone in get_mission_drones(self.mission.mission_id):
             self.add_drone_to_list(drone)
 
         # Disable Edit Drone and Delete Drone buttons

@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.pre3.ui.btn_take_off.clicked.connect(self.take_off_clicked)
 
         self.mid.ui.btn_main.clicked.connect(self.go_to_main_clicked)
-        self.mid.ui.btn_pause_continue.clicked.connect(self.pause_continue_clicked)
+        self.mid.ui.btn_pause_resume.clicked.connect(self.pause_resume_clicked)
         self.mid.ui.btn_return_to_home.clicked.connect(self.rth_clicked)
 
         self.post.ui.btn_main.clicked.connect(self.go_to_main_clicked)
@@ -219,8 +219,23 @@ class MainWindow(QMainWindow):
     def on_services_started(self, thread : DroneController):
         thread.connect_drone()
 
-    def pause_continue_clicked(self):
-        # TODO: CONTINUE 
+    def pause_resume_clicked(self):
+        # TODO: CONTINUE
+        if self.mid.ui.btn_land.isVisible():
+            self.mid.ui.btn_land.setVisible(False)
+            self.mid.ui.btn_return_to_home.setVisible(False)
+            self.mid.ui.btn_pause_resume.setText("Pause")
+
+            self.mid.mission.mission_status = "Mid Flight"
+            session.commit()
+        else:
+            self.mid.ui.btn_land.setVisible(True)
+            self.mid.ui.btn_return_to_home.setVisible(True)
+            self.mid.ui.btn_pause_resume.setText("Resume")
+
+            self.mid.mission.mission_status = "Paused"
+            session.commit()
+
         for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
             drone_controller.pause_mission()
 

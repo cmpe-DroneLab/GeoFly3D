@@ -7,7 +7,7 @@ from folium.plugins import MousePosition, Realtime
 from PyQt6.QtCore import QSize, QDateTime, QTimer
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
-from UI.database import session, Mission, Drone
+from UI.database import session, Mission, Drone, get_mission_drones
 from UI.ListItems.drone_mid import Ui_Form
 from UI.helpers import RouteDrawer, WebEnginePage, update_drone_position_on_map, update_drone_battery, update_drone_status, resource_path, calculate_geographic_distance
 from drone_controller import DroneController
@@ -34,6 +34,9 @@ class Mid(QWidget):
         self.total_length = 0
         self.stop_progress = False
 
+        self.ui.btn_land.setVisible(False)
+        self.ui.btn_return_to_home.setVisible(False)
+
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -57,7 +60,6 @@ class Mid(QWidget):
 
         # Draw route
         self.draw_route()
-
         # Start timer for update elapsed time
         self.ui.elapsed_time_value.setText("")
         self.timer.timeout.connect(self.update_elapsed_time)
@@ -66,10 +68,7 @@ class Mid(QWidget):
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
-
-        # Find all drones matching the Mission
-        drones = session.query(Drone).filter_by(mission_id=self.mission.mission_id).all()
-        for drone in drones:
+        for drone in get_mission_drones(self.mission.mission_id):
             self.add_drone_to_list(drone)
 
     # Adds given drone to the Drone List

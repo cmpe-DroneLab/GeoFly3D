@@ -15,7 +15,8 @@
   </property>
   <property name="styleSheet">
    <string notr="true">QPushButton { padding: 7px 10px; font-weight: 500; }
-#btn_return_to_home { color: #b85a5a; }</string>
+#btn_return_to_home { color: #b85a5a; }
+#btn_land { color: #b85a5a; }</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
@@ -217,21 +218,28 @@
        </item>
        <item>
         <layout class="QGridLayout" name="g_lay_buttons">
-         <item row="0" column="0">
+         <item row="1" column="0">
           <widget class="QPushButton" name="btn_main">
            <property name="text">
             <string>ᐊ Home</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="3">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btn_land">
+           <property name="text">
+            <string>Land</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
           <widget class="QPushButton" name="btn_pause_resume">
            <property name="text">
             <string>Pause Mission</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="4">
+         <item row="0" column="3">
           <widget class="QPushButton" name="btn_return_to_home">
            <property name="text">
             <string>Return to Home</string>
