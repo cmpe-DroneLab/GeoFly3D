@@ -155,6 +155,7 @@ class Pre1(QWidget):
 
         test_drone_1 = Drone(
             model="Parrot Anafi 4k",
+            ip_address="192.168.53.1",
             battery_no=3,
             mission_id=test_mission_1.mission_id
         )
@@ -185,11 +186,43 @@ class Pre1(QWidget):
 
         test_drone_2 = Drone(
             model="Parrot Anafi 4k",
+            ip_address="192.168.53.1",
             battery_no=3,
             mission_id=test_mission_2.mission_id
         )
 
         session.add(test_drone_2)
+        session.commit()
+
+        # Test Mission 3 for SIMULATION
+        test_mission_3 = Mission(
+            creation_time=get_current_time(),
+            last_update_time=get_current_time(),
+            center_lat=48.8806686,
+            center_lon=2.3706135999999995,
+            gcs_lat=48.881072,
+            gcs_lon=2.369388,
+            coordinates="[[48.880896, 2.371609], [48.879753, 2.370397], [48.880317, 2.369131], [48.881481, 2.370322], [48.880896, 2.371609]]",
+            mission_status="Draft",
+            required_battery_capacity=2,
+            selected_area=26777,
+            altitude=120,
+            gimbal_angle=-85,
+            route_angle=0,
+            rotated_route_angle=20,
+        )
+
+        session.add(test_mission_3)
+        session.commit()
+
+        test_drone_3 = Drone(
+            model="Parrot Anafi 4k",
+            ip_address="10.202.0.1",
+            battery_no=99,
+            mission_id=test_mission_3.mission_id
+        )
+
+        session.add(test_drone_3)
         session.commit()
 
         self.refresh_mission_list()

@@ -212,7 +212,7 @@ class Mid(QWidget):
         drone_controller_thread.update_battery.connect(self.update_live_data)
 
         self.mission_threads[mission_id] = drone_controller_thread
-        drone_controller_thread.start()
+        #drone_controller_thread.start()
         self.has_taken_off = True
         mission = session.query(Mission).filter_by(mission_id=mission_id).first()
         mission.mission_status = "Mid Flight"
