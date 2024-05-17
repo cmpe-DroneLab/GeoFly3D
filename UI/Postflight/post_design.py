@@ -114,7 +114,13 @@ class Ui_Form(object):
         icon1.addPixmap(QtGui.QPixmap("./UI/Images/process.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.btn_process.setIcon(icon1)
         self.btn_process.setObjectName("btn_process")
-        self.g_lay_buttons.addWidget(self.btn_process, 0, 1, 1, 1)
+        self.g_lay_buttons.addWidget(self.btn_process, 0, 2, 1, 1)
+        self.btn_download = QtWidgets.QPushButton(parent=self.layoutWidget)
+        icon2 = QtGui.QIcon()
+        icon2.addPixmap(QtGui.QPixmap("./UI/Images/download.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.btn_download.setIcon(icon2)
+        self.btn_download.setObjectName("btn_download")
+        self.g_lay_buttons.addWidget(self.btn_download, 0, 1, 1, 1)
         self.v_lay_left.addLayout(self.g_lay_buttons)
         self.layoutWidget1 = QtWidgets.QWidget(parent=self.splitter)
         self.layoutWidget1.setObjectName("layoutWidget1")
@@ -144,6 +150,7 @@ class Ui_Form(object):
         self.gb_drones.setTitle(_translate("Form", "Drone List"))
         self.btn_main.setText(_translate("Form", "Home"))
         self.btn_process.setText(_translate("Form", "Process"))
+        self.btn_download.setText(_translate("Form", "Download Photos"))
 
 
 if __name__ == "__main__":

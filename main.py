@@ -59,6 +59,7 @@ class MainWindow(QMainWindow):
         self.mid.ui.btn_land.clicked.connect(self.land_clicked)
 
         self.post.ui.btn_main.clicked.connect(self.go_to_main_clicked)
+        self.post.ui.btn_download.clicked.connect(self.download_clicked)
 
         self.mission_threads = {}
         self.started = False
@@ -269,6 +270,10 @@ class MainWindow(QMainWindow):
     def land_clicked(self):
         for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
             drone_controller.land_drone()
+
+    def download_clicked(self):
+        for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
+            drone_controller.download_photos()
 
     def simulate_drone_flight(self):
         print("Drone started flying")
