@@ -189,9 +189,10 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        if self.path == '/drone_realtime.geojson':
+        if self.path == f'mission_0_drones.geojson':
             # Load your GeoJSON file here
-            with open('UI/Midflight/drone_realtime.geojson', 'r') as f:
+            filename = f"./UI/LiveData/mission_0_drones.geojson"
+            with open(filename, 'r') as f:
                 data = f.read()
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -226,39 +227,51 @@ class ServerThread(QThread):
             self.httpd.server_close()
 
 
-def update_drone_position_on_map(latitude, longitude):
+def update_drone_position_on_map(latitude, longitude, mission_id, drone_id):
     # Read the GeoJSON file
-    with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
+    filename = f"./UI/LiveData/mission_{mission_id}_drones.geojson"
+    with open(filename, 'r') as fr:
         data = json.load(fr)
     fr.close()
     # Update the coordinates
-    data['features'][0]['geometry']['coordinates'] = [longitude, latitude]
+    for i, feature in enumerate(data['features']):
+        if feature['properties']['drone_id'] == int(drone_id):
+            data['features'][i]['geometry']['coordinates'] = [longitude, latitude]
+            break
     # Write back the modified data
-    with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
+    with open(filename, 'w') as fw:
         json.dump(data, fw)
     fw.close()
 
-def update_drone_battery(battery_percent):
+def update_drone_battery(battery_percent, mission_id, drone_id):
     # Read the GeoJSON file
-    with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
+    filename = f"./UI/LiveData/mission_{mission_id}_drones.geojson"
+    with open(filename, 'r') as fr:
         data = json.load(fr)
     fr.close()
-    # Update the coordinates
-    data['features'][0]['properties']['battery'] = battery_percent
+    # Update the battery
+    for i, feature in enumerate(data['features']):
+        if feature['properties']['drone_id'] == int(drone_id):
+            data['features'][i]['properties']['battery'] = battery_percent
+            break
     # Write back the modified data
-    with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
+    with open(filename, 'w') as fw:
         json.dump(data, fw)
     fw.close()
 
-def update_drone_status(status:str):
+def update_drone_status(status:str, mission_id, drone_id):
     # Read the GeoJSON file
-    with open(resource_path('rt_drone_info.geojson'), 'r') as fr:
+    filename = f"./UI/LiveData/mission_{mission_id}_drones.geojson"
+    with open(filename, 'r') as fr:
         data = json.load(fr)
     fr.close()
-    # Update the coordinates
-    data['features'][0]['properties']['status'] = status
+    # Update the status
+    for i, feature in enumerate(data['features']):
+        if feature['properties']['drone_id'] == int(drone_id):
+            data['features'][i]['properties']['status'] = status
+            break
     # Write back the modified data
-    with open(resource_path('rt_drone_info.geojson'), 'w') as fw:
+    with open(filename, 'w') as fw:
         json.dump(data, fw)
     fw.close()
 

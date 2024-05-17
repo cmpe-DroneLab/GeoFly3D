@@ -54,10 +54,14 @@ class Pre2(QWidget):
                 gimbal_angle=-90,
                 route_angle=0,
                 rotated_route_angle=20,
+                last_visited_node_lat=500,
+                last_visited_node_lon=500,
             )
             session.add(self.mission)
         else:
             self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+            self.mission.last_visited_node_lat = 500
+            self.mission.last_visited_node_lon = 500
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))

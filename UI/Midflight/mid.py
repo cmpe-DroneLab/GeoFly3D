@@ -9,7 +9,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
 from UI.database import session, Mission, Drone, get_mission_drones
 from UI.ListItems.drone_mid import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage, update_drone_position_on_map, update_drone_battery, update_drone_status, resource_path, calculate_geographic_distance
+from UI.helpers import RouteDrawer, WebEnginePage, update_drone_position_on_map, update_drone_battery, update_drone_status, calculate_geographic_distance
 from drone_controller import DroneController
 
 import math 
@@ -180,7 +180,7 @@ class Mid(QWidget):
 
             # Read the GeoJSON file
             filename = f"./UI/LiveData/mission_{self.mission.mission_id}_drones.geojson"
-            with open(resource_path(filename), 'r') as fr:
+            with open(filename, 'r') as fr:
                 data = json.load(fr)
             fr.close()
             for feature in data['features']:
@@ -202,9 +202,9 @@ class Mid(QWidget):
         progress = math.ceil((self.actual_length + increment) / self.total_length * 100)
         self.ui.progress_bar.setValue(progress)
 
-    def drone_position_changed(self, lat, lon):
-        update_drone_position_on_map(lat, lon)
-        if self.mission.last_visited_node_lat and not self.stop_progress:
+    def drone_position_changed(self, lat, lon, drone_id):
+        update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
+        if self.mission.last_visited_node_lat != 500 and not self.stop_progress:
             length_increment = calculate_geographic_distance((lat, lon), (
             self.mission.last_visited_node_lat, self.mission.last_visited_node_lon))
             self.update_progress_bar(length_increment)
@@ -212,7 +212,7 @@ class Mid(QWidget):
     def last_visited_node_changed(self, coords):
         lat, lon = coords
 
-        if self.mission.last_visited_node_lat:
+        if self.mission.last_visited_node_lat != 500:
             if not self.stop_progress:
                 self.actual_length += calculate_geographic_distance(
                     (self.mission.last_visited_node_lat, self.mission.last_visited_node_lon), (lat, lon))

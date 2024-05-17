@@ -94,6 +94,8 @@ class Pre1(QWidget):
                 last_update_time=get_current_time(),
                 center_lat=old_mission.center_lat,
                 center_lon=old_mission.center_lon,
+                gcs_lat=old_mission.gcs_lat,
+                gcs_lon=old_mission.gcs_lon,
                 coordinates=old_mission.coordinates,
                 mission_status="Draft",
                 estimated_mission_time=old_mission.estimated_mission_time,
@@ -116,6 +118,7 @@ class Pre1(QWidget):
                 # Create a new Drone with same features as the old one
                 new_drone = Drone(
                     model=old_drone.model,
+                    ip_address=old_drone.ip_address,
                     battery_no=old_drone.battery_no,
                     flight_status=old_drone.flight_status,
                     gps_status=old_drone.gps_status,
@@ -148,6 +151,8 @@ class Pre1(QWidget):
             gimbal_angle=-85,
             route_angle=0,
             rotated_route_angle=20,
+            last_visited_node_lat=500,
+            last_visited_node_lon=500,
         )
 
         session.add(test_mission_1)
@@ -179,6 +184,8 @@ class Pre1(QWidget):
             gimbal_angle=-85,
             route_angle=0,
             rotated_route_angle=20,
+            last_visited_node_lat=500,
+            last_visited_node_lon=500,
         )
 
         session.add(test_mission_2)
@@ -210,6 +217,8 @@ class Pre1(QWidget):
             gimbal_angle=-85,
             route_angle=0,
             rotated_route_angle=20,
+            last_visited_node_lat=500,
+            last_visited_node_lon=500,
         )
 
         session.add(test_mission_3)
