@@ -43,14 +43,13 @@ class DroneController(QThread):
         self.progress_text.emit("Started roscore")
         rospy.init_node('drone_controller')
 
+        self.process = None
         # rospy.init_node(f'drone_client_{self.drone_id}')
 
     def run(self):
         self.started.emit(f"Mission #{self.mission_id} ---- START")
 
         project_folder = ""
-
-   
 
         coords = [str(coord) for vertex in self.vertices for coord in vertex]
 
@@ -64,32 +63,37 @@ class DroneController(QThread):
         if not os.path.exists('logs'):
             os.mkdir('logs')
 
-        process = pexpect.spawn(command, encoding='utf-8', timeout=300)
-        process.logfile = open(f"logs/mission_{str(self.mission_id)}-drone_{str(self.drone_id)}.log", "w")
+        self.process = pexpect.spawn(command, encoding='utf-8', timeout=300)
+        self.process.logfile = open(
+            f"logs/mission_{str(self.mission_id)}-drone_{str(self.drone_id)}.log", "w")
 
         battery_percent = None
 
-        process.expect("Ready to connect")
+        self.process.expect("Ready to connect")
 
         rospy.wait_for_service(f'/drone_{self.drone_id}/connect')
-        self.connect_service = rospy.ServiceProxy(f'/drone_{self.drone_id}/connect', Trigger)
+        self.connect_service = rospy.ServiceProxy(
+            f'/drone_{self.drone_id}/connect', Trigger)
 
         rospy.wait_for_service(f'/drone_{self.drone_id}/calibrate')
-        self.calibrate_service = rospy.ServiceProxy(f"drone_{self.drone_id}/calibrate", Trigger)
+        self.calibrate_service = rospy.ServiceProxy(
+            f"drone_{self.drone_id}/calibrate", Trigger)
 
         # rospy.wait_for_service("drone/start_mission")
         self.start_mission_service = rospy.Publisher(
-            f"drone_{self.drone_id}/start_mission", Point , queue_size=10)
+            f"drone_{self.drone_id}/start_mission", Point, queue_size=10)
 
         rospy.wait_for_service(f"drone_{self.drone_id}/pause_mission")
         self.pause_mission_service = rospy.ServiceProxy(
             f"drone_{self.drone_id}/pause_mission", Trigger)
 
         rospy.wait_for_service(f"drone_{self.drone_id}/land")
-        self.land_service = rospy.ServiceProxy(f"drone_{self.drone_id}/land", Trigger)
+        self.land_service = rospy.ServiceProxy(
+            f"drone_{self.drone_id}/land", Trigger)
 
         rospy.wait_for_service(f"drone_{self.drone_id}/rth")
-        self.rth_service = rospy.ServiceProxy(f"drone_{self.drone_id}/rth", Trigger)
+        self.rth_service = rospy.ServiceProxy(
+            f"drone_{self.drone_id}/rth", Trigger)
 
         rospy.wait_for_service(f"drone_{self.drone_id}/download_photos")
         self.download_photos_service = rospy.ServiceProxy(
@@ -97,18 +101,21 @@ class DroneController(QThread):
 
         self.services_started.emit(self)
 
-        while not process.eof():
+        while not self.process.eof():
 
-            line = str(process.readline())
+            line = str(self.process.readline())
 
             if line.startswith("Usage:"):
-                process.kill()
+                self.process.kill()
                 self.roscore_process.kill()
                 self.progress_text.emit("Parameter error!")
                 break
-            # elif line.startswith("Mission Finished"):
-            #     # >>> b'Mission Finished: project\r\n'
-            #     project_folder = line[len("Mission Finished: ")].strip()
+            elif line.startswith("Mission Finished"):
+                # >>> b'Mission Finished: project\r\n'
+                # project_folder = line[len("Mission Finished: ")].strip()
+                self.finished.emit(
+                    f"Mission #{self.mission_id} ---- END", self.mission_id)
+
             elif "Project folder created: " in line:
                 project_folder = line.split(':')[-1].strip()
                 print(project_folder)
@@ -148,21 +155,33 @@ class DroneController(QThread):
                 self.update_status.emit(status, self.mission_id, self.drone_id)
             elif "Battery State: " in line:
                 battery_percent = float(line.split(":")[-1])
-                self.update_battery.emit(battery_percent, self.mission_id, self.drone_id)
+                self.update_battery.emit(
+                    battery_percent, self.mission_id, self.drone_id)
 
             # (48.880642477419514, 2.3696386128612215, 226.89425659179688)'
             print(">>> " + line)
 
-        process.wait()
+        self.process.wait()
 
         self.finished.emit(
             f"Mission #{self.mission_id} ---- END", self.mission_id)
 
     def terminate(self):
-        self.progress_text.emit(f"Killing drone_controller_node_{self.drone_id}")
-        pexpect.spawn(f'rosnode kill drone_controller_node_{self.drone_id}', encoding='utf-8', timeout=300)
+        self.progress_text.emit(
+            f"Shutting down drone_controller_node_{self.drone_id}")
+
+        self.process.sendcontrol('c')
+        # time.sleep(5)
+
+        # while not self.process.closed:
+        #     self.process.kill(9)
+        #     terminated = self.process.terminate(force=True)
+        #     self.process.close(force=True)
+
+
         time.sleep(5)
-        self.progress_text.emit(f"Killed drone_controller_node_{self.drone_id}")
+        self.progress_text.emit(
+            f"Shut down drone_controller_node_{self.drone_id}")
 
     def connect_drone(self):
         print("Attempting to connect")
@@ -174,7 +193,8 @@ class DroneController(QThread):
     def start_mission(self, last_visited_node):
         # self.startt = True
         # print(self.start_mission_service.publish())
-        self.start_mission_service.publish(last_visited_node[0], last_visited_node[1], 0)
+        self.start_mission_service.publish(
+            last_visited_node[0], last_visited_node[1], 0)
         while self.start_mission_service.get_num_connections() == 0:
             rospy.sleep(1)
 
