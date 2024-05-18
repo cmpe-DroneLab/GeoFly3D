@@ -195,12 +195,12 @@ class MainWindow(QMainWindow):
             mission_id=mission_id).first()
         mission.mission_status = "Post Flight"
         mission.flight_finish_time = QDateTime.currentDateTime().toString()
+        mission.actual_mission_time = self.mid.ui.elapsed_time_value.text()
         session.commit()
 
         self.post.load_mission(mission_id)
         self.mission_threads.clear()
         self.mid.has_taken_off = False
-        self.post.ui.mission_time_value.setText(self.mid.ui.elapsed_time_value.text())
         if self.mid.timer.isActive():
             self.mid.timer.stop()
             self.mid.timer.disconnect()

@@ -37,7 +37,7 @@ class Post(QWidget):
         self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
 
         # Set mission information box
-        self.ui.scanned_area_value.setText(str(self.mission.scanned_area))
+        self.ui.scanned_area_value.setText(str(self.mission.selected_area))
         self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
         self.ui.actual_mission_time_value.setText(str(self.mission.actual_mission_time))
 
