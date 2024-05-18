@@ -127,8 +127,6 @@ class MainWindow(QMainWindow):
         if self.pre2.mission.mission_id not in self.mission_threads:
             self.mission_threads[self.pre2.mission.mission_id] = {}
 
-        self.pre3.ui.batt_provided_value.setText(
-            self.pre2.ui.batt_provided_value.text())
         self.pre3.load_mission(self.pre2.mission.mission_id)
         self.ui.stackedWidget.setCurrentIndex(2)
 
@@ -202,6 +200,10 @@ class MainWindow(QMainWindow):
         self.post.load_mission(mission_id)
         self.mission_threads.clear()
         self.mid.has_taken_off = False
+        self.post.ui.mission_time_value.setText(self.mid.ui.elapsed_time_value.text())
+        if self.mid.timer.isActive():
+            self.mid.timer.stop()
+            self.mid.timer.disconnect()
         self.ui.stackedWidget.setCurrentIndex(4)
 
     # MID/POST to PRE1

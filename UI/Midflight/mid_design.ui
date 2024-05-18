@@ -111,9 +111,9 @@
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QLabel" name="mission_time_label">
+           <widget class="QLabel" name="estimated_mission_time_label">
             <property name="text">
-             <string>Estimated Time</string>
+             <string>Estimated Mission Time</string>
             </property>
            </widget>
           </item>
@@ -142,7 +142,7 @@
            </widget>
           </item>
           <item row="2" column="3">
-           <widget class="QLabel" name="mission_time_unit">
+           <widget class="QLabel" name="estimated_mission_time_unit">
             <property name="text">
              <string>min</string>
             </property>
@@ -156,7 +156,7 @@
            </widget>
           </item>
           <item row="2" column="2">
-           <widget class="QLabel" name="mission_time_value">
+           <widget class="QLabel" name="estimated_mission_time_value">
             <property name="text">
              <string/>
             </property>

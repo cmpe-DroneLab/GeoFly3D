@@ -67,6 +67,8 @@ class RouteDrawer:
                                                                   route_angle_deg=mission.route_angle,
                                                                   rotated_route_angle_deg=mission.rotated_route_angle)
 
+        total_vertex_count = len(optimal_route) + len(rotated_route)
+
         # Create feature group for Optimal Route
         fg_optimal = folium.FeatureGroup(name="Optimal Route")
 
@@ -125,7 +127,7 @@ class RouteDrawer:
         sw_point, ne_point = calculate_sw_ne_points(coords)
         map_obj.fit_bounds([sw_point, ne_point])
 
-        return optimal_path_length, rotated_path_length
+        return optimal_path_length, rotated_path_length, total_vertex_count
 
 
 class WebEnginePage(QtWebEngineCore.QWebEnginePage):

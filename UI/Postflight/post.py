@@ -38,7 +38,8 @@ class Post(QWidget):
 
         # Set mission information box
         self.ui.scanned_area_value.setText(str(self.mission.scanned_area))
-        self.ui.mission_time_value.setText(str(self.mission.estimated_mission_time))
+        self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
+        self.ui.actual_mission_time_value.setText(str(self.mission.actual_mission_time))
 
         # Load drones
         self.refresh_drone_list()

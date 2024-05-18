@@ -47,7 +47,8 @@ class Mid(QWidget):
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
-        self.ui.mission_time_value.setText(str(self.mission.estimated_mission_time))
+        self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
+        self.ui.progress_bar.setValue(0)
 
         # Load drones
         self.refresh_drone_list()
@@ -111,7 +112,7 @@ class Mid(QWidget):
 
     def draw_route(self):
         if self.mission:
-            self.optimal_route_length, rotated_route_length = RouteDrawer.draw_route(self.map, self.mission)
+            self.optimal_route_length, rotated_route_length, _ = RouteDrawer.draw_route(self.map, self.mission)
             self.total_length = self.optimal_route_length + rotated_route_length
             self.save_map()
 
