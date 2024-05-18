@@ -26,6 +26,8 @@ class Pre2(QWidget):
         self.webView = QWebEngineView()
         self.setup_map(39, 35, 5)
         self.ui.v_lay_right.addWidget(self.webView)
+        self.total_path_length = 0
+        self.total_vertex_count = 0
 
         self.ui.spinbox_altitude.valueChanged.connect(self.altitude_changed)
         self.ui.spinbox_gimbal.valueChanged.connect(self.gimbal_angle_changed)
@@ -65,7 +67,7 @@ class Pre2(QWidget):
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
-        self.ui.mission_time_value.setText(str(self.mission.estimated_mission_time))
+        self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
         self.ui.batt_required_value.setText(str(self.mission.required_battery_capacity))
 
         # Load drones
@@ -108,8 +110,8 @@ class Pre2(QWidget):
         # Disable Edit Drone and Delete Drone buttons
         self.disable_buttons()
 
-        # Update drone related metrics
-        self.update_drone_metrics()
+        # Update metrics
+        self.update_metrics()
 
     # Creates a Drone
     def create_drone(self):
@@ -285,8 +287,8 @@ class Pre2(QWidget):
     # Captures changes in the altitude spinbox and makes necessary updates
     def altitude_changed(self):
         self.mission.altitude = self.ui.spinbox_altitude.value()
-        self.update_altitude_metrics()
         self.draw_route()
+        self.update_metrics()
 
     # Captures changes in the gimbal angle spinbox and makes necessary updates
     def gimbal_angle_changed(self):
@@ -296,11 +298,13 @@ class Pre2(QWidget):
     def route_angle_changed(self):
         self.mission.route_angle = self.ui.spinbox_route_angle.value()
         self.draw_route()
+        self.update_metrics()
 
     # Captures changes in the rotated routing angle spinbox and makes necessary updates
     def rotated_route_angle_changed(self):
         self.mission.rotated_route_angle = self.ui.spinbox_rotated_route_angle.value()
         self.draw_route()
+        self.update_metrics()
 
     # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
@@ -315,29 +319,19 @@ class Pre2(QWidget):
         self.mission.center_lon = None
         self.update_area_metrics()
 
-    # Updates drone related metrics
-    def update_drone_metrics(self):
-        self.calculate_mission_time()
+    def update_metrics(self):
         self.calculate_provided_capacity()
-        self.update_start_button()
-
-    # Updates altitude related metrics
-    def update_altitude_metrics(self):
-        self.calculate_mission_time()
         self.calculate_required_capacity()
+        self.calculate_mission_time()
         self.update_start_button()
 
     # Updates selected area related metrics
     def update_area_metrics(self):
-
         # Update the label_area text with the coordinates
         area = self.calculate_selected_area()
         self.ui.selected_area_value.setText(f"{area:.0f}")
         self.mission.selected_area = area
-
-        self.calculate_required_capacity()
-        self.calculate_mission_time()
-        self.update_start_button()
+        self.update_metrics()
 
     # Calculates selected area from coordinates
     def calculate_selected_area(self):
@@ -362,16 +356,15 @@ class Pre2(QWidget):
         required_capacity = self.ui.batt_required_value.text()
         if len(required_capacity) and num_of_drones:
             mission_time = int(required_capacity) / num_of_drones
-            self.ui.mission_time_value.setText(f"{mission_time:.0f}")
+            self.ui.estimated_mission_time_value.setText(f"{mission_time:.0f}")
         else:
-            self.ui.mission_time_value.setText('0')
-        self.mission.estimated_mission_time = int(self.ui.mission_time_value.text())
+            self.ui.estimated_mission_time_value.setText('0')
+        self.mission.estimated_mission_time = int(self.ui.estimated_mission_time_value.text())
 
     # Calculates required battery capacity for the mission
     def calculate_required_capacity(self):
         altitude = self.ui.spinbox_altitude.value()
-        selected_area = int(self.ui.selected_area_value.text())
-        required_capacity = selected_area / altitude ** 2
+        required_capacity = (altitude * 0.155126 + self.total_vertex_count * 5.594083 + self.total_path_length * 0.232189 + 5.199370)/60
         self.ui.batt_required_value.setText(f"{required_capacity:.0f}")
         self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
 
@@ -389,7 +382,7 @@ class Pre2(QWidget):
             self.ui.batt_provided_value.setText(str(battery_count * 15))
         else:
             self.ui.batt_provided_value.setText('0')
-        self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
+        self.mission.provided_battery_capacity = int(self.ui.batt_provided_value.text())
 
     def draw_route(self):
         if (self.mission.coordinates == 'null') or (self.mission.coordinates is None):
@@ -397,5 +390,6 @@ class Pre2(QWidget):
 
         if self.mission:
             self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
-            RouteDrawer.draw_route(self.map, self.mission)
+            optimal_route_length, rotated_route_length, self.total_vertex_count = RouteDrawer.draw_route(self.map, self.mission)
+            self.total_path_length = optimal_route_length + rotated_route_length
             self.save_map()

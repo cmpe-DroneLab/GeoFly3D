@@ -39,8 +39,9 @@ class Pre3(QWidget):
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
-        self.ui.mission_time_value.setText(str(self.mission.estimated_mission_time))
+        self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
         self.ui.batt_required_value.setText(str(self.mission.required_battery_capacity))
+        self.ui.batt_provided_value.setText(str(self.mission.provided_battery_capacity))
 
         # Load drones
         self.refresh_drone_list()
