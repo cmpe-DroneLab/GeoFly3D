@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
         session.commit()
 
         self.post.load_mission(mission_id)
-        self.mission_threads.clear()
+        # self.mission_threads.clear()
         self.mid.has_taken_off = False
         if self.mid.timer.isActive():
             self.mid.timer.stop()
@@ -276,6 +276,7 @@ class MainWindow(QMainWindow):
     def download_clicked(self):
         for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
             drone_controller.download_photos()
+            self.mission_threads.pop(self.mid.mission.mission_id)[self.mid.mission.mission_id]
 
     def simulate_drone_flight(self):
         print("Drone started flying")

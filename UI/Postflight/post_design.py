@@ -98,7 +98,7 @@ class Ui_Form(object):
         self.gridLayout.addWidget(self.colon_4, 4, 1, 1, 1)
         self.estimated_mission_time_value = QtWidgets.QLabel(parent=self.gb_mission)
         self.estimated_mission_time_value.setText("")
-        self.actual_mission_time_value.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.estimated_mission_time_value.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.estimated_mission_time_value.setObjectName("estimated_mission_time_value")
         self.gridLayout.addWidget(self.estimated_mission_time_value, 1, 2, 1, 1)
         self.estimated_mission_time_unit = QtWidgets.QLabel(parent=self.gb_mission)
