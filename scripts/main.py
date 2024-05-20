@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 
 import sys
-import rospy
-from std_msgs.msg import String
-import olympe
 import time
 from datetime import datetime
 import math
-from math import cos, sin, radians
 import os
+import re
+import requests
+import shutil
+import tempfile
+import xml.etree.ElementTree as ET
+
+import rospy
+from geometry_msgs.msg import Point
+from std_srvs.srv import Trigger
+
+import actionlib
+from route_control.msg import StartMissionAction, StartMissionResult
+
+import olympe
 from olympe.messages.ardrone3.PilotingState import GpsLocationChanged, moveToChanged, FlyingStateChanged, moveByChanged
-from olympe.messages.ardrone3.Piloting import *
+from olympe.messages.ardrone3.Piloting import CancelMoveTo, CancelMoveBy
 from olympe.messages.ardrone3.Piloting import moveTo, moveBy
 from olympe.messages.common.CommonState import BatteryStateChanged
 from olympe.messages.common.Calibration import MagnetoCalibration
@@ -19,373 +29,58 @@ from olympe.enums.gimbal import control_mode, frame_of_reference
 from olympe.messages.gimbal import set_target
 from olympe.enums.ardrone3.Piloting import MoveTo_Orientation_mode
 from olympe.enums.ardrone3.PilotingState import MoveToChanged_Status
-from olympe.enums.camera import photo_file_format,photo_format,camera_mode,photo_mode
-from olympe.messages.camera import set_photo_mode,take_photo,set_camera_mode,photo_progress, stop_photo
+from olympe.enums.camera import  camera_mode
+from olympe.messages.camera import set_photo_mode, take_photo, set_camera_mode, photo_progress, stop_photo, camera_mode as c_mode
 from olympe.messages.rth import return_to_home
 from olympe.media import download_media, indexing_state, delete_media, delete_all_media
-import re
-import requests
-import shutil
-import tempfile
-import xml.etree.ElementTree as ET
+from olympe.messages.user_storage import start_monitoring, stop_monitoring
+
 from node import Node
 from scan_area import ScanArea
-
 from event_listener import EventListener
+from controller import Controller
+from helpers import check_connection
+from exceptions import PauseException
 
-DRONE_IP = os.environ.get("DRONE_IP", "10.202.0.1")
-# Skycontroller
-# DRONE_IP = os.environ.get("DRONE_IP", "192.168.53.1") 
+# DRONE_IP = os.environ.get("DRONE_IP", "10.202.0.1")
+# # Skycontroller
+# # DRONE_IP = os.environ.get("DRONE_IP", "192.168.53.1")
 
-ANAFI_URL = "http://{}".format(DRONE_IP)
+# ANAFI_URL = "http://{}".format(DRONE_IP)
 
-ANAFI_MEDIA_API_URL = ANAFI_URL + "/api/v1/media/medias/"
+# ANAFI_MEDIA_API_URL = ANAFI_URL + "/api/v1/media/medias/"
 # Skycontroller
 # ANAFI_MEDIA_API_URL = ANAFI_URL + ":180/api/v1/media/medias/"
 
-XMP_TAGS_OF_INTEREST = (
-    "CameraRollDegree",
-    "CameraPitchDegree",
-    "CameraYawDegree",
-    "CaptureTsUs",
 
-    "GPSLatitude",
-    "GPSLongitude",
-    "GPSAltitude",
-)
-#DroneGPS Startsset_camera_mode
-#############################################################################################
-class DroneGPS:
-    def __init__(self, drone):
-        self.drone = drone
-        self.latitude = None
-        self.longitude = None
-        self.altitude = None
-        self.subscription = None
-
-    def position_changed_callback(self, event):
-        self.latitude = event.args["latitude"]
-        self.longitude = event.args["longitude"]
-        self.altitude = event.args["altitude"]
-        print(f"Updated Position: Latitude: {self.latitude}, Longitude: {self.longitude}, Altitude: {self.altitude}").wait().success()
-
-    def start(self):
-        # self.subscription = self.drone.subscribe(self.position_changed_callback, PositionChanged())
-        pass
-
-    def has_reached_target(self, target_latitude, target_longitude, tolerance=0.0001):
-        """
-        Check if the current GPS position is within a certain tolerance of the target position.
-        The default tolerance is roughly equivalent to 11 meters.
-        """
-        print(str(self.get_current_position())
-              + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
-        if self.latitude is None or self.longitude is None:
-            return False
-        lat_diff = abs(self.latitude - target_latitude)
-        lon_diff = abs(self.longitude - target_longitude)
-        return lat_diff < tolerance and lon_diff < tolerance   
+# def position_changed_callback(event, controller):
+#     latitude = event.args["latitude"]
+#     longitude = event.args["longitude"]
+#     altitude = event.args["altitude"]
+#     print(f"Latitude: {latitude}, Longitude: {longitude}, Altitude: {altitude}")
 
 
-    def stop(self):
-        # if self.subscription is not None:
-        #     self.drone.unsubscribe(self.subscription)
-        pass
-        
-    def get_current_position(self):
-
-        while True:
-            try:
-                gps_ret = drone.get_state(GpsLocationChanged)
-            except Exception as e:
-                print("Get Current Position Exception: " + repr(e))
-                check_connection()
-                continue
-            else:
-                break
-            
-        self.latitude = gps_ret["latitude"]
-        self.longitude = gps_ret["longitude"]
-        self.altitude = gps_ret["altitude"]
-        if self.latitude is not None and self.longitude is not None:
-            return self.latitude, self.longitude, self.altitude
-        else:
-            return "GPS position not available"
-#DroneGPS ENDS
-##########################################################################
-def position_changed_callback(event, controller):
-    latitude = event.args["latitude"]
-    longitude = event.args["longitude"]
-    altitude = event.args["altitude"]
-    print(f"Latitude: {latitude}, Longitude: {longitude}, Altitude: {altitude}")
+def handle_drone_connect(request):
+    check_connection(drone)
+    return [drone.connection_state(), "Connected..."]
 
 
+def handle_drone_calibrate(request):
+    controller.calibrate()
+    return [drone.get_state(MagnetoCalibrationRequiredState), "Magnetometer Calibration Finished"]
 
 
+def handle_drone_start_mission(data):
+    last_visited_node = (data.x, data.y)
+    # return
+    global paused
 
-def setup_photo_gpslapse_mode(drone):
-    check_connection()
-    drone(set_camera_mode(cam_id=0, value="photo")).wait()
-    drone(
-        set_photo_mode(
-            cam_id=0,
-            mode="gps_lapse",
-            format="rectilinear",
-            file_format="jpeg",
-            burst="burst_14_over_1s",
-            bracketing="preset_1ev",
-            capture_interval=vertical_increment * 0.9,
-        )
-    ).wait()
-
-def download_photos():
-    check_connection()
-    num_media = 0
-    download_folder = ""
-
-    x = int(mission_id)
-    while True:
-        dir_name = ("project" + (str(x) if x != 0 else '') + "-" + str(math.degrees(route_angle)) + "-" + str(math.degrees(rotated_route_angle))).strip()
-        if not os.path.exists(dir_name):
-            download_folder = "./" + dir_name + "/images"
-            os.mkdir(dir_name)
-            os.mkdir(download_folder)
-            rospy.loginfo("Project folder created: %s", download_folder)
-            break
-        else:
-            x = x + 1
-
-    drone.media(indexing_state(state="indexed")).wait(_timeout=100)  # FIXME: fails on some drones
-    media_id = olympe.Media.list_media(drone.media)
-    num_media = len(media_id)
-
-    if num_media > 0:
-        drone.media.download_dir = download_folder  # download the photos associated with this media id
-
-        media_info = olympe.Media.media_info(drone.media, media_id = media_id[-1])
-        run_id = media_info.run_id
-
-        for mid in range(num_media - 1, 0, -1):
-            media_info = olympe.Media.media_info(drone.media, media_id = media_id[mid])
-            rid = media_info.run_id
-            if rid != run_id:
-                break
-
-        num_media = num_media - mid - 1
-        rospy.loginfo("Downloading %i media", num_media)
-        media_id = media_id[mid+1:]
-        media_count = 1
-        for media in media_id:
-            media_info = olympe.Media.media_info(drone.media, media_id = media)
-            rospy.logwarn(media_info)
-            rospy.loginfo("Media %i/%i: downloading %.1fMB", media_count, num_media, media_info.size/(2**20))
-            media_download = drone(download_media(media))
-            resources = media_download.as_completed(timeout=100)
-            rospy.loginfo("Media %i/%i: downloaded %.1fMB", media_count, num_media, media_info.size/(2**20))
-
-            for resource in resources:
-                if not resource.success():
-                    rospy.logerr("Failed to download %s", str(resource.resource_id))
-                    continue
-
-            media_count += 1
-
-            # if cut_media:
-            #     drone(delete_all_media())
-            
-        # else:
-        #     rospy.loginfo("No media found")
-        #     rospy.loginfo(drone.media.indexing_state)
-    else:
-        rospy.logwarn("Media is not indexed :(")
-    return num_media, dir_name
-
-def take_photo_single(drone):
-    check_connection()
-    print("taking photo")
-    photo_saved = drone(photo_progress(result="photo_saved", _policy="wait"))
-    drone(take_photo(cam_id=0)).wait()
-    photo_saved.wait()
-    media_id = photo_saved.received_events().last().args["media_id"]
-
-
-    media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
-    media_info_response.raise_for_status()
-    download_dir = tempfile.mkdtemp()
-    for resource in media_info_response.json()["resources"]:
-        image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
-        download_path = os.path.join(download_dir, resource["resource_id"])
-        image_response.raise_for_status()
-        with open(download_path, "wb") as image_file:
-            shutil.copyfileobj(image_response.raw, image_file)
-
-       
-        with open(download_path, "rb") as image_file:
-            image_data = image_file.read()
-            image_xmp_start = image_data.find(b"<x:xmpmeta")
-            image_xmp_end = image_data.find(b"</x:xmpmeta")
-            image_xmp = ET.fromstring(image_data[image_xmp_start : image_xmp_end + 12])
-            for image_meta in image_xmp[0][0]:
-                xmp_tag = re.sub(r"{[^}]*}", "", image_meta.tag)
-                xmp_value = image_meta.text
-                
-                if xmp_tag in XMP_TAGS_OF_INTEREST:
-                    print(resource["resource_id"], xmp_tag, xmp_value)
-
-
-def setup_photo_single_mode(drone):
-    check_connection()
-    drone(set_camera_mode(cam_id=0, value="photo")).wait()
-    drone(
-        set_photo_mode(
-            cam_id=0,
-            mode="single",  
-            format="rectilinear",
-            file_format="jpeg",
-            burst="burst_14_over_1s",  
-            bracketing="preset_1ev",
-            capture_interval=0.0,  
-        )
-    ).wait()
-
-def land():
-    print("Landing....")
-    drone(Landing()).wait().success()
-
-def takeoff():
-    print("Takingoff....")
-    drone(TakeOff()).wait().success()
-
-def command_callback(msg):
-    if msg.data == "takeoff":
-        takeoff()
-
-def calculate_bearing_angle(coord1, coord2):
-
-        lat_a, lon_a, _ = coord1
-        lat_b, lon_b, _ = coord2
-
-        X = cos(radians(lat_b)) * sin(radians(abs(lon_a - lon_b)))
-        Y = cos(radians(lat_a)) * sin(radians(lat_b)) - sin(radians(lat_a)) * cos(radians(lat_b)) * cos(
-            radians(abs(lon_a - lon_b)))
-
-        sign = 1 if lon_a < lon_b else -1
-        return sign * math.atan2(X, Y)
-
-def move_to(lat, lon, alt, drone_gps):
-    print("moving...") 
-
-    check_connection()
-
-    while True:
-        try:
-            heading = math.degrees(calculate_bearing_angle(drone_gps.get_current_position(), (lat, lon, 0)))
-            drone(moveTo(lat, lon, alt, MoveTo_Orientation_mode.HEADING_START, heading) 
-                        # >> FlyingStateChanged(state="hovering", _timeout=5)
-                        # >> moveToChanged(status='DONE')
-                        ).wait().success()
-
-            while not drone_gps.has_reached_target(lat, lon):
-                print("Drone has not reached the target yet. Waiting...")
-                time.sleep(2)
-        except Exception as e:
-            print("Connection failed! Reconnecting and moving! " +  repr(e))
-            check_connection()
-            continue  # Retry the operation
-        else:
-            break  # Exit the loop if successful
-
-    print(f"moving end {lat} {lon}")
-
-        
-
-
-def connection_changed(args):
-    # global drone_gps
-    # print("Main got this: " + str(args))
-    # for i in range(10):
-    #     print(i)
-    #     time.sleep(1)
-    print(args)
-    # if args['status'] in [MoveToChanged_Status.CANCELED, MoveToChanged_Status.ERROR]:
-    #     move_to(args['latitude'][1], args['longitude'][1], args['altitude'][1],drone_gps)
-
-def check_connection():
-    global drone, drone_gps
-    connection_rate = rospy.Rate(60 / 5) # Try to reconnect every 5 seconds
-    while not drone.connection_state():
-        rospy.loginfo("Trying to connect the drone...")
-        drone.connect()
-        drone_gps = DroneGPS(drone)
-        drone_gps.start()
-        time.sleep(2)
-        rospy.loginfo("Connection State: " + str(drone.connection_state()))
-        connection_rate.sleep()
-
-if __name__ == '__main__':
-    rospy.init_node('drone_command_node')
-    rospy.on_shutdown(exit)
-
-    
-    print(sys.argv)
-    if sys.argv[1] == "test":
-        mission_id = 0
-        altitude = 200
-        intersection_ratio = 0.8
-        gimbal_angle = -90
-        route_angle = math.pi * 0 / 180
-        rotated_route_angle = math.pi * 20 / 180
-
-        vertices = [(2.37, 48.8802),(2.372, 48.8802),(2.372, 48.88),(2.37, 48.88)]
-    else:
-        if len(sys.argv) < 7:
-            print("Usage: <altitude> <rotation_angle> <intersection_ratio> <vertex1_lon> <vertex1_lat> ... <vertexN_lat>")
-            sys.exit(1)
-        
-        mission_id = float(sys.argv[1])
-        altitude = float(sys.argv[2])
-        intersection_ratio = float(sys.argv[3])
-        gimbal_angle = float(sys.argv[4])
-        route_angle = math.pi * float(sys.argv[5]) / 180
-        rotated_route_angle = math.pi * float(sys.argv[6]) / 180
-
-        vertices = [(float(sys.argv[i]), float(sys.argv[i+1])) for i in range(7, len(sys.argv), 2)]
-
-    # Create Node instances for each vertex
-    # nodes = [Node(lon, lat, 0) for lon, lat in vertices]
-
-    print("imports are done")
-   
-    drone = olympe.Drone(DRONE_IP)
-    event_listener = EventListener(drone, connection_changed)
-    event_listener.subscribe()
-
-    # check_connection()
-    connection_rate = rospy.Rate(60 / 5) # Try to reconnect every 5 seconds
-    while not drone.connection_state():
-        print("Trying to connect the drone...")
-        drone.connect()
-        drone_gps = DroneGPS(drone)
-        drone_gps.start()
-        time.sleep(2)
-        print("Connection State: ", drone.connection_state())
-        connection_rate.sleep()
-    
-
-    while True:
-        try:
-            print(drone.get_state(MagnetoCalibrationRequiredState))
-            if drone.get_state(MagnetoCalibrationRequiredState)['required'] == 1 and drone.get_state(MagnetoCalibrationStartedChanged)['started'] == 0:
-                assert drone(MagnetoCalibration(1)).wait().success()
-
-            while drone.get_state(MagnetoCalibrationRequiredState)['required'] == 1:
-                time.sleep(10)
-
-        except:
-            check_connection()
-            continue
-        else:
-            break
+    if not drone.connection_state():
+        rospy.loginfo("Drone not connected...")
+        return
+    elif drone.get_state(MagnetoCalibrationRequiredState)['required'] == 1:
+        rospy.logwarn("Magneto calibration required....")
+        return
 
     print("Creating Route...")
     takeoff_coord = drone_gps.get_current_position()
@@ -395,118 +90,268 @@ if __name__ == '__main__':
           + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
 
     polygon = ScanArea(vertices)
-    route, rotated_route, vertical_increment = polygon.create_route(altitude, intersection_ratio, route_angle, rotated_route_angle)
+    route, rotated_route, vertical_increment = polygon.create_route(
+        altitude, intersection_ratio, route_angle, rotated_route_angle)
 
-    print("route has been created")
+    print("routes have been created")
 
+    drone(start_monitoring(0))
 
     time.sleep(1)
-    while True:
+    while not paused:
         try:
-            print("setting camera...")
-            assert drone(set_camera_mode(0,value=camera_mode.photo)).wait().success()
-            # assert drone(SetMe)
 
-            takeoff()
-            drone(moveBy(0, 0, -altitude, 0)).wait().success()
+            print("setting camera...")
+            print(drone.get_state(c_mode))
+            expectation = drone(set_camera_mode(
+                0, value=camera_mode.photo)).wait()
+            expectation.explain()
+
+            # if paused:
+            #     print("Mission Paused")
+            #     controller.set_pause(False)
+            #     paused = False
+            #     return [False, "Mission Paused"]
+
+            controller.takeoff()
+
+            if paused:
+                print("Mission Paused")
+                controller.set_pause(False)
+                paused = False
+                rospy.loginfo("Mission Paused")
+                return
+
+            drone(moveTo(takeoff_coord[0], takeoff_coord[1], takeoff_coord[2] + altitude, MoveTo_Orientation_mode.NONE, 0)).wait().success()
             time.sleep(2)
-            print("setting gimball....")
-            assert drone(set_target(gimbal_id=0,control_mode= control_mode.position, yaw_frame_of_reference=frame_of_reference.relative, yaw=0.0, 
-                            pitch_frame_of_reference=frame_of_reference.relative, pitch=gimbal_angle, roll_frame_of_reference=frame_of_reference.relative,
-                            roll=0.0)).wait().success()
-        except Exception as e:
+
+            # if paused:
+            #     print("Mission Paused")
+            #     controller.set_pause(False)
+            #     paused = False
+            #     return [False, "Mission Paused"]
+
+            controller.set_gimbal_angle(gimbal_angle=gimbal_angle)
+
+        except (Exception, PauseException) as e:
+            print(repr(e))
+            if "Paused" in str(e):
+                print("Mission Paused")
+                controller.set_pause(False)
+                paused = False
+                rospy.loginfo("Mission Paused")
+                return
+
             print("Camera setting and takeoff exception: " + repr(e))
-            check_connection()
+            check_connection(drone)
             continue
         else:
             break
 
     takeoff_date = datetime.now().isoformat()
-    rospy.loginfo("Takeoff date and time in ISO 8601 format: " + str(takeoff_date))
-
+    rospy.loginfo(
+        "Takeoff date and time in ISO 8601 format: " + str(takeoff_date))
     time.sleep(5)
-   
-    setup_photo_gpslapse_mode(drone)
 
-    print("following the first route...")
+    try:
+        # controller.setup_photo_gpslapse_mode(vertical_increment)
 
-    is_gpslapse_on = False
+        alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
 
-    alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
+        print("following the first route...")
+        controller.follow_route(route=route, altitude=alt,
+                                vertical_increment=vertical_increment, last_visited_node=last_visited_node)
+        # if paused:
+        #     print("Mission Paused")
+        #     controller.set_pause(False)
+        #     paused = False
+        #     return [False, "Mission Paused"]
 
-    for i,point in enumerate(route):
-        print(f"point {i+1}/{len(route)}: {point[::-1]}")
-        lat = point[1]
-        lon = point[0]
-        move_to(lat, lon, alt,drone_gps)
+        expectation = drone(set_camera_mode(
+                0, value=camera_mode.photo)).wait()
+        assert expectation.success(), expectation.explain()
 
-        if is_gpslapse_on:
-            assert drone(stop_photo(cam_id=0)).wait().success()
-            setup_photo_single_mode(drone)
-            take_photo_single(drone)
-            setup_photo_gpslapse_mode(drone)
+        print("following the second route...")
+        controller.follow_route(route=rotated_route, altitude=alt,
+                                vertical_increment=vertical_increment, last_visited_node=last_visited_node)
 
-        else:
-            drone(take_photo(cam_id=0)).wait()
-            time.sleep(2)
+        # if paused:
+        #     print("Mission Paused")
+        #     controller.set_pause(False)
+        #     paused = False
+        #     return [False, "Mission Paused"]
 
-        is_gpslapse_on = not is_gpslapse_on
+        # Set gimbal to look upward while landing
+        controller.set_gimbal_angle(gimbal_angle=90)
 
-        time.sleep(2)
+        # Return to take off point
+        controller.move_to(takeoff_coord[0], takeoff_coord[1], alt, drone_gps)
+        controller.land()
 
-    print("following the second route...")
+        land_date = datetime.now().isoformat()
+        rospy.loginfo(
+            "Land date and time in ISO 8601 format: " + str(land_date))
 
-    alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
+        print(str(drone_gps.get_current_position())
+              + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
+    except (Exception, PauseException) as e:
+        print(repr(e))
+        if "Paused" in str(e):
+            print("Mission Paused")
+            controller.set_pause(False)
+            paused = False
+            rospy.loginfo("Mission Paused")
+            return
 
-    for i,point in enumerate(rotated_route):
-        
-        print(f"point {i+1}/{len(rotated_route)}: {point[::-1]}")
-        lat = point[1]
-        lon = point[0]
-        move_to(lat, lon, alt,drone_gps)
+    drone(stop_monitoring())
 
-        if is_gpslapse_on:
-            assert drone(stop_photo(cam_id=0)).wait().success()
-            setup_photo_single_mode(drone)
-            take_photo_single(drone)
-            setup_photo_gpslapse_mode(drone)
-
-        else:
-            drone(take_photo(cam_id=0)).wait()
-            # time.sleep(2)
-
-        is_gpslapse_on = not is_gpslapse_on
-
-        # time.sleep(2)
-
-    
-    # drone(return_to_home()).wait()
-
-    print("setting gimball....")
-    drone(set_target(gimbal_id=0,control_mode= control_mode.position, yaw_frame_of_reference=frame_of_reference.relative, yaw=0.0, 
-                     pitch_frame_of_reference=frame_of_reference.relative, pitch=90, roll_frame_of_reference=frame_of_reference.relative,
-                     roll=0.0)).wait()
-
-    move_to(takeoff_coord[0], takeoff_coord[1], alt, drone_gps)
-    land()
-
-    land_date = datetime.now().isoformat()
-    rospy.loginfo("Land date and time in ISO 8601 format: " + str(land_date))
-
-    print("Fetching current position...")
-    print(str(drone_gps.get_current_position())
-          + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
-    
-    time.sleep(15)
-    num_photos, project_folder = download_photos()
-
-
-    
     drone_gps.stop()
     drone.disconnect()
     event_listener.unsubscribe()
 
-    print(f"Mission Finished: {project_folder}")
+    print("Mission Finished: ")
+    # mission_server.set_succeeded([True, "Mission Finished"])
+    controller.set_pause(False)
+    paused = False
+    return [True, "Mission Finished"]
 
 
+def handle_drone_land(request):
+    controller.land()
+
+    return [True, "Landing..."]
+
+
+def handle_drone_rth(request):
+    controller.rth()
+    return [True, "Returning to Home..."]
+
+
+def handle_drone_pause(request):
+    global paused
+    flying_state = str(drone.get_state(FlyingStateChanged)['state'])
+    if "takingoff" in flying_state or "motor_ramping" in flying_state:
+        controller.land()
+    elif "landing" in flying_state:
+        controller.takeoff()
+    else:
+        drone(CancelMoveTo()).wait().success()
+        drone(stop_photo(cam_id=0))
+
+    if not paused:
+        controller.set_pause(True)
+        paused = True
+        return [True, "Paused."]
     
+    controller.set_pause(False)
+    paused = False
+    return [True, "Resuming..."]
+
+
+def handle_download_photos(request):
+    dir_name = ""
+    x = int(mission_id)
+    while True:
+        dir_name = ("project" + (str(x) if x != 0 else '') + "-" + str(math.degrees(
+            route_angle)) + "-" + str(math.degrees(rotated_route_angle))).strip()
+        if not os.path.exists(dir_name):
+            break
+        else:
+            x = x + 1
+
+    num_photos, project_folder = controller.download_photos(dir_name=dir_name)
+    return [True, f"{num_photos} downloaded to {project_folder}"]
+
+
+if __name__ == '__main__':
+
+    print(sys.argv)
+    if sys.argv[1] == "test":
+        mission_id = 0
+        drone_id = 1
+        drone_ip_address = "10.202.0.1"
+        altitude = 200
+        intersection_ratio = 0.8
+        gimbal_angle = -90
+        route_angle = math.pi * 0 / 180
+        rotated_route_angle = math.pi * 20 / 180
+
+        vertices = [(2.37, 48.8802), (2.372, 48.8802),
+                    (2.372, 48.88), (2.37, 48.88)]
+    elif sys.argv[1] == "test2":
+        mission_id = 0
+        drone_id = 1
+        drone_ip_address = "10.202.0.1"
+        altitude = 30
+        intersection_ratio = 0.8
+        gimbal_angle = -90
+        route_angle = math.pi * 20 / 180
+        rotated_route_angle = math.pi * 20 / 180
+
+        vertices = [(2.369415, 48.880494), (2.369415, 48.880966), (2.371684, 48.880966), (2.371684, 48.880494)]
+    else:
+        if len(sys.argv) < 8:
+            print("Usage: <altitude> <rotation_angle> <intersection_ratio> <vertex1_lon> <vertex1_lat> ... <vertexN_lat>")
+            sys.exit(1)
+
+        mission_id = float(sys.argv[1])
+        drone_id = sys.argv[2]
+        drone_ip_address = sys.argv[3]
+        altitude = float(sys.argv[4])
+        intersection_ratio = float(sys.argv[5])
+        gimbal_angle = float(sys.argv[6])
+        route_angle = math.pi * float(sys.argv[7]) / 180
+        rotated_route_angle = math.pi * float(sys.argv[8]) / 180
+
+        vertices = [(float(sys.argv[i]), float(sys.argv[i+1]))
+                    for i in range(9, len(sys.argv), 2)]
+
+    # Create Node instances for each vertex
+    # nodes = [Node(lon, lat, 0) for lon, lat in vertices]
+
+    rospy.init_node(f'drone_controller_node_{drone_id}')
+    rospy.on_shutdown(exit)
+
+    print("imports are done")
+
+    anafi_url = "http://{}".format(drone_ip_address)
+
+    anafi_media_api_url = ""
+
+    if drone_ip_address == "10.202.0.1":
+        anafi_media_api_url = anafi_url + "/api/v1/media/medias/"
+    elif drone_ip_address == "192.168.53.1":
+        anafi_media_api_url = anafi_url + ":180/api/v1/media/medias/"
+    else:
+        # FAKE DRONE
+        pass
+
+    drone = olympe.Drone(drone_ip_address)
+
+    event_listener = EventListener(drone)
+    event_listener.subscribe()
+
+    controller = Controller(drone=drone, anafi_url=anafi_url,
+                            media_api_url=anafi_media_api_url)
+
+    drone_gps = controller.get_drone_gps()
+
+    paused = False
+
+    rospy.loginfo("Ready to connect...")
+
+    rospy.Service(f"drone_{drone_id}/connect", Trigger, handle_drone_connect)
+    rospy.Service(f"drone_{drone_id}/calibrate",
+                  Trigger, handle_drone_calibrate)
+    rospy.Subscriber(f"drone_{drone_id}/start_mission",
+                     Point, handle_drone_start_mission)
+    rospy.Service(f"drone_{drone_id}/pause_mission",
+                  Trigger, handle_drone_pause)
+    rospy.Service(f"drone_{drone_id}/land", Trigger, handle_drone_land)
+    rospy.Service(f"drone_{drone_id}/rth", Trigger, handle_drone_rth)
+    rospy.Service(f"drone_{drone_id}/download_photos",
+                  Trigger, handle_download_photos)
+    # mission_server = actionlib.SimpleActionServer("drone/start_mission", StartMissionAction, handle_drone_start_mission, False)
+    # mission_server.start()
+
+    rospy.spin()
