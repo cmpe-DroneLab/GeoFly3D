@@ -24,7 +24,8 @@ def calculate_bearing_angle(point1, point2):
 
 
 def calculate_coordinate_with_distance(point, distance, bearing_angle):
-    lat, lon = hs.inverse_haversine((point[1], point[0]), distance, bearing_angle, unit=Unit.METERS)
+    lat, lon = hs.inverse_haversine(
+        (point[1], point[0]), distance, bearing_angle, unit=Unit.METERS)
     return lon, lat
 
 
@@ -33,7 +34,7 @@ def calculate_increment(height, intersection_ratio):
     HFOV_rad = (HFOV_degree * math.pi) / 180
     # Horizontal increment
     increment = math.tan(HFOV_rad / 2) * height * 2 * (
-            1 - intersection_ratio)  # Increment by variable intersection rates of the height of the taken picture
+        1 - intersection_ratio)  # Increment by variable intersection rates of the height of the taken picture
     return abs(increment)
 
 
@@ -49,10 +50,13 @@ class ScanArea:
     def find_normal_direction(self, longest_edge):
         center = self.polygon.centroid
 
-        vector_1 = [longest_edge.coords[0][i] - longest_edge.coords[1][i] for i in range(2)]
-        vector_2 = [center.coords[0][i] - longest_edge.coords[0][i] for i in range(2)]
+        vector_1 = [longest_edge.coords[0][i] -
+                    longest_edge.coords[1][i] for i in range(2)]
+        vector_2 = [center.coords[0][i] - longest_edge.coords[0][i]
+                    for i in range(2)]
 
-        cross_multiple = (vector_1[0] * vector_2[1]) - (vector_1[1] * vector_2[0])
+        cross_multiple = (vector_1[0] * vector_2[1]) - \
+            (vector_1[1] * vector_2[0])
 
         return -1 if cross_multiple < 0 else 1
 
@@ -63,12 +67,15 @@ class ScanArea:
 
         if angle == math.pi:
             # Reverse the coordinates
-            longest_edge = LineString([longest_edge.coords[1], longest_edge.coords[0]])
+            longest_edge = LineString(
+                [longest_edge.coords[1], longest_edge.coords[0]])
         elif angle != 0:
             # Rotate the longest edge
-            longest_edge = affinity.rotate(longest_edge, angle, origin='center', use_radians=True)
+            longest_edge = affinity.rotate(
+                longest_edge, angle, origin='center', use_radians=True)
             coords = longest_edge.coords
-            slope_radian = math.atan2(coords[0][1] - coords[1][1], coords[0][0] - coords[1][0])
+            slope_radian = math.atan2(
+                coords[0][1] - coords[1][1], coords[0][0] - coords[1][0])
             if slope_radian < 0:
                 slope_radian += math.pi
             if slope_radian < math.pi / 2:
@@ -90,13 +97,16 @@ class ScanArea:
         vector = (dx / magnitude, dy / magnitude)
 
         extension_amount = self.find_extension_amount()
-        extension_vector = (vector[0] * extension_amount, vector[1] * extension_amount)
+        extension_vector = (vector[0] * extension_amount,
+                            vector[1] * extension_amount)
 
         extended_coords = [
-            (longest_edge.coords[0][0] - extension_vector[0], longest_edge.coords[0][1] - extension_vector[1]),
+            (longest_edge.coords[0][0] - extension_vector[0],
+             longest_edge.coords[0][1] - extension_vector[1]),
             (longest_edge.coords[1][0] + extension_vector[0], longest_edge.coords[1][1] + extension_vector[1])]
 
-        normal_bearing_angle = calculate_bearing_angle(extended_coords[0], extended_coords[1]) + math.pi / 2
+        normal_bearing_angle = calculate_bearing_angle(
+            extended_coords[0], extended_coords[1]) + math.pi / 2
 
         parallel_lines = []
         intersects = []
@@ -107,8 +117,10 @@ class ScanArea:
             if i > 0:
                 # Move the line along the normal vector
                 new_line_coords = [
-                    calculate_coordinate_with_distance(extended_coords[0], distance * i, normal_bearing_angle),
-                    calculate_coordinate_with_distance(extended_coords[1], distance * i, normal_bearing_angle)
+                    calculate_coordinate_with_distance(
+                        extended_coords[0], distance * i, normal_bearing_angle),
+                    calculate_coordinate_with_distance(
+                        extended_coords[1], distance * i, normal_bearing_angle)
                 ]
                 new_line = LineString(new_line_coords)
             else:
@@ -126,7 +138,8 @@ class ScanArea:
                 break
 
             parallel_lines.append(new_line)
-            intersects.append(intersection)
+            if not intersection.is_empty:
+                intersects.append(intersection)
 
             i += 1
 
@@ -141,9 +154,11 @@ class ScanArea:
 
         longest_edge = self.find_the_longest_edge()
 
-        dist = calculate_increment(altitude, intersection_ratio)  # Distance between parallel lines
+        # Distance between parallel lines
+        dist = calculate_increment(altitude, intersection_ratio)
 
-        parallels, intersections, bb = self.scan_polygon(longest_edge, dist, route_angle)
+        parallels, intersections, bb = self.scan_polygon(
+            longest_edge, dist, route_angle)
 
         # self.plot_path(parallels, intersections, bb, 'Optimal Route')
 
@@ -158,18 +173,41 @@ class ScanArea:
                 optimal_route.append(intersections[i].coords[1])
                 optimal_route.append(intersections[i].coords[0])
 
-        parallels, intersections, bb = self.scan_polygon(longest_edge, dist, route_angle + rotated_route_angle)
+        # Second Route
+
+        parallels, intersections, bb = self.scan_polygon(
+            longest_edge, dist, route_angle + rotated_route_angle)
 
         rotated_route = []
-        for i in range(len(intersections)):
-            if intersections[i].is_empty:
-                continue
-            if i % 2 == 0:
-                rotated_route.append(intersections[i].coords[0])
-                rotated_route.append(intersections[i].coords[1])
-            else:
-                rotated_route.append(intersections[i].coords[1])
-                rotated_route.append(intersections[i].coords[0])
+
+        dist1 = calculate_geographic_distance(
+            optimal_route[-1], intersections[0].coords[0])
+        dist2 = calculate_geographic_distance(
+            optimal_route[-1], intersections[-1].coords[1])
+
+        print(dist1, dist2)
+
+        if dist2 < dist1:
+            for i in range(len(intersections)-1, -1, -1):
+                if intersections[i].is_empty:
+                    continue
+                if i % 2 == 0:
+                    rotated_route.append(intersections[i].coords[0])
+                    rotated_route.append(intersections[i].coords[1])
+                else:
+                    rotated_route.append(intersections[i].coords[1])
+                    rotated_route.append(intersections[i].coords[0])
+        else:
+
+            for i in range(len(intersections)):
+                if intersections[i].is_empty:
+                    continue
+                if i % 2 == 0:
+                    rotated_route.append(intersections[i].coords[0])
+                    rotated_route.append(intersections[i].coords[1])
+                else:
+                    rotated_route.append(intersections[i].coords[1])
+                    rotated_route.append(intersections[i].coords[0])
 
         # self.plot_path(parallels, intersections, bb, 'Rotated Route')
 
@@ -212,7 +250,8 @@ class ScanArea:
             x_list.append(route[i][0])
             y_list.append(route[i][1])
 
-        plt.plot(x_list, y_list, color='green', linestyle='dashed', label=label)
+        plt.plot(x_list, y_list, color='green',
+                 linestyle='dashed', label=label)
         plt.scatter(x_list, y_list, color='purple')
         plt.legend()
         plt.show()
