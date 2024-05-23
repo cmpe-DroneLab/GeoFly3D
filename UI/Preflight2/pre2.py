@@ -49,6 +49,7 @@ class Pre2(QWidget):
                 mission_status="Draft",
                 estimated_mission_time=0,
                 actual_mission_time=0,
+                provided_battery_capacity=0,
                 required_battery_capacity=0,
                 selected_area=0,
                 scanned_area=0,
@@ -64,6 +65,9 @@ class Pre2(QWidget):
             self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
             self.mission.last_visited_node_lat = 500
             self.mission.last_visited_node_lon = 500
+
+        self.total_path_length = 0
+        self.total_vertex_count = 0
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -364,9 +368,9 @@ class Pre2(QWidget):
     # Calculates required battery capacity for the mission
     def calculate_required_capacity(self):
         altitude = self.ui.spinbox_altitude.value()
-        required_capacity = (altitude * 0.155126 + self.total_vertex_count * 5.594083 + self.total_path_length * 0.232189 + 5.199370)/60
-        self.ui.batt_required_value.setText(f"{required_capacity:.0f}")
-        self.mission.required_battery_capacity = int(self.ui.batt_required_value.text())
+        required_capacity = int((altitude * 0.155126 + self.total_vertex_count * 5.594083 + self.total_path_length * 0.232189 + 5.199370)/60)
+        self.ui.batt_required_value.setText(str(required_capacity))
+        self.mission.required_battery_capacity = required_capacity
 
     # Calculates provided battery capacity from drones in the Drone List
     def calculate_provided_capacity(self):
@@ -392,4 +396,5 @@ class Pre2(QWidget):
             self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
             optimal_route_length, rotated_route_length, self.total_vertex_count = RouteDrawer.draw_route(self.map, self.mission)
             self.total_path_length = optimal_route_length + rotated_route_length
+            self.update_metrics()
             self.save_map()

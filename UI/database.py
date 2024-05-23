@@ -43,6 +43,7 @@ class Mission(Base):
     mission_status = Column(String)
     estimated_mission_time = Column(Integer)
     actual_mission_time = Column(Integer)
+    provided_battery_capacity = Column(Integer)
     required_battery_capacity = Column(Integer)
     selected_area = Column(Integer)
     scanned_area = Column(Integer)
