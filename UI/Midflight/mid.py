@@ -191,8 +191,10 @@ class Mid(QWidget):
             fr.close()
             for feature in data['features']:
                 if feature['properties']['drone_id'] == int(drone_id):
-                    battery_field.setText(str(int(feature['properties'].get('battery'))))
-                    status_field.setText(feature['properties'].get('status'))
+                    if feature['properties'].get('battery') is  not None:
+                        battery_field.setText(str(int(feature['properties'].get('battery'))))
+                    if feature['properties'].get('status') is not None:
+                        status_field.setText(feature['properties'].get('status'))
 
     def update_elapsed_time(self):
         current_time = QDateTime.currentDateTime()
@@ -211,11 +213,6 @@ class Mid(QWidget):
     def drone_position_changed(self, lat, lon, drone_id):
         update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
         drone = get_drone_by_id(drone_id)
-
-        if drone.path.last_visited_node is None:
-            lv_node = Node(latitude=500, longitude=500)
-            lv_node.add_to_db()
-            drone.path.last_visited_node = lv_node
 
         if drone.path.last_visited_node.latitude != 500 and not self.stop_progress:
             length_increment = calculate_geographic_distance((lat, lon), (

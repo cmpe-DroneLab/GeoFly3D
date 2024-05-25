@@ -2,7 +2,7 @@ import math
 import haversine as hs
 from haversine import Unit
 from .scan_area import ScanArea
-
+from UI.helpers import invert_coordinates
 
 def plan_route(coords, drone_capacities, altitude, intersection_ratio=0.8, route_angle_deg=0, rotated_route_angle_deg=20):
     paths = []
@@ -67,28 +67,18 @@ def plan_route(coords, drone_capacities, altitude, intersection_ratio=0.8, route
 
         previous_node = node
 
+    
+    # DEMO PATH FOR 2nd DRONE (SIMULATION REGION)
+    paths.append((invert_coordinates(coords), optimal_route_coords, optimal_path_length, rotated_route_coords, rotated_path_length))
+    
+    if len(drone_capacities) == 2:
+        bound1 = [[48.879725, 2.370499], [48.880868, 2.371733], [48.880349, 2.37295], [48.87916, 2.371786]]
+        opt1 = [[48.87972499500485, 2.370499011378331], [48.880867995102534, 2.371733011484041], [48.88068598300662, 2.3721598105605843], [48.87953935264712, 2.3709218816693047], [48.87935370573297, 2.3713447623392336], [48.88050396642586, 2.3725866201536223], [48.87942880071144, 2.3720491488882356], [48.87916805925754, 2.3717676420098233]]
+        opt1l = 705
+        rot1 = [[48.8793557926286, 2.371977675878631], [48.88051063999924, 2.372570971331269], [48.880698305943156, 2.3721309145803136], [48.87931953712735, 2.371422594189551], [48.879511704536355, 2.3709848606401915], [48.88077720976348, 2.3716349814944273], [48.87982922014526, 2.370611517637139], [48.879703872901786, 2.3705471249122247]]
+        rot1l = 667
+        paths.append((bound1, opt1, opt1l, rot1, rot1l))
 
-    # DEMO PATH FOR 2nd DRONE
-    # paths.append((coords, optimal_route_coords, optimal_path_length, rotated_route_coords, rotated_path_length))
-    #
-    # if len(drone_capacities) == 2:
-    #     bound1 = [[41.085857, 29.040856], [41.085101, 29.04061], [41.084972, 29.041243], [41.085756, 29.041489],
-    #               [41.085857, 29.040856]]
-    #     opt1 = [[41.084972002348444, 29.041242988476228], [41.08575600186303, 29.041488988323774],
-    #             [41.08577908020056, 29.041344348842028], [41.0850010937875, 29.041100237461357],
-    #             [41.08503018758864, 29.040957474855748], [41.08580216040795, 29.041199697641275],
-    #             [41.08582524062216, 29.041055046397755], [41.08505928140343, 29.040814712183185],
-    #             [41.08508837523186, 29.04067194944366], [41.08584832084319, 29.04091039511146]]
-    #     opt1l = 975 - 400
-    #     rot1 = [[41.085760325573645, 29.041461890216674], [41.08568098860741, 29.041465463262018],
-    #             [41.085268796062806, 29.04133612733603], [41.085784095071986, 29.0413129190043],
-    #             [41.085807864588865, 29.041163947675724], [41.08498051601051, 29.041201212134492],
-    #             [41.085010935786244, 29.0410519430024], [41.08583163412429, 29.041014976230944],
-    #             [41.08585540367825, 29.040866004669965], [41.085041355591855, 29.040902673723703],
-    #             [41.085071775427345, 29.04075340429839], [41.085484560411224, 29.04073480934016]]
-    #     rot1l = 400
-    #     paths.append((bound1, opt1, opt1l, rot1, rot1l))
-
-    for i in range(len(drone_capacities)):
-        paths.append((coords, optimal_route_coords, optimal_path_length, rotated_route_coords, rotated_path_length))
+    # for i in range(len(drone_capacities)):
+    #     paths.append((invert_coordinates(coords), optimal_route_coords, optimal_path_length, rotated_route_coords, rotated_path_length))
     return paths

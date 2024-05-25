@@ -114,10 +114,15 @@ class Pre2(QWidget):
 
         if response == 1:
             # Create the drone object and add it to the database session
+            draft_lv_node = Node(latitude=500, longitude=500)
+            self.session.add(draft_lv_node)
+            self.session.flush()
+
             draft_path = Path(opt_route_length=0,
                               rot_route_length=0,
                               vertex_count=0,
-                              mission_id=self.mission.mission_id)
+                              mission_id=self.mission.mission_id,
+                              last_visited_node_id=draft_lv_node.node_id)
             self.session.add(draft_path)
             self.session.flush()
 
@@ -355,7 +360,7 @@ class Pre2(QWidget):
             if required_capacity > max_required_capacity:
                 max_required_capacity = required_capacity
         self.ui.batt_required_value.setText(str(round(total_required_capacity)))
-        self.mission.required_battery_capacity = total_required_capacity
+        self.mission.required_battery_capacity = round(total_required_capacity)
         self.ui.estimated_mission_time_value.setText(str(round(max_required_capacity)))
         self.mission.estimated_mission_time = round(max_required_capacity)
 

@@ -120,6 +120,9 @@ class Pre1(QWidget):
     # Creates test missions
     def create_test_missions(self):
         # Test Mission 1 RECTANGLE
+        lv_node_1 = Node(latitude=500, longitude=500)
+        lv_node_1.add_to_db()
+
         center_node_1 = Node(latitude=41.0854276, longitude=29.0406022)
         center_node_1.add_to_db()
 
@@ -148,6 +151,7 @@ class Pre1(QWidget):
             rot_route_length=811,
             vertex_count=42,
             mission_id=test_mission_1.mission_id,
+            last_visited_node_id=lv_node_1.node_id,
         )
         test_path_1.add_to_db()
 
@@ -161,6 +165,9 @@ class Pre1(QWidget):
         test_drone_1.add_to_db()
 
         # Test Mission 2 SQUARE
+        lv_node_2 = Node(latitude=500, longitude=500)
+        lv_node_2.add_to_db()
+
         center_node_2 = Node(latitude=41.0854778, longitude=29.0404322)
         center_node_2.add_to_db()
 
@@ -189,6 +196,7 @@ class Pre1(QWidget):
             rot_route_length=592,
             vertex_count=42,
             mission_id=test_mission_2.mission_id,
+            last_visited_node_id=lv_node_2.node_id,
             )
         test_path_2.add_to_db()
 
@@ -202,6 +210,9 @@ class Pre1(QWidget):
         test_drone_2.add_to_db()
 
         # Test Mission 3 for SIMULATION
+        lv_node_3 = Node(latitude=500, longitude=500)
+        lv_node_3.add_to_db()
+
         center_node_3 = Node(latitude=48.8806686, longitude=2.3706136)
         center_node_3.add_to_db()
 
@@ -230,6 +241,7 @@ class Pre1(QWidget):
             rot_route_length=595,
             vertex_count=16,
             mission_id=test_mission_3.mission_id,
+            last_visited_node_id=lv_node_3.node_id,
         )
         test_path_3.add_to_db()
 

@@ -49,8 +49,7 @@ class Post(QWidget):
         self.ui.listWidget.clear()
 
         # Find all drones matching the Mission
-        drones = self.mission.get_drones()
-        for drone in drones:
+        for drone in self.mission.mission_drones:
             self.add_drone_to_list(drone)
 
     # Adds given drone to the Drone List
