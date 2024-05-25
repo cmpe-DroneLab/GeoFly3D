@@ -7,12 +7,13 @@ from folium.plugins import MousePosition, Realtime
 from PyQt6.QtCore import QSize, QDateTime, QTimer
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
-from UI.database import session, Mission, Drone, get_mission_drones
+from UI.database import get_mission_by_id, get_drone_by_id, Node
 from UI.ListItems.drone_mid import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage, update_drone_position_on_map, update_drone_battery, update_drone_status, calculate_geographic_distance
+from UI.helpers import WebEnginePage, draw_route, update_drone_position_on_map, update_drone_battery, update_drone_status, calculate_geographic_distance
 from drone_controller import DroneController
 
 import math 
+
 
 class Mid(QWidget):
     def __init__(self, *args, **kwargs):
@@ -37,13 +38,12 @@ class Mid(QWidget):
         self.ui.btn_land.setVisible(False)
         self.ui.btn_return_to_home.setVisible(False)
 
-
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
         if mission_id == 0:
             exit(-1)
         else:
-            self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+            self.mission = get_mission_by_id(mission_id)
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -58,10 +58,10 @@ class Mid(QWidget):
         self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
 
         # Set up the Map
-        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+        self.setup_map(self.mission.center_node.latitude, self.mission.center_node.longitude, 10)
 
         # Draw route
-        self.draw_route()
+        self.update_map()
 
         # Start timer for update elapsed time
         self.ui.elapsed_time_value.setText("")
@@ -71,7 +71,7 @@ class Mid(QWidget):
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
-        for drone in get_mission_drones(self.mission.mission_id):
+        for drone in self.mission.mission_drones:
             self.add_drone_to_list(drone)
 
     # Adds given drone to the Drone List
@@ -110,10 +110,15 @@ class Mid(QWidget):
         self.webView.setHtml(open('./UI/Midflight/mid_map.html').read())
         self.webView.show()
 
-    def draw_route(self):
+    def update_map(self):
         if self.mission:
-            self.optimal_route_length, rotated_route_length, _ = RouteDrawer.draw_route(self.map, self.mission)
-            self.total_length = self.optimal_route_length + rotated_route_length
+            draw_route(
+                map_obj=self.map,
+                mission_paths=self.mission.mission_paths,
+                mission_boundary=json.loads(self.mission.mission_boundary),
+                gcs_node=self.mission.gcs_node,
+                draw_coverage=True
+            )
             self.save_map()
 
     def create_geojson(self):
@@ -124,7 +129,7 @@ class Mid(QWidget):
         }
 
         # Add each drone as a feature to the GeoJSON
-        for drone in get_mission_drones(self.mission.mission_id):
+        for drone in self.mission.mission_drones:
             feature = {
                 "type": "Feature",
                 "properties": {
@@ -205,21 +210,29 @@ class Mid(QWidget):
 
     def drone_position_changed(self, lat, lon, drone_id):
         update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
-        if self.mission.last_visited_node_lat != 500 and not self.stop_progress:
+        drone = get_drone_by_id(drone_id)
+
+        if drone.path.last_visited_node is None:
+            lv_node = Node(latitude=500, longitude=500)
+            lv_node.add_to_db()
+            drone.path.last_visited_node = lv_node
+
+        if drone.path.last_visited_node.latitude != 500 and not self.stop_progress:
             length_increment = calculate_geographic_distance((lat, lon), (
-            self.mission.last_visited_node_lat, self.mission.last_visited_node_lon))
+            drone.path.last_visited_node.latitude, drone.path.last_visited_node.longitude))
             self.update_progress_bar(length_increment)
 
-    def last_visited_node_changed(self, coords):
+    def last_visited_node_changed(self, coords, drone_id):
         lat, lon = coords
+        drone = get_drone_by_id(drone_id)
 
-        if self.mission.last_visited_node_lat != 500:
+        if drone.path.last_visited_node.latitude != 500:
             if not self.stop_progress:
                 self.actual_length += calculate_geographic_distance(
-                    (self.mission.last_visited_node_lat, self.mission.last_visited_node_lon), (lat, lon))
+                    (drone.path.last_visited_node.latitude, drone.path.last_visited_node.longitude), (lat, lon))
                 self.update_progress_bar(0)
 
-                if self.actual_length == self.optimal_route_length:
+                if self.actual_length == drone.path.opt_path_length:
                     self.stop_progress = True
             else:
                 self.stop_progress = False
@@ -227,9 +240,8 @@ class Mid(QWidget):
         else:
             self.stop_progress = False
 
-        self.mission.last_visited_node_lat = lat
-        self.mission.last_visited_node_lon = lon
-        session.commit()
+        drone.path.last_visited_node.latitude = lat
+        drone.path.last_visited_node.longitude = lon
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.mission_threads:
@@ -250,11 +262,9 @@ class Mid(QWidget):
         drone_controller_thread.update_battery.connect(self.update_live_data)
 
         self.mission_threads[mission_id] = drone_controller_thread
-        #drone_controller_thread.start()
+        # drone_controller_thread.start()
         self.has_taken_off = True
-        mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-        mission.mission_status = "Mid Flight"
-        mission.flight_start_time = QDateTime.currentDateTime().toString()
-        session.commit()
-
+        mission = get_mission_by_id(mission_id)
+        mission.set_status("Mid Flight")
+        mission.set_flight_start_time(QDateTime.currentDateTime().toString())
         return drone_controller_thread

@@ -3,7 +3,7 @@ import sys
 import time
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot
 import subprocess
-from UI.database import session, Mission
+from UI.database import Mission, get_mission_by_id
 
 import pexpect
 
@@ -16,7 +16,7 @@ class DroneController(QThread):
     started = pyqtSignal(str)
     services_started = pyqtSignal(QThread)
     progress_text = pyqtSignal(str)
-    progress = pyqtSignal(tuple)
+    progress = pyqtSignal(tuple, int)
     update_coord = pyqtSignal(float, float, int)
     update_status = pyqtSignal(str, int, int)
     update_battery = pyqtSignal(float, int, int)
@@ -119,10 +119,8 @@ class DroneController(QThread):
             elif "Project folder created: " in line:
                 project_folder = line.split(':')[-1].strip()
                 print(project_folder)
-                mission = session.query(Mission).filter_by(
-                    mission_id=self.mission_id).first()
-                mission.project_folder = project_folder
-                session.commit()
+                mission = get_mission_by_id(self.mission_id)
+                mission.set_project_folder(project_folder)
             elif line.startswith("("):
                 try:
                     coordinates = line.split(',')
@@ -136,7 +134,7 @@ class DroneController(QThread):
                 words = line.split(" ")
                 lat = float(words[-2])
                 lon = float(words[-1])
-                self.progress.emit((lat, lon))
+                self.progress.emit((lat, lon), self.drone_id)
             elif line.startswith("Connection State: "):
                 connection_state = True if line[len(
                     "Connection State: "):].strip() == "True" else False

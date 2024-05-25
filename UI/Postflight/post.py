@@ -2,7 +2,7 @@ import UI.Postflight.post_design
 
 from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QWidget, QListWidgetItem
-from UI.database import session, Mission, Drone
+from UI.database import get_mission_by_id
 from UI.ListItems.drone_mid import Ui_Form
 from orthophoto_generator import OrthophotoGenerator
 
@@ -28,7 +28,7 @@ class Post(QWidget):
         if mission_id == 0:
             exit(-1)
         else:
-            self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+            self.mission = get_mission_by_id(mission_id)
 
         self.mission_id = self.mission.mission_id
         self.project_folder = self.mission.project_folder
@@ -49,7 +49,7 @@ class Post(QWidget):
         self.ui.listWidget.clear()
 
         # Find all drones matching the Mission
-        drones = session.query(Drone).filter_by(mission_id=self.mission_id).all()
+        drones = self.mission.get_drones()
         for drone in drones:
             self.add_drone_to_list(drone)
 

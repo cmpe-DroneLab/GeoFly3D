@@ -7,11 +7,12 @@ from folium.plugins import MousePosition
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QDialog, QListWidgetItem, QWidget, QLabel
+from RoutePlanner import route_planner
 from UI import draw
-from UI.database import Drone, session, Mission, get_mission_drones
+from UI.database import Mission, Drone, Session, Node, Path
 from UI.Dialogs.drone_dialog import Ui_Dialog
 from UI.ListItems.drone_pre import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage, calculate_center_point, invert_coordinates, get_current_time
+from UI.helpers import WebEnginePage, draw_route, calculate_center_point, invert_coordinates, get_current_time
 
 
 class Pre2(QWidget):
@@ -21,13 +22,12 @@ class Pre2(QWidget):
         self.ui = UI.Preflight2.pre2_design.Ui_Form()
         self.ui.setupUi(self)
 
+        self.session = Session()
         self.mission = None
         self.map = None
         self.webView = QWebEngineView()
         self.setup_map(39, 35, 5)
         self.ui.v_lay_right.addWidget(self.webView)
-        self.total_path_length = 0
-        self.total_vertex_count = 0
 
         self.ui.spinbox_altitude.valueChanged.connect(self.altitude_changed)
         self.ui.spinbox_gimbal.valueChanged.connect(self.gimbal_angle_changed)
@@ -52,24 +52,19 @@ class Pre2(QWidget):
                 provided_battery_capacity=0,
                 required_battery_capacity=0,
                 selected_area=0,
-                scanned_area=0,
                 altitude=100,
                 gimbal_angle=-90,
                 route_angle=0,
-                rotated_route_angle=20,
-                last_visited_node_lat=500,
-                last_visited_node_lon=500,
+                rotated_route_angle=20
             )
-            session.add(self.mission)
+            self.session.add(self.mission)
+            self.session.flush()
+            self.mission.center_node = None
         else:
-            self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-            self.mission.last_visited_node_lat = 500
-            self.mission.last_visited_node_lon = 500
-
-        self.total_path_length = 0
-        self.total_vertex_count = 0
+            self.mission = self.session.query(Mission).filter_by(mission_id=mission_id).first()
 
         # Set mission information box
+        self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
         self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
         self.ui.batt_required_value.setText(str(self.mission.required_battery_capacity))
@@ -78,29 +73,20 @@ class Pre2(QWidget):
         self.refresh_drone_list()
         self.calculate_provided_capacity()
 
-        # Set mission id in the header box
-        self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
-
         # Set up the Map
-        if self.mission.center_lat is None:
+        if self.mission.center_node is None:
             self.setup_map(41.0859528, 29.0443435, 10)
         else:
-            self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+            self.setup_map(self.mission.center_node.latitude, self.mission.center_node.longitude, 10)
 
-        # Set altitude value
+        # Set up the flight parameters
         self.ui.spinbox_altitude.setValue(self.mission.altitude)
-
-        # Set gimbal angle value
         self.ui.spinbox_gimbal.setValue(self.mission.gimbal_angle)
-
-        # Set route angle value
         self.ui.spinbox_route_angle.setValue(self.mission.route_angle)
-
-        # Set rotated route angle value
         self.ui.spinbox_rotated_route_angle.setValue(self.mission.rotated_route_angle)
 
         # Draw route
-        self.draw_route()
+        self.update_map()
 
         # Set Start Mission button
         self.update_start_button()
@@ -108,7 +94,8 @@ class Pre2(QWidget):
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
-        for drone in get_mission_drones(self.mission.mission_id):
+        drones = self.session.query(Drone).filter_by(mission_id=self.mission.mission_id).all()
+        for drone in drones:
             self.add_drone_to_list(drone)
 
         # Disable Edit Drone and Delete Drone buttons
@@ -127,14 +114,24 @@ class Pre2(QWidget):
 
         if response == 1:
             # Create the drone object and add it to the database session
+            draft_path = Path(opt_route_length=0,
+                              rot_route_length=0,
+                              vertex_count=0,
+                              mission_id=self.mission.mission_id)
+            self.session.add(draft_path)
+            self.session.flush()
+
             draft_drone = Drone(model=dialog_ui.model_combo.currentText(),
                                 ip_address=dialog_ui.ip_text.text(),
                                 battery_no=dialog_ui.spare_spin.value(),
-                                mission_id=self.mission.mission_id)
-            session.add(draft_drone)
+                                mission_id=self.mission.mission_id,
+                                path_id=draft_path.path_id)
+            self.session.add(draft_drone)
+            self.session.flush()
 
             # Refresh drone list after creating the drone
             self.refresh_drone_list()
+            self.update_map()
 
     # Adds given drone to the Drone List
     def add_drone_to_list(self, drone):
@@ -162,10 +159,10 @@ class Pre2(QWidget):
         # Get the selected item and widget associated with it
         selected_item = self.ui.listWidget.selectedItems()[0]
         selected_drone_widget = self.ui.listWidget.itemWidget(selected_item)
-
-        drone_id = int(selected_drone_widget.findChild(QLabel, "id_text").text())
+        
         # Query the database for the drone with the given id
-        drone = session.query(Drone).filter_by(drone_id=drone_id).first()
+        drone_id = int(selected_drone_widget.findChild(QLabel, "id_text").text())
+        drone = self.session.query(Drone).filter_by(drone_id=drone_id).first()
 
         # Open edit drone dialog
         dialog_win = QDialog()
@@ -182,9 +179,8 @@ class Pre2(QWidget):
             drone.model = dialog_ui.model_combo.currentText()
             drone.ip_address = dialog_ui.ip_text.text()
             drone.battery_no = dialog_ui.spare_spin.value()
-
-            # Refresh drone list after updating the drone
             self.refresh_drone_list()
+            self.update_map()
 
     # Deletes the drone selected from the list from the database
     def delete_drone(self):
@@ -192,20 +188,17 @@ class Pre2(QWidget):
 
         # Find selected drone(s)
         for item in selected_items:
-            # Get the widget associated with the item
-            drone_widget = self.ui.listWidget.itemWidget(item)
-            # Find the QLabel that holds the drone id
-            id_label = drone_widget.findChild(QLabel, "id_text")
             # Get the drone id
+            drone_widget = self.ui.listWidget.itemWidget(item)
+            id_label = drone_widget.findChild(QLabel, "id_text")
             drone_id = int(id_label.text())
-            # Query the database for the drone with the given id and delete it
-            drone = session.query(Drone).filter_by(drone_id=drone_id).first()
 
             # Delete the drone object from the database session
-            if drone:
-                session.delete(drone)
-                # Refresh drone list after deleting the drone
-                self.refresh_drone_list()
+            drone = self.session.query(Drone).filter_by(drone_id=drone_id).first()
+            self.session.delete(drone)
+            self.session.flush()
+        self.refresh_drone_list()
+        self.update_map()
 
     # Enables Edit Drone and Delete Drone buttons
     def enable_buttons(self):
@@ -232,7 +225,7 @@ class Pre2(QWidget):
 
     # Update Start Mission button
     def update_start_button(self):
-        if (self.mission.coordinates != 'null') and (self.mission.coordinates is not None) and (
+        if (self.mission.mission_boundary != 'null') and (self.mission.mission_boundary is not None) and (
                 int(self.ui.batt_provided_value.text()) > int(self.ui.batt_required_value.text())):
             self.ui.btn_start.setEnabled(True)
         else:
@@ -240,20 +233,15 @@ class Pre2(QWidget):
 
     # Saves mission to the database
     def save_mission(self):
-
-        self.draw_route()
+        self.mission.gimbal_angle = self.ui.spinbox_gimbal.value()
         self.mission.last_update_time = get_current_time()
-
-        # Commit changes to the database
-        session.commit()
-
-        # Refresh drone list after saving mission
+        self.session.commit()
         self.refresh_drone_list()
+        self.update_map()
 
     # Cancels mission changes and rolls back to the state before the last commit
     def cancel_mission(self):
-        # Rollback to the state before the last commit
-        session.rollback()
+        self.session.rollback()
 
     # Creates a map given center point and zoom level
     def setup_map(self, lat, lon, zoom):
@@ -288,39 +276,44 @@ class Pre2(QWidget):
         page.polygon_coords_printed.connect(self.selected_area_changed)
         page.drawings_deleted.connect(self.selected_area_deleted)
 
-    # Captures changes in the altitude spinbox and makes necessary updates
     def altitude_changed(self):
         self.mission.altitude = self.ui.spinbox_altitude.value()
-        self.draw_route()
+        self.update_map()
         self.update_metrics()
 
-    # Captures changes in the gimbal angle spinbox and makes necessary updates
     def gimbal_angle_changed(self):
         self.mission.gimbal_angle = self.ui.spinbox_gimbal.value()
 
-    # Captures changes in the routing angle spinbox and makes necessary updates
     def route_angle_changed(self):
         self.mission.route_angle = self.ui.spinbox_route_angle.value()
-        self.draw_route()
+        self.update_map()
         self.update_metrics()
 
-    # Captures changes in the rotated routing angle spinbox and makes necessary updates
     def rotated_route_angle_changed(self):
         self.mission.rotated_route_angle = self.ui.spinbox_rotated_route_angle.value()
-        self.draw_route()
+        self.update_map()
         self.update_metrics()
 
-    # Captures changes in the selected area and makes necessary updates
     def selected_area_changed(self, coords_lon_lat):
-        self.mission.coordinates = json.dumps(invert_coordinates(coords_lon_lat))
-        self.mission.center_lat, self.mission.center_lon = calculate_center_point(json.loads(self.mission.coordinates))
+        self.mission.mission_boundary = json.dumps(invert_coordinates(coords_lon_lat))
+        if self.mission.center_node is None:
+            center_node = Node()
+            self.session.add(center_node)
+            self.session.flush()
+            self.mission.center_node = center_node
+
+        if self.mission.mission_boundary is not None:
+            self.mission.center_node.latitude, self.mission.center_node.longitude = calculate_center_point(json.loads(self.mission.mission_boundary))
         self.update_area_metrics()
 
-    # Captures changes in the selected area and makes necessary updates
+    # TODO: Fix needed
     def selected_area_deleted(self):
-        self.mission.coordinates = None
-        self.mission.center_lat = None
-        self.mission.center_lon = None
+        # Delete the center_node object from the database session
+        if self.mission.center_node is not None:
+            self.session.delete(self.mission.center_node)
+            self.session.flush()
+
+        self.mission.mission_boundary = None
         self.update_area_metrics()
 
     def update_metrics(self):
@@ -329,7 +322,6 @@ class Pre2(QWidget):
         self.calculate_mission_time()
         self.update_start_button()
 
-    # Updates selected area related metrics
     def update_area_metrics(self):
         # Update the label_area text with the coordinates
         area = self.calculate_selected_area()
@@ -337,14 +329,12 @@ class Pre2(QWidget):
         self.mission.selected_area = area
         self.update_metrics()
 
-    # Calculates selected area from coordinates
     def calculate_selected_area(self):
-
-        if self.mission.coordinates == 'null' or self.mission.coordinates is None:
+        if self.mission.mission_boundary == 'null' or self.mission.mission_boundary is None:
             return 0
 
         area = 0
-        coords = json.loads(self.mission.coordinates)
+        coords = json.loads(self.mission.mission_boundary)
         if len(coords) > 2:
             for i in range(len(coords) - 1):
                 p1 = coords[i]
@@ -354,7 +344,6 @@ class Pre2(QWidget):
             area = area * 6378137.0 * 6378137.0 / 2.0
         return int(abs(area))
 
-    # Calculates mission time
     def calculate_mission_time(self):
         num_of_drones = self.ui.listWidget.count()
         required_capacity = self.ui.batt_required_value.text()
@@ -365,14 +354,18 @@ class Pre2(QWidget):
             self.ui.estimated_mission_time_value.setText('0')
         self.mission.estimated_mission_time = int(self.ui.estimated_mission_time_value.text())
 
-    # Calculates required battery capacity for the mission
     def calculate_required_capacity(self):
         altitude = self.ui.spinbox_altitude.value()
-        required_capacity = int((altitude * 0.155126 + self.total_vertex_count * 5.594083 + self.total_path_length * 0.232189 + 5.199370)/60)
-        self.ui.batt_required_value.setText(str(required_capacity))
-        self.mission.required_battery_capacity = required_capacity
+        max_required_capacity = 0
+        for path in self.session.query(Path).filter_by(mission_id=self.mission.mission_id).all():
+            vertex_count = path.vertex_count
+            path_length = path.opt_route_length + path.rot_route_length
+            required_capacity = round((altitude * 0.155126 + vertex_count * 5.594083 + path_length * 0.232189 + 5.199370)/60)
+            if required_capacity > max_required_capacity:
+                max_required_capacity = required_capacity
+        self.ui.batt_required_value.setText(str(max_required_capacity))
+        self.mission.required_battery_capacity = max_required_capacity
 
-    # Calculates provided battery capacity from drones in the Drone List
     def calculate_provided_capacity(self):
         num_of_drones = self.ui.listWidget.count()
         battery_count = num_of_drones
@@ -388,13 +381,57 @@ class Pre2(QWidget):
             self.ui.batt_provided_value.setText('0')
         self.mission.provided_battery_capacity = int(self.ui.batt_provided_value.text())
 
-    def draw_route(self):
-        if (self.mission.coordinates == 'null') or (self.mission.coordinates is None):
+    def update_map(self):
+        if (self.mission.mission_boundary == 'null') or (self.mission.mission_boundary is None):
             return
 
-        if self.mission:
-            self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
-            optimal_route_length, rotated_route_length, self.total_vertex_count = RouteDrawer.draw_route(self.map, self.mission)
-            self.total_path_length = optimal_route_length + rotated_route_length
-            self.update_metrics()
-            self.save_map()
+        if self.mission.center_node is None:
+            self.setup_map(41.0859528, 29.0443435, 10)
+        else:
+            self.setup_map(self.mission.center_node.latitude, self.mission.center_node.longitude, 10)
+
+        self.plan_route()
+        mission_paths = self.session.query(Path).filter_by(mission_id=self.mission.mission_id).all()
+        draw_route(
+            map_obj=self.map,
+            mission_paths=mission_paths,
+            mission_boundary=json.loads(self.mission.mission_boundary),
+            gcs_node=self.mission.gcs_node
+        )
+        self.update_metrics()
+        self.save_map()
+
+    def plan_route(self):
+        drones = self.session.query(Drone).filter_by(mission_id=self.mission.mission_id).all()
+        if (self.mission.mission_boundary == 'null'
+                or self.mission.mission_boundary is None
+                or len(drones) == 0):
+            return
+
+        drone_capacities = []
+        for drone in drones:
+            drone_capacities.append(15 * (drone.battery_no + 1))
+
+        mission_boundary_lon_lat = invert_coordinates(json.loads(self.mission.mission_boundary))
+        paths = route_planner.plan_route(
+            coords=mission_boundary_lon_lat[:-1],
+            drone_capacities=drone_capacities,
+            altitude=self.mission.altitude,
+            intersection_ratio=0.8,
+            route_angle_deg=self.mission.route_angle,
+            rotated_route_angle_deg=self.mission.rotated_route_angle,
+        )
+
+        for i, calc_path in enumerate(paths):
+            drone = drones[i]
+
+            drone.path.path_boundary = json.dumps(calc_path[0])
+            drone.path.opt_route = json.dumps(calc_path[1])
+            drone.path.rot_route = json.dumps(calc_path[3])
+            drone.path.opt_route_length = round(calc_path[2])
+            drone.path.rot_route_length = round(calc_path[4])
+            drone.path.vertex_count = len(calc_path[1]) + len(calc_path[3])
+            self.session.add(drone)
+            self.session.flush()
+
+

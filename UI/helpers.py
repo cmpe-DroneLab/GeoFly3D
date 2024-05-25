@@ -9,125 +9,117 @@ from datetime import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from PyQt6 import QtWebEngineCore
 from PyQt6.QtCore import pyqtSignal, QThread
-from RoutePlanner import route_planner
+from UI.database import get_drone_by_path_id
 
 
-class RouteDrawer:
-    @staticmethod
-    def draw_route(map_obj, mission, draw_coverage=False):
-        if mission.coordinates == 'null' or mission.coordinates is None:
-            return
+def draw_route(map_obj, mission_paths=None, mission_boundary=None, gcs_node=None, draw_coverage=False):
+    if mission_boundary == 'null' or mission_boundary is None:
+        return
 
-        coords = json.loads(mission.coordinates)
-        coords_lon_lat = invert_coordinates(coords)
+    if (draw_coverage is True) and (gcs_node is not None):
+        # Create feature group for GCS (Ground Control Station)
+        fg_coverage = folium.FeatureGroup(name="Coverage Area")
 
-        if (draw_coverage == True) and (mission.gcs_lat is not None):
-            # Create feature group for GCS (Ground Control Station)
-            fg_coverage = folium.FeatureGroup(name="Coverage Area")
+        # Add marker for GCS
+        fg_coverage.add_child(folium.Marker([gcs_node.latitude, gcs_node.longitude], tooltip="GCS Point"))
 
-            # Add marker for GCS
-            fg_coverage.add_child(folium.Marker([mission.gcs_lat, mission.gcs_lon], tooltip="GCS Point"))
-
-            # Draw coverage area
-            fg_coverage.add_child(
-                folium.Circle(
-                    location=[mission.gcs_lat, mission.gcs_lon],
-                    radius=2000,
-                    fill=False,
-                    fill_opacity=0,
-                    fill_color="white",
-                    weight=2,
-                    opacity=1,
-                    color="black",
-                    dash_array='5',
-                    tooltip="Within Coverage Area"
-                )
+        # Draw coverage area
+        fg_coverage.add_child(
+            folium.Circle(
+                location=[gcs_node.latitude, gcs_node.longitude],
+                radius=2000,
+                fill=False,
+                fill_opacity=0,
+                fill_color="white",
+                weight=2,
+                opacity=1,
+                color="black",
+                dash_array='5',
+                tooltip="Within Coverage Area"
             )
+        )
 
-            # Add GCS feature group to the Map
-            map_obj.add_child(fg_coverage)
+        # Add GCS feature group to the Map
+        map_obj.add_child(fg_coverage)
 
-        # Create feature group for Selected Area
-        fg_selected = folium.FeatureGroup(name="Selected Area")
+    # Create feature group for Selected Area
+    fg_selected = folium.FeatureGroup(name="Selected Area")
 
-        # Draw Selected Area
-        fg_selected.add_child(folium.Polygon(locations=coords,
-                                             weight=0,
-                                             fill_color="red",
-                                             fill_opacity=0.1,
-                                             fill=True, ))
+    # Draw Selected Area
+    fg_selected.add_child(folium.Polygon(locations=mission_boundary,
+                                         weight=0,
+                                         fill_color="red",
+                                         fill_opacity=0.1,
+                                         fill=True, ))
 
-        # Add Selected Area feature group to the Map
-        map_obj.add_child(fg_selected)
+    # Add Selected Area feature group to the Map
+    map_obj.add_child(fg_selected)
 
-        # Calculate Optimal and Rotated Route
-        (optimal_route, optimal_path_length, rotated_route, rotated_path_length) = route_planner.plan_route(coords=coords_lon_lat[:-1],
-                                                                  altitude=mission.altitude,
-                                                                  intersection_ratio=0.8,
-                                                                  route_angle_deg=mission.route_angle,
-                                                                  rotated_route_angle_deg=mission.rotated_route_angle)
+    if len(mission_paths):
+        for i, path in enumerate(mission_paths):
+            path_id = path.path_id
+            drone_id = get_drone_by_path_id(path_id).drone_id
 
-        total_vertex_count = len(optimal_route) + len(rotated_route)
+            opt_route = json.loads(path.opt_route)
+            rot_route = json.loads(path.rot_route)
 
-        # Create feature group for Optimal Route
-        fg_optimal = folium.FeatureGroup(name="Optimal Route")
+            # Create feature group for Optimal Route
+            fg_optimal = folium.FeatureGroup(name="Optimal Route [Drone #{}]".format(drone_id))
 
-        # Add marker to Start point of Optimal Route
-        optimal_start_point = optimal_route[0]
-        fg_optimal.add_child(folium.Marker(location=[optimal_start_point[0], optimal_start_point[1]],
-                                           tooltip="Starting point of Optimal Route",
-                                           icon=folium.Icon(color="darkgreen", icon='play')))
+            # Add marker to Start point of Optimal Route
+            optimal_start_point = opt_route[0]
+            fg_optimal.add_child(folium.Marker(location=[optimal_start_point[0], optimal_start_point[1]],
+                                               tooltip="Starting point of Optimal Path [Drone #{}]".format(drone_id),
+                                               icon=folium.Icon(color="darkgreen", icon='play')))
 
-        # Add marker to End point of Optimal Route
-        optimal_end_point = optimal_route[-1]
-        fg_optimal.add_child(folium.Marker(location=[optimal_end_point[0], optimal_end_point[1]],
-                                           tooltip="Ending point of Optimal Route",
-                                           icon=folium.Icon(color="darkgreen", icon='stop')))
+            # Add marker to End point of Optimal Route
+            optimal_end_point = opt_route[-1]
+            fg_optimal.add_child(folium.Marker(location=[optimal_end_point[0], optimal_end_point[1]],
+                                               tooltip="Ending point of Optimal Path [Drone #{}]".format(drone_id),
+                                               icon=folium.Icon(color="darkgreen", icon='stop')))
 
-        # Draw Optimal Route
-        fg_optimal.add_child(folium.PolyLine(locations=optimal_route,
-                                             weight=2,
-                                             color="darkgreen",
-                                             opacity=0.6))
+            # Draw Optimal Route
+            fg_optimal.add_child(folium.PolyLine(locations=opt_route,
+                                                 weight=2,
+                                                 color="darkgreen",
+                                                 opacity=0.6))
 
-        # Add Optimal Route feature group to the Map
-        map_obj.add_child(fg_optimal)
+            # Add Optimal Route feature group to the Map
+            map_obj.add_child(fg_optimal)
 
-        # Create feature group for Rotated Route
-        fg_rotated = folium.FeatureGroup(name="Rotated Route")
+            # Create feature group for Rotated Route
+            fg_rotated = folium.FeatureGroup(name="Rotated Route [Drone #{}]".format(drone_id))
 
-        # Add marker to Start point of Rotated Route
-        rotated_start_point = rotated_route[0]
-        fg_rotated.add_child(folium.Marker(location=[rotated_start_point[0], rotated_start_point[1]],
-                                           tooltip="Starting point of Rotated Route",
-                                           icon=folium.Icon(color="darkred", icon='play')))
+            # Add marker to Start point of Rotated Route
+            rotated_start_point = rot_route[0]
+            fg_rotated.add_child(folium.Marker(location=[rotated_start_point[0], rotated_start_point[1]],
+                                               tooltip="Starting point of Rotated Route [Drone #{}]".format(drone_id),
+                                               icon=folium.Icon(color="darkred", icon='play')))
 
-        # Add marker to End point of Rotated Route
-        rotated_end_point = rotated_route[-1]
-        fg_rotated.add_child(folium.Marker(location=[rotated_end_point[0], rotated_end_point[1]],
-                                           tooltip="Ending point of Rotated Route",
-                                           icon=folium.Icon(color="darkred", icon='stop')))
+            # Add marker to End point of Rotated Route
+            rotated_end_point = rot_route[-1]
+            fg_rotated.add_child(folium.Marker(location=[rotated_end_point[0], rotated_end_point[1]],
+                                               tooltip="Ending point of Rotated Route [Drone #{}]".format(drone_id),
+                                               icon=folium.Icon(color="darkred", icon='stop')))
 
-        # Draw Rotated Route
-        fg_rotated.add_child(folium.PolyLine(locations=rotated_route,
-                                             weight=2,
-                                             color="darkred",
-                                             opacity=0.6))
+            # Draw Rotated Route
+            fg_rotated.add_child(folium.PolyLine(locations=rot_route,
+                                                 weight=2,
+                                                 color="darkred",
+                                                 opacity=0.6))
 
-        # Add Rotated Route feature group to the Map
-        map_obj.add_child(fg_rotated)
+            # Add Rotated Route feature group to the Map
+            map_obj.add_child(fg_rotated)
 
-        # Add Layer Control
-        map_obj.add_child(folium.LayerControl())
+    # Add Layer Control
+    map_obj.add_child(folium.LayerControl())
 
-        # Show Map
-        if (draw_coverage == True) and (mission.gcs_lat is not None):
-            gcs = [mission.gcs_lat, mission.gcs_lon]
-            coords.append(gcs)
-        sw_point, ne_point = calculate_sw_ne_points(coords)
-        map_obj.fit_bounds([sw_point, ne_point])
-
-        return optimal_path_length, rotated_path_length, total_vertex_count
+    # Show Map
+    if (draw_coverage is True) and (gcs_node is not None):
+        gcs = [gcs_node.latitude, gcs_node.longitude]
+        mission_boundary.append(gcs)
+    sw_point, ne_point = calculate_sw_ne_points(mission_boundary)
+    map_obj.fit_bounds([sw_point, ne_point])
 
 
 class WebEnginePage(QtWebEngineCore.QWebEnginePage):
@@ -173,11 +165,12 @@ class WebEnginePage(QtWebEngineCore.QWebEnginePage):
             except json.JSONDecodeError as e:
                 # Print an error message if JSON decoding fails
                 print("Error decoding JSON:", e)
-                print(msg)
+                print("Message:", msg)
 
         else:
             # Print an error message for invalid messages
             print("Invalid message:", msg)
+
 
 class CORSRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -245,6 +238,7 @@ def update_drone_position_on_map(latitude, longitude, mission_id, drone_id):
         json.dump(data, fw)
     fw.close()
 
+
 def update_drone_battery(battery_percent, mission_id, drone_id):
     # Read the GeoJSON file
     filename = f"./UI/LiveData/mission_{mission_id}_drones.geojson"
@@ -261,7 +255,8 @@ def update_drone_battery(battery_percent, mission_id, drone_id):
         json.dump(data, fw)
     fw.close()
 
-def update_drone_status(status:str, mission_id, drone_id):
+
+def update_drone_status(status: str, mission_id, drone_id):
     # Read the GeoJSON file
     filename = f"./UI/LiveData/mission_{mission_id}_drones.geojson"
     with open(filename, 'r') as fr:
@@ -277,7 +272,7 @@ def update_drone_status(status:str, mission_id, drone_id):
         json.dump(data, fw)
     fw.close()
 
-# Calculates SW and NE points given coordinates
+
 def calculate_sw_ne_points(coords):
     if len(coords):
         lats = [c[0] for c in coords]
@@ -290,7 +285,6 @@ def calculate_sw_ne_points(coords):
     return None, None
 
 
-# Calculates center point coordinates of given coordinates
 def calculate_center_point(coords):
     if not coords:
         return None
@@ -311,7 +305,6 @@ def calculate_center_point(coords):
     return center_lat, center_lon
 
 
-# Changes positions of longitudes and latitudes
 def invert_coordinates(coordinates):
     inverted_coordinates = []
     for coord_pair in coordinates:
