@@ -412,33 +412,9 @@ class EventListener(olympe.EventListener):
     # https://developer.parrot.com/docs/olympe/arsdkng_ardrone3_piloting.html#olympe.messages.ardrone3.PilotingState.GpsLocationChanged
     @olympe.listen_event(GpsLocationChanged(_policy="wait"))
     def onGpsLocationChanged(self, event, scheduler):
-        gps_location = event.args
-        self.msg_gps_location.header.stamp = rospy.Time.now()
-        self.msg_gps_location.header.frame_id = '/world'
-        self.msg_gps_location.status.status = \
-            (self.msg_gps_location.status.STATUS_FIX if self.drone.gps_fixed else self.msg_gps_location.status.STATUS_NO_FIX)  # https://docs.ros.org/en/api/sensor_msgs/html/msg/NavSatStatus.html
-        if self.drone.model == "4k" or self.drone.model == "thermal":
-            self.msg_gps_location.status.service = \
-                self.msg_gps_location.status.SERVICE_GPS + \
-                self.msg_gps_location.status.SERVICE_GLONASS
-
-        self.msg_gps_location.latitude = (
-            gps_location['latitude'] if gps_location['latitude'] != 500 else float('nan'))
-        self.msg_gps_location.longitude = (
-            gps_location['longitude'] if gps_location['longitude'] != 500 else float('nan'))
-        self.msg_gps_location.altitude = (
-            gps_location['altitude'] if gps_location['altitude'] != 500 else float('nan'))
-        self.msg_gps_location.position_covariance[0] = \
-            (math.sqrt(gps_location['latitude_accuracy'])
-             if gps_location['latitude_accuracy'] > 0 else float('nan'))
-        self.msg_gps_location.position_covariance[4] = \
-            (math.sqrt(gps_location['longitude_accuracy'])
-             if gps_location['longitude_accuracy'] > 0 else float('nan'))
-        self.msg_gps_location.position_covariance[8] = \
-            (math.sqrt(gps_location['altitude_accuracy'])
-             if gps_location['altitude_accuracy'] > 0 else float('nan'))
-        self.msg_gps_location.position_covariance_type = self.msg_gps_location.COVARIANCE_TYPE_DIAGONAL_KNOWN
-        rospy.loginfo(get_timestamp() + " " + self.msg_gps_location)
+        gps_location = str((event.args['latitude'], event.args['longitude'], event.args['altitude']))
+        print(gps_location)
+        rospy.loginfo(get_timestamp() + " " + gps_location)
 
     # https://developer.parrot.com/docs/olympe/arsdkng_battery.html#olympe.messages.battery.voltage
     @olympe.listen_event(voltage(_policy="wait"))

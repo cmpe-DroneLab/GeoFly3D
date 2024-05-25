@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 import math
+import random
 import os
 import re
 import requests
@@ -13,7 +14,7 @@ import rospy
 import olympe
 from olympe.messages.ardrone3.PilotingState import GpsLocationChanged, moveToChanged, FlyingStateChanged, moveByChanged
 from olympe.messages.ardrone3.Piloting import TakeOff, Landing
-from olympe.messages.ardrone3.Piloting import moveTo, moveBy
+from olympe.messages.ardrone3.Piloting import moveTo, moveBy, CancelMoveTo
 from olympe.messages.common.CommonState import BatteryStateChanged
 from olympe.messages.common.Calibration import MagnetoCalibration
 from olympe.messages.common.CalibrationState import MagnetoCalibrationRequiredState, MagnetoCalibrationStartedChanged
@@ -26,7 +27,7 @@ from olympe.messages.camera import set_photo_mode, take_photo, set_camera_mode, 
 from olympe.messages.rth import return_to_home
 from olympe.media import download_media, indexing_state, delete_media, delete_all_media
 
-from helpers import calculate_bearing_angle, check_connection
+from helpers import calculate_bearing_angle, check_connection, calculate_geographic_distance
 from drone_gps import DroneGPS
 from exceptions import PauseException
 
@@ -46,6 +47,8 @@ XMP_TAGS_OF_INTEREST = (
 class Controller:
 
     def __init__(self, drone, anafi_url, media_api_url):
+        self.current_position = (0, 0)
+
         self.drone = drone
         self.drone_gps = DroneGPS(drone=drone)
         self.cancelled = False
@@ -225,12 +228,15 @@ class Controller:
             try:
                 heading = math.degrees(calculate_bearing_angle(
                     drone_gps.get_current_position(), (lat, lon, 0)))
+                    
                 self.drone(moveTo(lat, lon, alt, MoveTo_Orientation_mode.HEADING_START, heading)
                            # >> FlyingStateChanged(state="hovering", _timeout=5)
-                           # >> moveToChanged(status='DONE')
+                           >> moveToChanged(status='DONE')
                            ).wait().success()
 
                 while not drone_gps.has_reached_target(lat, lon) and not self.cancelled:
+                    if not self.cancelled and self.drone.get_state(moveToChanged())['status'] == MoveToChanged_Status.CANCELED:
+                        raise Exception
                     print("Drone has not reached the target yet. Waiting...")
                     time.sleep(2)
             except Exception as e:
@@ -293,6 +299,95 @@ class Controller:
 
         return True
 
+    def fake_move_to(self, lat, lon):
+        if self.cancelled:
+            raise PauseException("Paused")
+        print("moving...")
+
+
+        delta_lat = lat - self.current_position[0]
+        delta_lon = lon - self.current_position[1]
+
+        distance = calculate_geographic_distance(self.current_position, (lat, lon))
+
+        lat_vector = delta_lat / distance
+        lon_vector = delta_lon / distance
+
+        print(str((*self.current_position, 0)))
+
+        if distance > 0:
+            movement_speed = random.randint(10, 15) # m/s
+            depth_limit = 1000
+
+            time_step = 2
+
+            while not self.cancelled and distance > 0.01 and depth_limit > 0:
+                print("Drone has not reached the target yet. Waiting...")
+
+                depth_limit -= 1
+                
+                movement_distance = movement_speed * time_step
+
+                if movement_distance > distance:
+                    movement_distance = distance
+                    time_step = movement_distance / movement_speed
+                
+                lat_displacement = movement_distance * lat_vector
+                lon_displacement = movement_distance * lon_vector
+                
+                self.current_position = (self.current_position[0] + lat_displacement,
+                                    self.current_position[1] + lon_displacement)
+                
+                time.sleep(time_step)
+                
+                distance = calculate_geographic_distance(self.current_position, (lat, lon))
+                
+                print(str((*self.current_position, 0)))
+
+        print("Destination reached...")
+                            
+        print(f"moving end {lat} {lon}")
+
+    def fake_follow_route(self, route, last_visited_node):
+        if self.cancelled:
+            raise PauseException("Paused")
+        is_gpslapse_on = False
+
+        can_follow = last_visited_node == (500, 500)
+
+        for i, point in enumerate(route):
+            point = point[::-1]
+
+            if not can_follow:
+                if last_visited_node == point:
+                   can_follow = True
+                   if i % 2 != 0:
+                        continue
+                else:
+                    continue
+
+            if self.cancelled:
+                return PauseException("Paused")
+
+            print(f"point {i+1}/{len(route)}: {point}")
+            lat = point[0]
+            lon = point[1]
+
+            self.fake_move_to(lat, lon)
+
+            print("Taking photo")
+            time.sleep(4)
+            
+            if is_gpslapse_on:
+                print("GPS LAPSE ON SET TO OFF")
+
+            is_gpslapse_on = not is_gpslapse_on
+
+            
+
+        return True
+
+
     def calibrate(self):
         
         while True:
@@ -322,3 +417,6 @@ class Controller:
         assert self.drone(set_target(gimbal_id=0, control_mode=control_mode.position, yaw_frame_of_reference=frame_of_reference.relative, yaw=0.0,
                                      pitch_frame_of_reference=frame_of_reference.relative, pitch=gimbal_angle, roll_frame_of_reference=frame_of_reference.relative,
                                      roll=0.0)).wait().success()
+
+    def set_takeoff_point(self, takeoff_point):
+        self.current_position = takeoff_point

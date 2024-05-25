@@ -61,17 +61,95 @@ from exceptions import PauseException
 
 
 def handle_drone_connect(request):
+
+    if is_drone_fake:
+        time.sleep(1)
+        print(str((*(vertices[0][::-1]), 0))
+          + " Battery: 100%")
+        return [True, "Connected..."]
+
     check_connection(drone)
+    print(str(drone_gps.get_current_position())
+          + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
     return [drone.connection_state(), "Connected..."]
 
 
 def handle_drone_calibrate(request):
+    if is_drone_fake:
+        time.sleep(1)
+        return [True, "Magnetometer Calibration Finished"]
     controller.calibrate()
     return [drone.get_state(MagnetoCalibrationRequiredState), "Magnetometer Calibration Finished"]
 
+def handle_fake_drone_start_mission(last_visited_node):
+    global paused
+
+    print("Creating Route...")
+
+    takeoff_coord = (*(vertices[0][::-1]), 0)
+
+    battery_percent = 100
+
+    print(str(takeoff_coord)
+          + " Battery: " + str(battery_percent) + "%")
+    print("Battery State: 100")
+    print("flying_state: .simulating")
+
+    polygon = ScanArea(vertices)
+    route, rotated_route, vertical_increment = polygon.create_route(
+        altitude, intersection_ratio, route_angle, rotated_route_angle)
+
+    print("routes have been created")
+
+
+    time.sleep(1)
+   
+    takeoff_date = datetime.now().isoformat()
+    rospy.loginfo(
+        "Takeoff date and time in ISO 8601 format: " + str(takeoff_date))
+    time.sleep(5)
+    alt = 0
+    try:
+
+        print("following the first route...")
+        controller.fake_follow_route(route=route, last_visited_node=last_visited_node)
+        
+
+        print("following the second route...")
+        controller.fake_follow_route(route=rotated_route, last_visited_node=last_visited_node)
+        
+
+        # Return to take off point
+        #TODO: simulate
+        controller.move_to(takeoff_coord[0], takeoff_coord[1], alt, drone_gps)
+        controller.land()
+
+        land_date = datetime.now().isoformat()
+        rospy.loginfo(
+            "Land date and time in ISO 8601 format: " + str(land_date))
+
+        print(str(takeoff_coord)
+              + " Battery: 100%")
+        
+    except (Exception, PauseException) as e:
+        print(repr(e))
+        if "Paused" in str(e):
+            print("Mission Paused")
+            controller.set_pause(False)
+            paused = False
+            rospy.loginfo("Mission Paused")
+            return
+
+    print("Mission Finished: ")
+    # mission_server.set_succeeded([True, "Mission Finished"])
+    controller.set_pause(False)
+    paused = False
+    return [True, "Mission Finished"]
 
 def handle_drone_start_mission(data):
     last_visited_node = (data.x, data.y)
+    if is_drone_fake:
+        return handle_fake_drone_start_mission(last_visited_node)
     # return
     global paused
 
@@ -83,11 +161,13 @@ def handle_drone_start_mission(data):
         return
 
     print("Creating Route...")
+
     takeoff_coord = drone_gps.get_current_position()
-    # takeoff_node = Node(takeoff_coord[1], takeoff_coord[0], takeoff_coord[2])
+
+    battery_percent = drone.get_state(BatteryStateChanged)['percent']
 
     print(str(takeoff_coord)
-          + " Battery: " + str(drone.get_state(BatteryStateChanged)['percent']) + "%")
+          + " Battery: " + str(battery_percent) + "%")
 
     polygon = ScanArea(vertices)
     route, rotated_route, vertical_increment = polygon.create_route(
@@ -217,7 +297,11 @@ def handle_drone_start_mission(data):
 
 
 def handle_drone_land(request):
-    controller.land()
+
+    if is_drone_fake:
+        time.sleep(2)
+    else:
+        controller.land()
 
     return [True, "Landing..."]
 
@@ -249,6 +333,10 @@ def handle_drone_pause(request):
 
 
 def handle_download_photos(request):
+
+    if is_drone_fake:
+        return [True, "Fake drone does not support media download."]
+
     dir_name = ""
     x = int(mission_id)
     while True:
@@ -318,23 +406,28 @@ if __name__ == '__main__':
 
     anafi_media_api_url = ""
 
+    is_drone_fake = False
+    
     if drone_ip_address == "10.202.0.1":
         anafi_media_api_url = anafi_url + "/api/v1/media/medias/"
     elif drone_ip_address == "192.168.53.1":
         anafi_media_api_url = anafi_url + ":180/api/v1/media/medias/"
     else:
         # FAKE DRONE
-        pass
+        is_drone_fake = True
+        controller = Controller(drone=None, anafi_url=None, media_api_url=None)
+        controller.set_takeoff_point(vertices[0][::-1])
 
-    drone = olympe.Drone(drone_ip_address)
+    if not is_drone_fake:
+        drone = olympe.Drone(drone_ip_address)
 
-    event_listener = EventListener(drone)
-    event_listener.subscribe()
+        event_listener = EventListener(drone)
+        event_listener.subscribe()
 
-    controller = Controller(drone=drone, anafi_url=anafi_url,
-                            media_api_url=anafi_media_api_url)
+        controller = Controller(drone=drone, anafi_url=anafi_url,
+                                media_api_url=anafi_media_api_url)
 
-    drone_gps = controller.get_drone_gps()
+        drone_gps = controller.get_drone_gps()
 
     paused = False
 
@@ -353,5 +446,9 @@ if __name__ == '__main__':
                   Trigger, handle_download_photos)
     # mission_server = actionlib.SimpleActionServer("drone/start_mission", StartMissionAction, handle_drone_start_mission, False)
     # mission_server.start()
+
+    # while True:
+    #     print(drone_gps.get_current_position())
+    #     rospy.sleep(2)
 
     rospy.spin()

@@ -1,7 +1,8 @@
 from math import cos, sin, radians
 import math
 import time
-
+import haversine as hs
+from haversine import Unit
 import rospy
 
 def calculate_bearing_angle(coord1, coord2):
@@ -16,6 +17,10 @@ def calculate_bearing_angle(coord1, coord2):
         sign = 1 if lon_a < lon_b else -1
         return sign * math.atan2(X, Y)
 
+def calculate_geographic_distance(first, second):
+    return hs.haversine((first[0], first[1]), (second[0], second[1]), unit=Unit.METERS)
+
+
 def check_connection(drone):
 
     connection_rate = rospy.Rate(60 / 5) # Try to reconnect every 5 seconds
@@ -26,3 +31,4 @@ def check_connection(drone):
         time.sleep(2)
         rospy.loginfo("Connection State: " + str(drone.connection_state()))
         connection_rate.sleep()
+
