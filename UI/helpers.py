@@ -9,7 +9,6 @@ from datetime import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from PyQt6 import QtWebEngineCore
 from PyQt6.QtCore import pyqtSignal, QThread
-from UI.database import get_drone_by_path_id
 
 
 def draw_route(map_obj, mission_paths=None, mission_boundary=None, gcs_node=None, draw_coverage=False):
@@ -58,7 +57,11 @@ def draw_route(map_obj, mission_paths=None, mission_boundary=None, gcs_node=None
     if len(mission_paths):
         for i, path in enumerate(mission_paths):
             path_id = path.path_id
-            drone_id = get_drone_by_path_id(path_id).drone_id
+            drone_id = -1
+            for drone in path.mission.mission_drones:
+                if drone.path_id == path_id:
+                    drone_id = drone.drone_id
+                    break
 
             opt_route = json.loads(path.opt_route)
             rot_route = json.loads(path.rot_route)

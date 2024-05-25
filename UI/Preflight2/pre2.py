@@ -318,8 +318,7 @@ class Pre2(QWidget):
 
     def update_metrics(self):
         self.calculate_provided_capacity()
-        self.calculate_required_capacity()
-        self.calculate_mission_time()
+        self.calculate_req_capacity_est_time()
         self.update_start_button()
 
     def update_area_metrics(self):
@@ -344,27 +343,21 @@ class Pre2(QWidget):
             area = area * 6378137.0 * 6378137.0 / 2.0
         return int(abs(area))
 
-    def calculate_mission_time(self):
-        num_of_drones = self.ui.listWidget.count()
-        required_capacity = self.ui.batt_required_value.text()
-        if len(required_capacity) and num_of_drones:
-            mission_time = int(required_capacity) / num_of_drones
-            self.ui.estimated_mission_time_value.setText(f"{mission_time:.0f}")
-        else:
-            self.ui.estimated_mission_time_value.setText('0')
-        self.mission.estimated_mission_time = int(self.ui.estimated_mission_time_value.text())
-
-    def calculate_required_capacity(self):
+    def calculate_req_capacity_est_time(self):
         altitude = self.ui.spinbox_altitude.value()
+        total_required_capacity = 0
         max_required_capacity = 0
         for path in self.session.query(Path).filter_by(mission_id=self.mission.mission_id).all():
             vertex_count = path.vertex_count
             path_length = path.opt_route_length + path.rot_route_length
-            required_capacity = round((altitude * 0.155126 + vertex_count * 5.594083 + path_length * 0.232189 + 5.199370)/60)
+            required_capacity = (altitude * 0.155126 + vertex_count * 5.594083 + path_length * 0.232189 + 5.199370)/60
+            total_required_capacity += required_capacity
             if required_capacity > max_required_capacity:
                 max_required_capacity = required_capacity
-        self.ui.batt_required_value.setText(str(max_required_capacity))
-        self.mission.required_battery_capacity = max_required_capacity
+        self.ui.batt_required_value.setText(str(round(total_required_capacity)))
+        self.mission.required_battery_capacity = total_required_capacity
+        self.ui.estimated_mission_time_value.setText(str(round(max_required_capacity)))
+        self.mission.estimated_mission_time = round(max_required_capacity)
 
     def calculate_provided_capacity(self):
         num_of_drones = self.ui.listWidget.count()
