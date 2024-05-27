@@ -7,17 +7,21 @@ from folium.plugins import MousePosition, Realtime
 from PyQt6.QtCore import QSize, QDateTime, QTimer, pyqtSignal
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel, QMessageBox
-from UI.database import get_mission_by_id, get_drone_by_id, Node
+from UI.database import get_mission_by_id, get_drone_by_id
 from UI.ListItems.drone_mid import Ui_Form
 from UI.helpers import WebEnginePage, draw_route, update_drone_position_on_map, update_drone_battery, update_drone_status, calculate_geographic_distance
 from drone_controller import DroneController
 from shapely.geometry import Point, Polygon
+from shapely.ops import nearest_points
 
-CRITICAL_BATTERY_LEVEL = 20
-WARNING_DISTANCE_THRESHOLD = 20     # in meters
+CRITICAL_BATTERY_LEVEL = 15
+WARNING_DISTANCE_THRESHOLD = 3     # in meters
 
 
 class Mid(QWidget):
+    emergency_rth_clicked = pyqtSignal(int)
+    emergency_pause_clicked = pyqtSignal(int)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -40,8 +44,8 @@ class Mid(QWidget):
         self.ui.btn_land.setVisible(False)
         self.ui.btn_return_to_home.setVisible(False)
 
-        self.emergency_rth_clicked = pyqtSignal(int)
-        self.emergency_pause_clicked = pyqtSignal(int)
+        self.active_battery_alerts = {}
+        self.active_area_alerts = {}
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -49,6 +53,9 @@ class Mid(QWidget):
             exit(-1)
         else:
             self.mission = get_mission_by_id(mission_id)
+
+        # Initialize active_area_alerts for each drone
+        self.active_area_alerts = {drone.drone_id: False for drone in self.mission.mission_drones}
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -199,10 +206,12 @@ class Mid(QWidget):
                     battery_level = feature['properties'].get('battery')
                     status = feature['properties'].get('status')
 
-                    if battery_level is  not None:
+                    if battery_level is not None:
                         battery_field.setText(str(int(feature['properties'].get('battery'))))
-                        if int(battery_level) < CRITICAL_BATTERY_LEVEL:
-                            self.emergency_alarm(drone_id, f"Drone {drone_id} battery level is critical!")
+                        if int(battery_level) <= CRITICAL_BATTERY_LEVEL:
+                            self.emergency_alarm("battery", int(drone_id), f"Drone {drone_id} battery level is critical!")
+                        elif int(battery_level) > CRITICAL_BATTERY_LEVEL:
+                            self.active_battery_alerts[int(drone_id)] = False
 
                     if status is not None:
                         status_field.setText(feature['properties'].get('status'))
@@ -229,10 +238,17 @@ class Mid(QWidget):
         path_boundary = json.loads(drone.path.path_boundary)
         point = Point(lat, lon)
         polygon = Polygon(path_boundary)
-        if not polygon.contains(point):
-            distance_from_boundary = point.distance(polygon)
-            if distance_from_boundary > WARNING_DISTANCE_THRESHOLD:
-                self.emergency_alarm(drone_id, f"Drone {drone_id} is out of the path boundary by {distance_from_boundary:.2f} meters!")
+
+        if polygon.contains(point):
+            if self.active_area_alerts.get(drone_id, False):
+                self.active_area_alerts[drone_id] = False
+        else:
+            nearest_point = nearest_points(polygon, point)[0]
+            distance = calculate_geographic_distance((nearest_point.x, nearest_point.y), (point.x, point.y))
+            if distance >= WARNING_DISTANCE_THRESHOLD:
+                if not self.active_area_alerts.get(drone_id, False):
+                    self.emergency_alarm("area", int(drone_id), f"Drone {drone_id} is outside the scanning area more than {distance:.2f} meters!")
+                    self.active_area_alerts[drone_id] = True
 
         if drone.path.last_visited_node.latitude != 500 and not self.stop_progress:
             length_increment = calculate_geographic_distance((lat, lon), (
@@ -260,7 +276,17 @@ class Mid(QWidget):
         drone.path.last_visited_node.latitude = lat
         drone.path.last_visited_node.longitude = lon
 
-    def emergency_alarm(self, drone_id, message):
+    def emergency_alarm(self, alarm_type, drone_id, message):
+        if alarm_type == "area":
+            if self.active_area_alerts.get(drone_id, False):
+                return
+            self.active_area_alerts[drone_id] = True
+
+        elif alarm_type == "battery":
+            if self.active_battery_alerts.get(drone_id, False):
+                return
+            self.active_battery_alerts[drone_id] = True
+
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Critical)
         msg.setText(message)
@@ -274,6 +300,9 @@ class Mid(QWidget):
             self.emergency_pause_clicked.emit(drone_id)
         elif msg.clickedButton() == rth_button:
             self.emergency_rth_clicked.emit(drone_id)
+
+        if alarm_type == "area":
+            self.active_area_alerts[drone_id] = False
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.mission_threads:

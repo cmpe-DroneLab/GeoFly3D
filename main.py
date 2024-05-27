@@ -273,6 +273,7 @@ class MainWindow(QMainWindow):
     def emergency_rth_clicked(self, drone_id):
         for d_id, drone_controller in self.mission_threads[self.mid.mission.mission_id].items():
             if d_id == drone_id:
+                drone_controller.pause_mission()
                 drone_controller.rth_drone()
                 break
 
