@@ -1,18 +1,20 @@
 import json
 import folium
 import UI.Midflight.mid_design
-
+import math
 from folium import JsCode
 from folium.plugins import MousePosition, Realtime
-from PyQt6.QtCore import QSize, QDateTime, QTimer
+from PyQt6.QtCore import QSize, QDateTime, QTimer, pyqtSignal
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
+from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel, QMessageBox
 from UI.database import get_mission_by_id, get_drone_by_id, Node
 from UI.ListItems.drone_mid import Ui_Form
 from UI.helpers import WebEnginePage, draw_route, update_drone_position_on_map, update_drone_battery, update_drone_status, calculate_geographic_distance
 from drone_controller import DroneController
+from shapely.geometry import Point, Polygon
 
-import math 
+CRITICAL_BATTERY_LEVEL = 20
+WARNING_DISTANCE_THRESHOLD = 20     # in meters
 
 
 class Mid(QWidget):
@@ -37,6 +39,9 @@ class Mid(QWidget):
 
         self.ui.btn_land.setVisible(False)
         self.ui.btn_return_to_home.setVisible(False)
+
+        self.emergency_rth_clicked = pyqtSignal(int)
+        self.emergency_pause_clicked = pyqtSignal(int)
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -191,9 +196,15 @@ class Mid(QWidget):
             fr.close()
             for feature in data['features']:
                 if feature['properties']['drone_id'] == int(drone_id):
-                    if feature['properties'].get('battery') is  not None:
+                    battery_level = feature['properties'].get('battery')
+                    status = feature['properties'].get('status')
+
+                    if battery_level is  not None:
                         battery_field.setText(str(int(feature['properties'].get('battery'))))
-                    if feature['properties'].get('status') is not None:
+                        if int(battery_level) < CRITICAL_BATTERY_LEVEL:
+                            self.emergency_alarm(drone_id, f"Drone {drone_id} battery level is critical!")
+
+                    if status is not None:
                         status_field.setText(feature['properties'].get('status'))
 
     def update_elapsed_time(self):
@@ -213,6 +224,15 @@ class Mid(QWidget):
     def drone_position_changed(self, lat, lon, drone_id):
         update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
         drone = get_drone_by_id(drone_id)
+
+        # Check if the drone is within the path boundary
+        path_boundary = json.loads(drone.path.path_boundary)
+        point = Point(lat, lon)
+        polygon = Polygon(path_boundary)
+        if not polygon.contains(point):
+            distance_from_boundary = point.distance(polygon)
+            if distance_from_boundary > WARNING_DISTANCE_THRESHOLD:
+                self.emergency_alarm(drone_id, f"Drone {drone_id} is out of the path boundary by {distance_from_boundary:.2f} meters!")
 
         if drone.path.last_visited_node.latitude != 500 and not self.stop_progress:
             length_increment = calculate_geographic_distance((lat, lon), (
@@ -239,6 +259,21 @@ class Mid(QWidget):
 
         drone.path.last_visited_node.latitude = lat
         drone.path.last_visited_node.longitude = lon
+
+    def emergency_alarm(self, drone_id, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setText(message)
+        msg.setWindowTitle("Drone Alert")
+        pause_button = msg.addButton("Pause the Drone", QMessageBox.ButtonRole.ActionRole)
+        rth_button = msg.addButton("Return to Home (RTH)", QMessageBox.ButtonRole.ActionRole)
+        cancel_button = msg.addButton(QMessageBox.StandardButton.Cancel)
+        msg.exec()
+
+        if msg.clickedButton() == pause_button:
+            self.emergency_pause_clicked.emit(drone_id)
+        elif msg.clickedButton() == rth_button:
+            self.emergency_rth_clicked.emit(drone_id)
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.mission_threads:
