@@ -41,20 +41,9 @@ def draw_route(map_obj, mission_paths=None, mission_boundary=None, gcs_node=None
         # Add GCS feature group to the Map
         map_obj.add_child(fg_coverage)
 
-    # Create feature group for Selected Area
-    fg_selected = folium.FeatureGroup(name="Selected Area")
-
-    # Draw Selected Area
-    fg_selected.add_child(folium.Polygon(locations=mission_boundary,
-                                         weight=0,
-                                         fill_color="red",
-                                         fill_opacity=0.1,
-                                         fill=True, ))
-
-    # Add Selected Area feature group to the Map
-    map_obj.add_child(fg_selected)
-
     if len(mission_paths):
+        colors = ["red", "blue", "orange", "purple", "green"]
+        color_idx = 0
         for i, path in enumerate(mission_paths):
             path_id = path.path_id
             drone_id = -1
@@ -63,22 +52,38 @@ def draw_route(map_obj, mission_paths=None, mission_boundary=None, gcs_node=None
                     drone_id = drone.drone_id
                     break
 
+            path_boundary = json.loads(path.path_boundary)
             opt_route = json.loads(path.opt_route)
             rot_route = json.loads(path.rot_route)
+            color = colors[color_idx % len(colors)]
+            color_idx += 1
+
+            # Create feature group for Path Boundary
+            fg_path_boundary = folium.FeatureGroup(name="Drone #{} | Scanning Area".format(drone_id))
+
+            # Draw Path Boundary Area
+            fg_path_boundary.add_child(folium.Polygon(locations=path_boundary,
+                                                      weight=0,
+                                                      fill_color=color,
+                                                      fill_opacity=0.1,
+                                                      fill=True, ))
+
+            # Add Path Boundary feature group to the Map
+            map_obj.add_child(fg_path_boundary)
 
             # Create feature group for Optimal Route
-            fg_optimal = folium.FeatureGroup(name="Optimal Route [Drone #{}]".format(drone_id))
+            fg_optimal = folium.FeatureGroup(name="Drone #{} | 1st Route".format(drone_id))
 
             # Add marker to Start point of Optimal Route
             optimal_start_point = opt_route[0]
             fg_optimal.add_child(folium.Marker(location=[optimal_start_point[0], optimal_start_point[1]],
-                                               tooltip="Starting point of Optimal Path [Drone #{}]".format(drone_id),
+                                               tooltip="Starting point of 1st Route of Drone #{}".format(drone_id),
                                                icon=folium.Icon(color="darkgreen", icon='play')))
 
             # Add marker to End point of Optimal Route
             optimal_end_point = opt_route[-1]
             fg_optimal.add_child(folium.Marker(location=[optimal_end_point[0], optimal_end_point[1]],
-                                               tooltip="Ending point of Optimal Path [Drone #{}]".format(drone_id),
+                                               tooltip="Ending point of 1st Route of Drone #{}".format(drone_id),
                                                icon=folium.Icon(color="darkgreen", icon='stop')))
 
             # Draw Optimal Route
@@ -91,18 +96,18 @@ def draw_route(map_obj, mission_paths=None, mission_boundary=None, gcs_node=None
             map_obj.add_child(fg_optimal)
 
             # Create feature group for Rotated Route
-            fg_rotated = folium.FeatureGroup(name="Rotated Route [Drone #{}]".format(drone_id))
+            fg_rotated = folium.FeatureGroup(name="Drone #{} | 2nd Route".format(drone_id))
 
             # Add marker to Start point of Rotated Route
             rotated_start_point = rot_route[0]
             fg_rotated.add_child(folium.Marker(location=[rotated_start_point[0], rotated_start_point[1]],
-                                               tooltip="Starting point of Rotated Route [Drone #{}]".format(drone_id),
+                                               tooltip="Starting point of 2nd Route of Drone #{}".format(drone_id),
                                                icon=folium.Icon(color="darkred", icon='play')))
 
             # Add marker to End point of Rotated Route
             rotated_end_point = rot_route[-1]
             fg_rotated.add_child(folium.Marker(location=[rotated_end_point[0], rotated_end_point[1]],
-                                               tooltip="Ending point of Rotated Route [Drone #{}]".format(drone_id),
+                                               tooltip="Ending point of 2nd Route of Drone #{}".format(drone_id),
                                                icon=folium.Icon(color="darkred", icon='stop')))
 
             # Draw Rotated Route
