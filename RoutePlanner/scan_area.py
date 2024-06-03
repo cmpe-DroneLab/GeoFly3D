@@ -2,6 +2,7 @@ import haversine as hs
 from haversine import Unit
 from shapely import affinity
 from shapely.geometry import *
+from shapely.validation import explain_validity
 import matplotlib.pyplot as plt
 from math import cos, sin, radians
 import math
@@ -27,6 +28,12 @@ def calculate_coordinate_with_distance(point, distance, bearing_angle):
     lat, lon = hs.inverse_haversine((point[1], point[0]), distance, bearing_angle, unit=Unit.METERS)
     return lon, lat
 
+def get_edges(coords):
+    edges = []
+    for i in range(len(coords) - 1):
+        edges.append(LineString([coords[i], coords[i + 1]]))
+    edges.append(LineString([coords[-1], coords[0]]))  # Closing the polygon
+    return edges
 
 def calculate_increment(height, intersection_ratio):
     HFOV_degree = 75.5  # Check https://www.parrot.com/en/drones/anafi/technical-specifications
@@ -119,7 +126,6 @@ class ScanArea:
                                                        normal_bearing_angle)
                 ]
                 new_line = LineString(new_line_coords)
-
             intersection = self.polygon.intersection(new_line)
 
             if bounding_box.intersection(new_line).is_empty:
@@ -137,9 +143,11 @@ class ScanArea:
         line_strings = [LineString(b[k:k + 2]) for k in range(len(b) - 1)]
         return max(line_strings, key=lambda edge: edge.length)
 
-    def create_route(self, altitude, intersection_ratio, route_angle, rotated_route_angle):
-
-        longest_edge = self.find_the_longest_edge()
+    def create_route(self, altitude, intersection_ratio, route_angle, rotated_route_angle,edge_idx = None):
+        if edge_idx != None:
+            longest_edge = get_edges(list(self.polygon.exterior.coords))[edge_idx]
+        else:
+            longest_edge = self.find_the_longest_edge()
 
         dist = calculate_increment(altitude, intersection_ratio)  # Distance between parallel lines
 
