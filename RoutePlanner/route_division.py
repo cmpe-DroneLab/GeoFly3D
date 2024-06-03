@@ -218,7 +218,7 @@ def route_planning(
                     # return result
                 while_check = True
                 if est2 < est1:
-                    if poly1.centroid.x > poly2.centroid.x:
+                    if (poly1.centroid.x+poly1.centroid.y) > (poly2.centroid.x+poly2.centroid.y):
                         # print(f"log: est{line_idx}: {est1} > est{line_idx+1}: {est2}, split line will move HIGHER x values")
                         if last_move == 'lower':
                             temp_move_ratio /= 2
@@ -230,7 +230,7 @@ def route_planning(
                             temp_move_ratio /= 2
                         split_line = move_lower(split_line,[start_point,end_point],temp_move_ratio,m1,line_extension)
                 else:
-                    if poly1.centroid.x > poly2.centroid.x:
+                    if (poly1.centroid.x+poly1.centroid.y) > (poly2.centroid.x+poly2.centroid.y):
                         # print(f"log: est{line_idx}: {est1} < est{line_idx+1}: {est2}, split line will move LOWER x values")
                         if last_move == 'higher':
                             temp_move_ratio /= 2
