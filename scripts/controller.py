@@ -257,7 +257,7 @@ class Controller:
         can_follow = last_visited_node == (500, 500)
 
         for i, point in enumerate(route):
-            point = point[::-1]
+            # point = point[::-1]
 
             if not can_follow:
                 if last_visited_node == point:
@@ -310,12 +310,12 @@ class Controller:
 
         distance = calculate_geographic_distance(self.current_position, (lat, lon))
 
-        lat_vector = delta_lat / distance
-        lon_vector = delta_lon / distance
-
-        print(str((*self.current_position, 0)))
-
         if distance > 0:
+
+            lat_vector = delta_lat / distance
+            lon_vector = delta_lon / distance
+            print(str((*self.current_position, 0)))
+
             movement_speed = random.randint(10, 15) # m/s
             depth_limit = 1000
 
@@ -356,7 +356,7 @@ class Controller:
         can_follow = last_visited_node == (500, 500)
 
         for i, point in enumerate(route):
-            point = point[::-1]
+            # point = point[::-1]
 
             if not can_follow:
                 if last_visited_node == point:

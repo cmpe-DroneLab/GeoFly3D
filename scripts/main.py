@@ -5,11 +5,9 @@ import time
 from datetime import datetime
 import math
 import os
-import re
-import requests
-import shutil
-import tempfile
 import xml.etree.ElementTree as ET
+
+import json
 
 import rospy
 from geometry_msgs.msg import Point
@@ -39,7 +37,7 @@ from node import Node
 from scan_area import ScanArea
 from event_listener import EventListener
 from controller import Controller
-from helpers import check_connection
+from helpers import check_connection, calculate_increment
 from exceptions import PauseException
 
 # DRONE_IP = os.environ.get("DRONE_IP", "10.202.0.1")
@@ -64,7 +62,7 @@ def handle_drone_connect(request):
 
     if is_drone_fake:
         time.sleep(1)
-        print(str((*(vertices[0][::-1]), 0))
+        print(str((*(opt_route[0]), 0))
           + " Battery: 100%")
         return [True, "Connected..."]
 
@@ -84,9 +82,9 @@ def handle_drone_calibrate(request):
 def handle_fake_drone_start_mission(last_visited_node):
     global paused
 
-    print("Creating Route...")
 
-    takeoff_coord = (*(vertices[0][::-1]), 0)
+    # takeoff_coord = (*(vertices[0][::-1]), 0)
+    takeoff_coord = opt_route[0]
 
     battery_percent = 100
 
@@ -94,12 +92,6 @@ def handle_fake_drone_start_mission(last_visited_node):
           + " Battery: " + str(battery_percent) + "%")
     print("Battery State: 100")
     print("flying_state: .simulating")
-
-    polygon = ScanArea(vertices)
-    route, rotated_route, vertical_increment = polygon.create_route(
-        altitude, intersection_ratio, route_angle, rotated_route_angle)
-
-    print("routes have been created")
 
 
     time.sleep(1)
@@ -112,11 +104,11 @@ def handle_fake_drone_start_mission(last_visited_node):
     try:
 
         print("following the first route...")
-        controller.fake_follow_route(route=route, last_visited_node=last_visited_node)
+        controller.fake_follow_route(route=opt_route, last_visited_node=last_visited_node)
         
 
         print("following the second route...")
-        controller.fake_follow_route(route=rotated_route, last_visited_node=last_visited_node)
+        controller.fake_follow_route(route=rot_route, last_visited_node=last_visited_node)
         
 
         # Return to take off point
@@ -160,7 +152,9 @@ def handle_drone_start_mission(data):
         rospy.logwarn("Magneto calibration required....")
         return
 
-    print("Creating Route...")
+    # print("Creating Route...")
+
+    vertical_increment = calculate_increment(altitude, intersection_ratio) * 0.75
 
     takeoff_coord = drone_gps.get_current_position()
 
@@ -169,9 +163,9 @@ def handle_drone_start_mission(data):
     print(str(takeoff_coord)
           + " Battery: " + str(battery_percent) + "%")
 
-    polygon = ScanArea(vertices)
-    route, rotated_route, vertical_increment = polygon.create_route(
-        altitude, intersection_ratio, route_angle, rotated_route_angle)
+    # polygon = ScanArea(vertices)
+    # route, rotated_route, vertical_increment = polygon.create_route(
+    #     altitude, intersection_ratio, route_angle, rotated_route_angle)
 
     print("routes have been created")
 
@@ -239,7 +233,7 @@ def handle_drone_start_mission(data):
         alt = drone_gps.get_current_position()[2]-takeoff_coord[2]
 
         print("following the first route...")
-        controller.follow_route(route=route, altitude=alt,
+        controller.follow_route(route=opt_route, altitude=alt,
                                 vertical_increment=vertical_increment, last_visited_node=last_visited_node)
         # if paused:
         #     print("Mission Paused")
@@ -252,7 +246,7 @@ def handle_drone_start_mission(data):
         assert expectation.success(), expectation.explain()
 
         print("following the second route...")
-        controller.follow_route(route=rotated_route, altitude=alt,
+        controller.follow_route(route=rot_route, altitude=alt,
                                 vertical_increment=vertical_increment, last_visited_node=last_visited_node)
 
         # if paused:
@@ -391,8 +385,12 @@ if __name__ == '__main__':
         route_angle = math.pi * float(sys.argv[7]) / 180
         rotated_route_angle = math.pi * float(sys.argv[8]) / 180
 
-        vertices = [(float(sys.argv[i]), float(sys.argv[i+1]))
-                    for i in range(9, len(sys.argv), 2)]
+        # vertices = [(float(sys.argv[i]), float(sys.argv[i+1]))
+        #             for i in range(9, len(sys.argv), 2)]
+
+        opt_route = json.loads(sys.argv[9])
+        rot_route = json.loads(sys.argv[10])
+
 
     # Create Node instances for each vertex
     # nodes = [Node(lon, lat, 0) for lon, lat in vertices]
@@ -416,7 +414,7 @@ if __name__ == '__main__':
         # FAKE DRONE
         is_drone_fake = True
         controller = Controller(drone=None, anafi_url=None, media_api_url=None)
-        controller.set_takeoff_point(vertices[0][::-1])
+        controller.set_takeoff_point(opt_route[0])
 
     if not is_drone_fake:
         drone = olympe.Drone(drone_ip_address)
