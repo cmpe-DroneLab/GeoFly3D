@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
         self.mid.ui.btn_return_to_home.clicked.connect(self.rth_clicked)
         self.mid.ui.btn_land.clicked.connect(self.land_clicked)
         self.mid.emergency_rth_clicked.connect(self.emergency_rth_clicked)
-        self.mid.emergency_pause_clicked.connect(self.emergency_pause_clicked)
+        self.mid.emergency_land_clicked.connect(self.emergency_land_clicked)
 
         self.post.ui.btn_main.clicked.connect(self.go_to_main_clicked)
         self.post.ui.btn_download.clicked.connect(self.download_clicked)
@@ -264,10 +264,11 @@ class MainWindow(QMainWindow):
             drone_controller.download_photos()
             self.mission_threads.pop(self.mid.mission.mission_id)[self.mid.mission.mission_id]
 
-    def emergency_pause_clicked(self, drone_id):
+    def emergency_land_clicked(self, drone_id):
         for d_id, drone_controller in self.mission_threads[self.mid.mission.mission_id].items():
             if d_id == drone_id:
                 drone_controller.pause_mission()
+                drone_controller.land_drone()
                 break
 
     def emergency_rth_clicked(self, drone_id):

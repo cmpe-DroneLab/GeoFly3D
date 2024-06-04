@@ -20,7 +20,7 @@ WARNING_DISTANCE_THRESHOLD = 3     # in meters
 
 class Mid(QWidget):
     emergency_rth_clicked = pyqtSignal(int)
-    emergency_pause_clicked = pyqtSignal(int)
+    emergency_land_clicked = pyqtSignal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -55,9 +55,6 @@ class Mid(QWidget):
         else:
             self.mission = get_mission_by_id(mission_id)
 
-        # Initialize active_area_alerts for each drone
-        self.area_popup_permission = {drone.drone_id: None for drone in self.mission.mission_drones}
-
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
         self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
@@ -81,7 +78,12 @@ class Mid(QWidget):
         self.timer.timeout.connect(self.update_elapsed_time)
         self.timer.start(1000)  # Update every second
 
-        self.stop_progress = {drone.drone_id: False for drone in self.mission.mission_drones}
+        # Initialize alerts and progress for each drone
+        for drone in self.mission.mission_drones:
+            self.stop_progress = {drone.drone_id: False}
+            self.battery_popup_permission = {drone.drone_id: True}
+            self.area_popup_permission = {drone.drone_id: None}
+
 
         # Calculate total length of the mission paths
         self.calculate_total_length()
@@ -328,13 +330,13 @@ class Mid(QWidget):
             msg.setIcon(QMessageBox.Icon.Critical)
             msg.setText(message)
             msg.setWindowTitle("Drone Alert")
-            pause_button = msg.addButton("Pause the Drone", QMessageBox.ButtonRole.ActionRole)
+            land_button = msg.addButton("Land the Drone", QMessageBox.ButtonRole.ActionRole)
             rth_button = msg.addButton("Return to Home (RTH)", QMessageBox.ButtonRole.ActionRole)
             cancel_button = msg.addButton(QMessageBox.StandardButton.Cancel)
             msg.exec()
 
-            if msg.clickedButton() == pause_button:
-                self.emergency_pause_clicked.emit(drone_id)
+            if msg.clickedButton() == land_button:
+                self.emergency_land_clicked.emit(drone_id)
             elif msg.clickedButton() == rth_button:
                 self.emergency_rth_clicked.emit(drone_id)
 
