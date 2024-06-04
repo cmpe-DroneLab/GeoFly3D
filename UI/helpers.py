@@ -119,6 +119,12 @@ def draw_route(map_obj, mission_paths=None, mission_boundary=None, gcs_node=None
             # Add Rotated Route feature group to the Map
             map_obj.add_child(fg_rotated)
 
+    else:
+        # Draw Mission Boundary Area
+        fg_mission_boundary = folium.FeatureGroup(name="Selected Area")
+        fg_mission_boundary.add_child(folium.Polygon(locations=mission_boundary, fill=True))
+        map_obj.add_child(fg_mission_boundary)
+
     # Add Layer Control
     map_obj.add_child(folium.LayerControl())
 

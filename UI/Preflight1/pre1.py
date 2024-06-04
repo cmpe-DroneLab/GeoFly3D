@@ -6,7 +6,7 @@ from folium.plugins import MousePosition, MarkerCluster
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from UI.database import Mission, Drone, get_mission_by_id, delete_mission_by_id, Node, get_all_missions, Path
+from UI.database import Mission, Drone, get_mission_by_id, delete_mission_by_id, Node, get_all_missions, Path, session
 from UI.ListItems.mission import Ui_Form
 from UI.helpers import WebEnginePage, calculate_sw_ne_points, get_current_time
 
@@ -73,7 +73,6 @@ class Pre1(QWidget):
         self.refresh_mission_list()
         self.refresh_general_map()
 
-    # TODO: Will be fixed
     # Duplicates the mission selected from the list
     def duplicate_mission(self):
         selected_items = self.ui.listWidget.selectedItems()
@@ -90,28 +89,61 @@ class Pre1(QWidget):
                 mission_boundary=old_mission.mission_boundary,
                 mission_status="Draft",
                 estimated_mission_time=old_mission.estimated_mission_time,
-                actual_mission_time=old_mission.actual_mission_time,
+                provided_battery_capacity=old_mission.provided_battery_capacity,
                 required_battery_capacity=old_mission.required_battery_capacity,
                 selected_area=old_mission.selected_area,
                 altitude=old_mission.altitude,
                 gimbal_angle=old_mission.gimbal_angle,
                 route_angle=old_mission.route_angle,
                 rotated_route_angle=old_mission.rotated_route_angle,
-            ).add_to_db()
+            )
+            new_mission.add_to_db()
+
+            if old_mission.center_node is not None:
+                center_node = Node(
+                    latitude=old_mission.center_node.latitude,
+                    longitude=old_mission.center_node.longitude)
+                center_node.add_to_db()
+                new_mission.center_node = center_node
+                session.commit()
+
+            if old_mission.gcs_node is not None:
+                gcs_node = Node(
+                    latitude=old_mission.gcs_node.latitude,
+                    longitude=old_mission.gcs_node.longitude)
+                gcs_node.add_to_db()
+                new_mission.gcs_node = gcs_node
+                session.commit()
 
             # Find all drones matching the old Mission
-            old_drones = old_mission.mission_drones
-            for old_drone in old_drones:
+            for old_drone in old_mission.mission_drones:
+                old_path = old_drone.path
+
+                lv_node = Node(latitude=500, longitude=500)
+                lv_node.add_to_db()
+
+                # Create a new Path with same features as the old one
+                new_path = Path(
+                    path_boundary=old_path.path_boundary,
+                    vertex_count=old_path.vertex_count,
+                    opt_route=old_path.opt_route,
+                    rot_route=old_path.rot_route,
+                    opt_route_length=old_path.opt_route_length,
+                    rot_route_length=old_path.rot_route_length,
+                    mission_id=new_mission.mission_id,
+                    last_visited_node_id=lv_node.node_id,
+                )
+                new_path.add_to_db()
+
                 # Create a new Drone with same features as the old one
-                Drone(
+                new_drone = Drone(
                     model=old_drone.model,
                     ip_address=old_drone.ip_address,
                     battery_no=old_drone.battery_no,
-                    flight_status=old_drone.flight_status,
-                    gps_status=old_drone.gps_status,
-                    connection_status=old_drone.connection_status,
-                    mission_id=new_mission.mission_id
-                ).add_to_db()
+                    mission_id=new_mission.mission_id,
+                    path_id=new_path.path_id,
+                )
+                new_drone.add_to_db()
 
         # Refresh the Mission List and the Map
         self.refresh_mission_list()
@@ -331,7 +363,7 @@ class Pre1(QWidget):
 
                 # Draw polygon and add to the map
                 fg = folium.FeatureGroup(name="ScanArea")
-                fg.add_child(folium.Polygon(coords))
+                fg.add_child(folium.Polygon(coords, fill='True'))
                 self.map.add_child(fg)
 
                 # Set the map to show the polygon

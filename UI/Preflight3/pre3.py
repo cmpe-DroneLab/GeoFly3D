@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QWidget, QListWidgetItem, QMessageBox, QPushButton
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QIcon
 from UI import draw
-from UI.database import get_mission_by_id, Node
+from UI.database import get_mission_by_id, Node, session
 from UI.ListItems.drone_pre3 import Ui_Form
 from UI.helpers import WebEnginePage, draw_route, calculate_geographic_distance
 
@@ -137,6 +137,8 @@ class Pre3(QWidget):
 
         self.mission.gcs_node.latitude = coords_lon_lat[1]
         self.mission.gcs_node.longitude = coords_lon_lat[0]
+        session.commit()
+
 
         # Check if the selected area is within coverage
         self.is_area_in_coverage = True
