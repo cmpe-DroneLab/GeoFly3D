@@ -28,8 +28,8 @@ class Path(Base):
     vertex_count = Column(Integer)
     opt_route = Column(String)
     rot_route = Column(String)
-    opt_route_length = Column(Integer)
-    rot_route_length = Column(Integer)
+    opt_route_length = Column(Float)
+    rot_route_length = Column(Float)
     actual_flown = Column(Float, default=0.0)
     increment = Column(Float, default=0.0)
 

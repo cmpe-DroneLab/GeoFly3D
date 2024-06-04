@@ -239,6 +239,7 @@ class Mid(QWidget):
         for path in self.mission.mission_paths:
             self.total_length += path.opt_route_length
             self.total_length += path.rot_route_length
+        self.ui.progress_value.setText(f"0m / {int(self.total_length)}m")
 
     def update_progress_bar(self, increment, drone_id):
         self.progress_mutex.lock()
@@ -250,7 +251,7 @@ class Mid(QWidget):
 
             progress = math.ceil(total_actual_length / self.total_length * 100)
             self.ui.progress_bar.setValue(progress)
-            self.ui.progress_value.setText(f"{round(total_actual_length)}m / {self.total_length}m")
+            self.ui.progress_value.setText(f"{int(total_actual_length)}m / {int(self.total_length)}m")
         finally:
             self.progress_mutex.unlock()
 
@@ -286,10 +287,6 @@ class Mid(QWidget):
         lat, lon = coords
         path = get_drone_by_id(drone_id).path
 
-        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", self.stop_progress)
-        print(path.actual_flown)
-        print(path.opt_route_length)
-
         last_node_lat = path.last_visited_node.latitude
         last_node_lon = path.last_visited_node.longitude
         if last_node_lat != 500:
@@ -300,16 +297,14 @@ class Mid(QWidget):
                 path.set_actual_flown(actual + distance)
                 self.update_progress_bar(0, drone_id)
 
-                if abs(path.actual_flown - path.opt_route_length) < 1:
+                if path.actual_flown == path.opt_route_length:
                     self.stop_progress[drone_id] = True
-                elif abs(path.actual_flown - self.total_length) < 1:
+                elif path.actual_flown == self.total_length:
                     self.stop_progress[drone_id] = True
             else:
                 self.stop_progress[drone_id] = False
         else:
             self.stop_progress[drone_id] = False
-
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", self.stop_progress)
 
         path.last_visited_node.latitude = lat
         path.last_visited_node.longitude = lon

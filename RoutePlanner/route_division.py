@@ -31,11 +31,17 @@ def get_route(coordinates,altitude,rate,rotated_route_angle,route_angle):
 def est_duration(route_nodes):
     node_count = len(route_nodes)
     len_lines = []
+
+    # for i in range(len(route_nodes)-1):
+    #     if i%2 == 0:
+    #         temp_node1 = route_nodes[i][::-1]
+    #         temp_node2 = route_nodes[i+1][::-1]
+    #         len_lines.append(hs.haversine(temp_node1, temp_node2, unit=Unit.METERS))
+
     for i in range(len(route_nodes)-1):
-        if i%2 == 0:
-            temp_node1 = route_nodes[i]
-            temp_node2 = route_nodes[i+1]
-            len_lines.append(hs.haversine(temp_node1, temp_node2, unit=Unit.METERS))
+        temp_node1 = route_nodes[i][::-1]
+        temp_node2 = route_nodes[i+1][::-1]
+        len_lines.append(hs.haversine(temp_node1, temp_node2, unit=Unit.METERS))
     # print(len_lines)
     distance = sum(len_lines)
     # print(node_count, distance)

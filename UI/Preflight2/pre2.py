@@ -426,8 +426,8 @@ class Pre2(QWidget):
             drone.path.path_boundary = json.dumps(calc_path[0])
             drone.path.opt_route = json.dumps(calc_path[1])
             drone.path.rot_route = json.dumps(calc_path[3])
-            drone.path.opt_route_length = round(calc_path[2])
-            drone.path.rot_route_length = round(calc_path[4])
+            drone.path.opt_route_length = calc_path[2]
+            drone.path.rot_route_length = calc_path[4]
             drone.path.vertex_count = len(calc_path[1]) + len(calc_path[3])
             self.session.add(drone)
             self.session.flush()

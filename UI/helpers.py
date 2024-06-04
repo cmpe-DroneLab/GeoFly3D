@@ -178,8 +178,9 @@ class WebEnginePage(QtWebEngineCore.QWebEnginePage):
 
             except json.JSONDecodeError as e:
                 # Print an error message if JSON decoding fails
-                print("Error decoding JSON:", e)
-                print("Message:", msg)
+                # print("Error decoding JSON:", e)
+                # print("Message:", msg)
+                pass
 
         else:
             # Print an error message for invalid messages
