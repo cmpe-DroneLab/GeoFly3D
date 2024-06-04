@@ -4,7 +4,7 @@ import UI.Midflight.mid_design
 import math
 from folium import JsCode
 from folium.plugins import MousePosition, Realtime
-from PyQt6.QtCore import QSize, QDateTime, QTimer, pyqtSignal
+from PyQt6.QtCore import QSize, QDateTime, QTimer, pyqtSignal, QMutex
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel, QMessageBox
 from UI.database import get_mission_by_id, get_drone_by_id
@@ -40,12 +40,14 @@ class Mid(QWidget):
         self.actual_length = 0
         self.total_length = 0
         self.stop_progress = False
+        self.progress_mutex = QMutex()
+        self.live_data_mutex = QMutex()
 
         self.ui.btn_land.setVisible(False)
         self.ui.btn_return_to_home.setVisible(False)
 
-        self.active_battery_alerts = {}
-        self.active_area_alerts = {}
+        self.battery_popup_permission = {}
+        self.area_popup_permission = {}
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
@@ -55,7 +57,7 @@ class Mid(QWidget):
             self.mission = get_mission_by_id(mission_id)
 
         # Initialize active_area_alerts for each drone
-        self.active_area_alerts = {drone.drone_id: False for drone in self.mission.mission_drones}
+        self.area_popup_permission = {drone.drone_id: None for drone in self.mission.mission_drones}
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -79,6 +81,9 @@ class Mid(QWidget):
         self.ui.elapsed_time_value.setText("")
         self.timer.timeout.connect(self.update_elapsed_time)
         self.timer.start(1000)  # Update every second
+
+        # Calculate total length of the mission paths
+        self.calculate_total_length()
 
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
@@ -211,7 +216,7 @@ class Mid(QWidget):
                         if int(battery_level) <= CRITICAL_BATTERY_LEVEL:
                             self.emergency_alarm("battery", int(drone_id), f"Drone {drone_id} battery level is critical!")
                         elif int(battery_level) > CRITICAL_BATTERY_LEVEL:
-                            self.active_battery_alerts[int(drone_id)] = False
+                            self.battery_popup_permission[int(drone_id)] = True
 
                     if status is not None:
                         status_field.setText(feature['properties'].get('status'))
@@ -225,6 +230,12 @@ class Mid(QWidget):
         seconds = elapsed_seconds % 60
         elapsed_time_string = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
         self.ui.elapsed_time_value.setText(elapsed_time_string)
+
+    def calculate_total_length(self):
+        self.total_length = 0
+        for path in self.mission.mission_paths:
+            self.total_length += path.opt_route_length
+            self.total_length += path.rot_route_length
 
     def update_progress_bar(self, increment):
         progress = math.ceil((self.actual_length + increment) / self.total_length * 100)
@@ -278,31 +289,31 @@ class Mid(QWidget):
 
     def emergency_alarm(self, alarm_type, drone_id, message):
         if alarm_type == "area":
-            if self.active_area_alerts.get(drone_id, False):
+            if self.area_popup_permission[drone_id] is not True:
                 return
-            self.active_area_alerts[drone_id] = True
+            self.area_popup_permission[drone_id] = False
 
         elif alarm_type == "battery":
-            if self.active_battery_alerts.get(drone_id, False):
+            if self.battery_popup_permission[drone_id] is not True:
                 return
-            self.active_battery_alerts[drone_id] = True
+            self.battery_popup_permission[drone_id] = False
 
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Icon.Critical)
-        msg.setText(message)
-        msg.setWindowTitle("Drone Alert")
-        pause_button = msg.addButton("Pause the Drone", QMessageBox.ButtonRole.ActionRole)
-        rth_button = msg.addButton("Return to Home (RTH)", QMessageBox.ButtonRole.ActionRole)
-        cancel_button = msg.addButton(QMessageBox.StandardButton.Cancel)
-        msg.exec()
+        def show_message_box():
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Icon.Critical)
+            msg.setText(message)
+            msg.setWindowTitle("Drone Alert")
+            pause_button = msg.addButton("Pause the Drone", QMessageBox.ButtonRole.ActionRole)
+            rth_button = msg.addButton("Return to Home (RTH)", QMessageBox.ButtonRole.ActionRole)
+            cancel_button = msg.addButton(QMessageBox.StandardButton.Cancel)
+            msg.exec()
 
-        if msg.clickedButton() == pause_button:
-            self.emergency_pause_clicked.emit(drone_id)
-        elif msg.clickedButton() == rth_button:
-            self.emergency_rth_clicked.emit(drone_id)
+            if msg.clickedButton() == pause_button:
+                self.emergency_pause_clicked.emit(drone_id)
+            elif msg.clickedButton() == rth_button:
+                self.emergency_rth_clicked.emit(drone_id)
 
-        if alarm_type == "area":
-            self.active_area_alerts[drone_id] = False
+        QTimer.singleShot(0, show_message_box)
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.mission_threads:
