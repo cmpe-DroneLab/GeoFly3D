@@ -37,9 +37,8 @@ class Mid(QWidget):
         self.mission_threads = {}
         self.timer = QTimer(self)
 
-        self.actual_length = 0
         self.total_length = 0
-        self.stop_progress = False
+        self.stop_progress = {}
         self.progress_mutex = QMutex()
         self.live_data_mutex = QMutex()
 
@@ -81,6 +80,8 @@ class Mid(QWidget):
         self.ui.elapsed_time_value.setText("")
         self.timer.timeout.connect(self.update_elapsed_time)
         self.timer.start(1000)  # Update every second
+
+        self.stop_progress = {drone.drone_id: False for drone in self.mission.mission_drones}
 
         # Calculate total length of the mission paths
         self.calculate_total_length()
@@ -237,55 +238,79 @@ class Mid(QWidget):
             self.total_length += path.opt_route_length
             self.total_length += path.rot_route_length
 
-    def update_progress_bar(self, increment):
-        progress = math.ceil((self.actual_length + increment) / self.total_length * 100)
-        self.ui.progress_bar.setValue(progress)
+    def update_progress_bar(self, increment, drone_id):
+        self.progress_mutex.lock()
+        try:
+            path = get_drone_by_id(drone_id).path
+            path.set_increment(increment)
+
+            total_actual_length = sum(path.actual_flown + path.increment for path in self.mission.mission_paths)
+
+            progress = math.ceil(total_actual_length / self.total_length * 100)
+            self.ui.progress_bar.setValue(progress)
+            self.ui.progress_value.setText(f"{round(total_actual_length)}m / {self.total_length}m")
+        finally:
+            self.progress_mutex.unlock()
 
     def drone_position_changed(self, lat, lon, drone_id):
-        update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
-        drone = get_drone_by_id(drone_id)
+        self.live_data_mutex.lock()
+        try:
+            update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
+            drone = get_drone_by_id(drone_id)
 
-        # Check if the drone is within the path boundary
-        path_boundary = json.loads(drone.path.path_boundary)
-        point = Point(lat, lon)
-        polygon = Polygon(path_boundary)
+            # Check if the drone is within the path boundary
+            path_boundary = json.loads(drone.path.path_boundary)
+            point = Point(lat, lon)
+            polygon = Polygon(path_boundary)
 
-        if polygon.contains(point):
-            if self.active_area_alerts.get(drone_id, False):
-                self.active_area_alerts[drone_id] = False
-        else:
             nearest_point = nearest_points(polygon, point)[0]
             distance = calculate_geographic_distance((nearest_point.x, nearest_point.y), (point.x, point.y))
-            if distance >= WARNING_DISTANCE_THRESHOLD:
-                if not self.active_area_alerts.get(drone_id, False):
-                    self.emergency_alarm("area", int(drone_id), f"Drone {drone_id} is outside the scanning area more than {distance:.2f} meters!")
-                    self.active_area_alerts[drone_id] = True
 
-        if drone.path.last_visited_node.latitude != 500 and not self.stop_progress:
-            length_increment = calculate_geographic_distance((lat, lon), (
-            drone.path.last_visited_node.latitude, drone.path.last_visited_node.longitude))
-            self.update_progress_bar(length_increment)
+            if distance >= WARNING_DISTANCE_THRESHOLD and self.area_popup_permission[drone_id] is True:
+                self.emergency_alarm("area", int(drone_id), f"Drone {drone_id} is outside the scanning area more than {distance:.2f} meters!")
+                self.area_popup_permission[drone_id] = False
+            if distance < WARNING_DISTANCE_THRESHOLD:
+                self.area_popup_permission[drone_id] = True
+
+            last_node_lat = drone.path.last_visited_node.latitude
+            last_node_lon = drone.path.last_visited_node.longitude
+            if drone.path.last_visited_node.latitude != 500 and self.stop_progress[drone_id] is False:
+                length_increment = calculate_geographic_distance((lat, lon), (last_node_lat, last_node_lon))
+                self.update_progress_bar(length_increment, drone_id)
+        finally:
+            self.live_data_mutex.unlock()
 
     def last_visited_node_changed(self, coords, drone_id):
         lat, lon = coords
-        drone = get_drone_by_id(drone_id)
+        path = get_drone_by_id(drone_id).path
 
-        if drone.path.last_visited_node.latitude != 500:
-            if not self.stop_progress:
-                self.actual_length += calculate_geographic_distance(
-                    (drone.path.last_visited_node.latitude, drone.path.last_visited_node.longitude), (lat, lon))
-                self.update_progress_bar(0)
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", self.stop_progress)
+        print(path.actual_flown)
+        print(path.opt_route_length)
 
-                if self.actual_length == drone.path.opt_path_length:
-                    self.stop_progress = True
+        last_node_lat = path.last_visited_node.latitude
+        last_node_lon = path.last_visited_node.longitude
+        if last_node_lat != 500:
+            if self.stop_progress[drone_id] is False:
+                distance = calculate_geographic_distance((last_node_lat, last_node_lon), (lat, lon))
+
+                actual = path.actual_flown
+                path.set_actual_flown(actual + distance)
+                self.update_progress_bar(0, drone_id)
+
+                if abs(path.actual_flown - path.opt_route_length) < 1:
+                    self.stop_progress[drone_id] = True
+                elif abs(path.actual_flown - self.total_length) < 1:
+                    self.stop_progress[drone_id] = True
             else:
-                self.stop_progress = False
-
+                self.stop_progress[drone_id] = False
         else:
-            self.stop_progress = False
+            self.stop_progress[drone_id] = False
 
-        drone.path.last_visited_node.latitude = lat
-        drone.path.last_visited_node.longitude = lon
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", self.stop_progress)
+
+        path.last_visited_node.latitude = lat
+        path.last_visited_node.longitude = lon
 
     def emergency_alarm(self, alarm_type, drone_id, message):
         if alarm_type == "area":

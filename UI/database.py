@@ -30,6 +30,8 @@ class Path(Base):
     rot_route = Column(String)
     opt_route_length = Column(Integer)
     rot_route_length = Column(Integer)
+    actual_flown = Column(Float, default=0.0)
+    increment = Column(Float, default=0.0)
 
     mission_id = Column(Integer, ForeignKey('missions.mission_id'))
     last_visited_node_id = Column(Integer, ForeignKey('nodes.node_id', ondelete='CASCADE'))
@@ -38,6 +40,16 @@ class Path(Base):
     mission = relationship("Mission", foreign_keys=[mission_id], back_populates="mission_paths")
     last_visited_node = relationship("Node", foreign_keys=[last_visited_node_id], cascade="all, delete")
     start_point = relationship("Node", foreign_keys=[start_point_id], cascade="all, delete")
+
+    def set_actual_flown(self, actual):
+        self.actual_flown = actual
+        session.add(self)
+        session.commit()
+
+    def set_increment(self, increment):
+        self.increment = increment
+        session.add(self)
+        session.commit()
 
     def add_to_db(self):
         session.add(self)
