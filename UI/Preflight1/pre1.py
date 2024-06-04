@@ -100,7 +100,7 @@ class Pre1(QWidget):
             ).add_to_db()
 
             # Find all drones matching the old Mission
-            old_drones = old_mission.get_drones()
+            old_drones = old_mission.mission_drones
             for old_drone in old_drones:
                 # Create a new Drone with same features as the old one
                 Drone(

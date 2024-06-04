@@ -22,14 +22,15 @@ class DroneController(QThread):
     update_battery = pyqtSignal(float, int, int)
     finished = pyqtSignal(str, int)
 
-    def __init__(self, vertices, mission_id=1, drone_id=1, drone_ip_address="10.202.0.1", flight_altitude=100, rotation_angle=20, intersection_ratio=0.8, gimbal_angle=-90, route_angle=0, rotated_route_angle=20):
+    def __init__(self, optimal_route, rotated_route, mission_id=1, drone_id=1, drone_ip_address="10.202.0.1", flight_altitude=100, rotation_angle=20, intersection_ratio=0.8, gimbal_angle=-90, route_angle=0, rotated_route_angle=20):
         super().__init__()
 
         self.mission_id = mission_id
         self.drone_id = drone_id
         self.drone_ip_address = drone_ip_address
 
-        self.vertices = vertices
+        self.optimal_route = optimal_route
+        self.rotated_route = rotated_route
         self.flight_altitude = flight_altitude
         self.rotation_angle = rotation_angle
         self.intersection_ratio = intersection_ratio
@@ -51,17 +52,19 @@ class DroneController(QThread):
 
         project_folder = ""
 
-        coords = [str(coord) for vertex in self.vertices for coord in vertex]
+        # coords = [str(coord) for vertex in self.vertices for coord in vertex]
 
         rosrun_command = ["rosrun", "route_control", "main.py", str(self.mission_id), str(self.drone_id), str(self.drone_ip_address),
                           str(self.flight_altitude), str(
                               self.intersection_ratio),
-                          str(self.gimbal_angle), str(self.route_angle), str(self.rotated_route_angle), *coords]
+                          str(self.gimbal_angle), str(self.route_angle), str(self.rotated_route_angle), str(self.optimal_route).replace(" ", ""), str(self.rotated_route).replace(" ", "")]
 
         command = " ".join(rosrun_command)
 
         if not os.path.exists('logs'):
             os.mkdir('logs')
+
+        print(command)
 
         self.process = pexpect.spawn(command, encoding='utf-8', timeout=300)
         self.process.logfile = open(
