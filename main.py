@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
         mission = get_mission_by_drone_id(drone_id)
         coords = json.loads(drone.path.path_boundary)
         coords = invert_coordinates(coords)
-        drone_controller_thread = DroneController(vertices=coords, mission_id=mission.mission_id, drone_id=drone_id, drone_ip_address=drone.ip_address,
+        drone_controller_thread = DroneController(json.loads(drone.path.opt_route), json.loads(drone.path.rot_route), mission_id=mission.mission_id, drone_id=drone_id, drone_ip_address=drone.ip_address,
                                                   flight_altitude=mission.altitude,
                                                   gimbal_angle=mission.gimbal_angle, route_angle=mission.route_angle,
                                                   rotated_route_angle=mission.rotated_route_angle)
