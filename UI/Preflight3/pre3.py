@@ -1,17 +1,16 @@
 import json
 import folium
-from PyQt6.QtGui import QIcon
-
 import UI.Preflight3.pre3_design
 
 from folium.plugins import MousePosition
 from PyQt6.QtCore import QSize, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QListWidgetItem, QMessageBox, QPushButton
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtGui import QIcon
 from UI import draw
-from UI.database import session, Mission, Drone, get_mission_drones
+from UI.database import get_mission_by_id, Node, session
 from UI.ListItems.drone_pre3 import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage, calculate_geographic_distance
+from UI.helpers import WebEnginePage, draw_route, calculate_geographic_distance
 
 
 class Pre3(QWidget):
@@ -32,12 +31,11 @@ class Pre3(QWidget):
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
-        if mission_id == 0:
-            exit(-1)
-        else:
-            self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+
+        self.mission = get_mission_by_id(mission_id)
 
         # Set mission information box
+        self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
         self.ui.estimated_mission_time_value.setText(str(self.mission.estimated_mission_time))
         self.ui.batt_required_value.setText(str(self.mission.required_battery_capacity))
@@ -46,14 +44,11 @@ class Pre3(QWidget):
         # Load drones
         self.refresh_drone_list()
 
-        # Set mission id in the header box
-        self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
-
         # Set up the Map
-        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+        self.setup_map(self.mission.center_node.latitude, self.mission.center_node.longitude, 10)
 
         # Draw route
-        self.draw_route()
+        self.update_map()
 
         # Update Takeoff Button
         self.update_takeoff_button()
@@ -61,7 +56,7 @@ class Pre3(QWidget):
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
-        for drone in get_mission_drones(self.mission.mission_id):
+        for drone in self.mission.mission_drones:
             self.add_drone_to_list(drone)
 
     # Adds given drone to the Drone List
@@ -122,21 +117,33 @@ class Pre3(QWidget):
         # Listen for any events on the Map
         page.point_coords_printed.connect(self.gcs_changed)
 
-    def draw_route(self):
+    def update_map(self):
         if self.mission:
-            RouteDrawer.draw_route(self.map, self.mission, draw_coverage=True)
+            draw_route(
+                map_obj=self.map,
+                mission_paths=self.mission.mission_paths,
+                mission_boundary=json.loads(self.mission.mission_boundary),
+                gcs_node=self.mission.gcs_node,
+                draw_coverage=True
+            )
             self.save_map()
 
     # Captures changes in the Ground Control Station marker and makes necessary updates
     def gcs_changed(self, coords_lon_lat):
-        self.mission.gcs_lat = coords_lon_lat[1]
-        self.mission.gcs_lon = coords_lon_lat[0]
+        if self.mission.gcs_node is None:
+            gcs_node = Node()
+            gcs_node.add_to_db()
+            self.mission.gcs_node_id = gcs_node.node_id
+
+        self.mission.gcs_node.latitude = coords_lon_lat[1]
+        self.mission.gcs_node.longitude = coords_lon_lat[0]
         session.commit()
+
 
         # Check if the selected area is within coverage
         self.is_area_in_coverage = True
-        for vertex in json.loads(self.mission.coordinates):
-            gcs = [self.mission.gcs_lat, self.mission.gcs_lon]
+        for vertex in json.loads(self.mission.mission_boundary):
+            gcs = [self.mission.gcs_node.latitude, self.mission.gcs_node.longitude]
             distance = calculate_geographic_distance(vertex, gcs)
             if distance > 2000:
                 self.is_area_in_coverage = False
@@ -148,15 +155,15 @@ class Pre3(QWidget):
                                                            "the area to be scanned is within coverage.!")
 
         self.update_takeoff_button()
-        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
-        self.draw_route()
+        self.setup_map(self.mission.center_node.latitude, self.mission.center_node.longitude, 10)
+        self.update_map()
 
     # Update (Enable/Disable) Takeoff Button
     def update_takeoff_button(self):
         self.ui.btn_take_off.setEnabled(False)
 
         # Check if the GCS is selected
-        if (self.mission.gcs_lat == 'null') or (self.mission.gcs_lon is None):
+        if (self.mission.gcs_node == 'null') or (self.mission.gcs_node is None):
             self.ui.btn_take_off.setEnabled(False)
             return
 

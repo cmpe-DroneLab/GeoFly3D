@@ -3,7 +3,7 @@ import sys
 import time
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot
 import subprocess
-from UI.database import session, Mission
+from UI.database import session, get_mission_by_id
 
 import pexpect
 
@@ -16,20 +16,21 @@ class DroneController(QThread):
     started = pyqtSignal(str)
     services_started = pyqtSignal(QThread)
     progress_text = pyqtSignal(str)
-    progress = pyqtSignal(tuple)
+    progress = pyqtSignal(tuple, int)
     update_coord = pyqtSignal(float, float, int)
     update_status = pyqtSignal(str, int, int)
     update_battery = pyqtSignal(float, int, int)
     finished = pyqtSignal(str, int)
 
-    def __init__(self, vertices, mission_id=1, drone_id=1, drone_ip_address="10.202.0.1", flight_altitude=100, rotation_angle=20, intersection_ratio=0.8, gimbal_angle=-90, route_angle=0, rotated_route_angle=20):
+    def __init__(self, optimal_route, rotated_route, mission_id=1, drone_id=1, drone_ip_address="10.202.0.1", flight_altitude=100, rotation_angle=20, intersection_ratio=0.8, gimbal_angle=-90, route_angle=0, rotated_route_angle=20):
         super().__init__()
 
         self.mission_id = mission_id
         self.drone_id = drone_id
         self.drone_ip_address = drone_ip_address
 
-        self.vertices = vertices
+        self.optimal_route = optimal_route
+        self.rotated_route = rotated_route
         self.flight_altitude = flight_altitude
         self.rotation_angle = rotation_angle
         self.intersection_ratio = intersection_ratio
@@ -51,17 +52,19 @@ class DroneController(QThread):
 
         project_folder = ""
 
-        coords = [str(coord) for vertex in self.vertices for coord in vertex]
+        # coords = [str(coord) for vertex in self.vertices for coord in vertex]
 
         rosrun_command = ["rosrun", "route_control", "main.py", str(self.mission_id), str(self.drone_id), str(self.drone_ip_address),
                           str(self.flight_altitude), str(
                               self.intersection_ratio),
-                          str(self.gimbal_angle), str(self.route_angle), str(self.rotated_route_angle), *coords]
+                          str(self.gimbal_angle), str(self.route_angle), str(self.rotated_route_angle), str(self.optimal_route).replace(" ", ""), str(self.rotated_route).replace(" ", "")]
 
         command = " ".join(rosrun_command)
 
         if not os.path.exists('logs'):
             os.mkdir('logs')
+
+        print(command)
 
         self.process = pexpect.spawn(command, encoding='utf-8', timeout=300)
         self.process.logfile = open(
@@ -119,9 +122,8 @@ class DroneController(QThread):
             elif "Project folder created: " in line:
                 project_folder = line.split(':')[-1].strip()
                 print(project_folder)
-                mission = session.query(Mission).filter_by(
-                    mission_id=self.mission_id).first()
-                mission.project_folder = project_folder
+                mission = get_mission_by_id(self.mission_id)
+                mission.set_project_folder(project_folder)
                 session.commit()
             elif line.startswith("("):
                 try:
@@ -136,7 +138,7 @@ class DroneController(QThread):
                 words = line.split(" ")
                 lat = float(words[-2])
                 lon = float(words[-1])
-                self.progress.emit((lat, lon))
+                self.progress.emit((lat, lon), self.drone_id)
             elif line.startswith("Connection State: "):
                 connection_state = True if line[len(
                     "Connection State: "):].strip() == "True" else False
@@ -193,12 +195,26 @@ class DroneController(QThread):
     def start_mission(self, last_visited_node):
         # self.startt = True
         # print(self.start_mission_service.publish())
-        self.start_mission_service.publish(
-            last_visited_node[0], last_visited_node[1], 0)
-        while self.start_mission_service.get_num_connections() == 0:
-            rospy.sleep(1)
+        # self.start_mission_service = rospy.Publisher(
+        # f"drone_{self.drone_id}/start_mission", Point, queue_size=10, latch=True)
+        # self.start_mission_service.publish(
+        #     last_visited_node[0], last_visited_node[1], 0)
+        # while self.start_mission_service.get_num_connections() == 0:
+        #     rospy.sleep(1)
+
+        command = ["rostopic", "pub", "-1", f"/drone_{self.drone_id}/start_mission", "geometry_msgs/Point",
+                           f'"x: {last_visited_node[0]}\ny: {last_visited_node[1]}\nz: 0"']
+        command = " ".join(command)
+        print(command)
+
+        process = pexpect.spawn(command, encoding='utf-8', timeout=300)
+
+        process.wait()
+
+
 
     def pause_mission(self):
+        self.start_mission_service.unregister()
         print(self.pause_mission_service(TriggerRequest()))
 
     def land_drone(self):

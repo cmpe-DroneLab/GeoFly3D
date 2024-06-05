@@ -1,21 +1,19 @@
 import json
 import sys
-import random
-import time
 
 from PyQt6.QtGui import QIcon
 
 import UI.main_design
 
-from PyQt6.QtCore import QTimer, QDateTime
+from PyQt6.QtCore import QDateTime
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from UI.Preflight1.pre1 import Pre1
 from UI.Preflight2.pre2 import Pre2
 from UI.Preflight3.pre3 import Pre3
 from UI.Midflight.mid import Mid
 from UI.Postflight.post import Post
-from UI.database import Drone, session, Mission
-from UI.helpers import ServerThread, calculate_sw_ne_points, invert_coordinates, update_drone_status, update_drone_battery
+from UI.database import Mission, session, get_mission_by_drone_id, get_mission_by_id, get_drone_by_id
+from UI.helpers import ServerThread, invert_coordinates, update_drone_status, update_drone_battery
 
 from drone_controller import DroneController
 
@@ -57,6 +55,8 @@ class MainWindow(QMainWindow):
         self.mid.ui.btn_pause_resume.clicked.connect(self.pause_resume_clicked)
         self.mid.ui.btn_return_to_home.clicked.connect(self.rth_clicked)
         self.mid.ui.btn_land.clicked.connect(self.land_clicked)
+        self.mid.emergency_rth_clicked.connect(self.emergency_rth_clicked)
+        self.mid.emergency_land_clicked.connect(self.emergency_land_clicked)
 
         self.post.ui.btn_main.clicked.connect(self.go_to_main_clicked)
         self.post.ui.btn_download.clicked.connect(self.download_clicked)
@@ -71,25 +71,25 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.setCurrentIndex(1)
 
     # PRE1 to PRE2/MID/POST
-    def edit_mission_clicked(self, mission_id):
+    def edit_mission_clicked(self):
         item = self.pre1.ui.listWidget.selectedItems()[0]
-        mission_id = int(item.listWidget().itemWidget(
-            item).findChild(QLabel, "id_text").text())
-        mission_status = item.listWidget().itemWidget(
-            item).findChild(QLabel, "status_text").text().lower()
+        mission_id = int(item.listWidget().itemWidget(item).findChild(QLabel, "id_text").text())
+        mission_status = item.listWidget().itemWidget(item).findChild(QLabel, "status_text").text().lower()
 
         # PRE1 to PRE2
         if mission_status == "draft":
             self.pre2.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(1)
+        # PRE1 to PRE3
+        elif mission_status == "paused":
+            self.pre3.load_mission(mission_id)
+            self.ui.stackedWidget.setCurrentIndex(2)
         # PRE1 to MID
         elif mission_status == "mid flight":
             self.mid.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(3)
         # PRE1 to POST
         elif mission_status == "post flight":
-            mission = session.query(Mission).filter_by(
-                mission_id=mission_id).first()
             self.post.load_mission(mission_id)
             self.ui.stackedWidget.setCurrentIndex(4)
 
@@ -158,53 +158,49 @@ class MainWindow(QMainWindow):
 
         self.mid.has_taken_off = True
 
-        mission = session.query(Mission).filter_by(
-            mission_id=mission_id).first()
-        mission.mission_status = "Mid Flight"
-        mission.flight_start_time = QDateTime.currentDateTime().toString()
-        session.commit()
+        mission = get_mission_by_id(mission_id)
+        mission.set_status("Mid Flight")
+        mission.set_flight_start_time(QDateTime.currentDateTime().toString())
 
-        for drone_controller_thread in self.mission_threads[mission_id].values():
+        for drone_id, drone_controller_thread in self.mission_threads[mission_id].items():
+            drone = get_drone_by_id(drone_id)
             drone_controller_thread.started.connect(print)
             drone_controller_thread.progress_text.connect(print)
-            drone_controller_thread.progress.connect(
-                self.mid.last_visited_node_changed)
-            drone_controller_thread.update_coord.connect(
-                self.mid.drone_position_changed)
-            drone_controller_thread.update_coord.connect(
-                self.mid.update_live_data)
+            drone_controller_thread.progress.connect(self.mid.last_visited_node_changed)
+            drone_controller_thread.update_coord.connect(self.mid.drone_position_changed)
+            drone_controller_thread.update_coord.connect(self.mid.update_live_data)
             drone_controller_thread.update_status.connect(update_drone_status)
-            drone_controller_thread.update_status.connect(
-                self.mid.update_live_data)
-            drone_controller_thread.update_battery.connect(
-                update_drone_battery)
-            drone_controller_thread.update_battery.connect(
-                self.mid.update_live_data)
-            drone_controller_thread.start_mission(
-                (mission.last_visited_node_lat, mission.last_visited_node_lon))
+            drone_controller_thread.update_status.connect(self.mid.update_live_data)
+            drone_controller_thread.update_battery.connect(update_drone_battery)
+            drone_controller_thread.update_battery.connect(self.mid.update_live_data)
+            drone_controller_thread.start_mission((drone.path.last_visited_node.latitude, drone.path.last_visited_node.longitude))
 
         if 0 not in self.mission_threads:
             self.start_server()
-        # self.simulate_drone_flight()
 
         self.ui.stackedWidget.setCurrentIndex(3)
 
     # MID to POST Automatically
     def scan_finished(self, msg, mission_id):
-        mission = session.query(Mission).filter_by(
-            mission_id=mission_id).first()
-        mission.mission_status = "Post Flight"
-        mission.flight_finish_time = QDateTime.currentDateTime().toString()
-        mission.actual_mission_time = self.mid.ui.elapsed_time_value.text()
-        session.commit()
+        if "finished" not in self.mission_threads[mission_id]:
+            self.mission_threads[mission_id]["finished"] = 1
+        else:
+            self.mission_threads[mission_id]["finished"] += 1
+        if self.mission_threads[mission_id]["finished"] == len(self.mission_threads[mission_id]) - 1:
 
-        self.post.load_mission(mission_id)
-        # self.mission_threads.clear()
-        self.mid.has_taken_off = False
-        if self.mid.timer.isActive():
-            self.mid.timer.stop()
-            self.mid.timer.disconnect()
-        self.ui.stackedWidget.setCurrentIndex(4)
+            mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+            mission.mission_status = "Post Flight"
+            mission.flight_finish_time = QDateTime.currentDateTime().toString()
+            mission.actual_mission_time = self.mid.ui.elapsed_time_value.text()
+            session.commit()
+
+            self.post.load_mission(mission_id)
+
+            self.mid.has_taken_off = False
+            if self.mid.timer.isActive():
+                self.mid.timer.stop()
+                self.mid.timer.disconnect()
+            self.ui.stackedWidget.setCurrentIndex(4)
 
     # MID/POST to PRE1
     def go_to_main_clicked(self):
@@ -217,12 +213,11 @@ class MainWindow(QMainWindow):
         self.ui.stackedWidget.setCurrentIndex(0)
 
     def connect_drone(self, drone_id):
-
-        drone = session.query(Drone).filter_by(drone_id=drone_id).first()
-        mission = drone.mission
-        coords = json.loads(mission.coordinates)
+        drone = get_drone_by_id(drone_id)
+        mission = get_mission_by_drone_id(drone_id)
+        coords = json.loads(drone.path.path_boundary)
         coords = invert_coordinates(coords)
-        drone_controller_thread = DroneController(vertices=coords, mission_id=mission.mission_id, drone_id=drone_id, drone_ip_address=drone.ip_address,
+        drone_controller_thread = DroneController(json.loads(drone.path.opt_route), json.loads(drone.path.rot_route), mission_id=mission.mission_id, drone_id=drone_id, drone_ip_address=drone.ip_address,
                                                   flight_altitude=mission.altitude,
                                                   gimbal_angle=mission.gimbal_angle, route_angle=mission.route_angle,
                                                   rotated_route_angle=mission.rotated_route_angle)
@@ -245,22 +240,19 @@ class MainWindow(QMainWindow):
             self.mid.ui.btn_land.setVisible(False)
             self.mid.ui.btn_return_to_home.setVisible(False)
             self.mid.ui.btn_pause_resume.setText("Pause")
-            self.mid.ui.btn_pause_resume.setIcon(
-                QIcon('./UI/Images/pause.png'))
-            self.mid.mission.mission_status = "Mid Flight"
-            session.commit()
+            self.mid.ui.btn_pause_resume.setIcon(QIcon('./UI/Images/pause.png'))
+            self.mid.mission.set_status("Mid Flight")
 
-            for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
-                drone_controller.start_mission(
-                    (self.mid.mission.last_visited_node_lat, self.mid.mission.last_visited_node_lon))
+            for drone_id, drone_controller in self.mission_threads[self.mid.mission.mission_id].items():
+                drone = get_drone_by_id(drone_id)
+                drone_controller.start_mission((drone.path.last_visited_node.latitude, drone.path.last_visited_node.longitude))
 
         else:
             self.mid.ui.btn_land.setVisible(True)
             self.mid.ui.btn_return_to_home.setVisible(True)
             self.mid.ui.btn_pause_resume.setText("Resume")
             self.mid.ui.btn_pause_resume.setIcon(QIcon('./UI/Images/play.png'))
-            self.mid.mission.mission_status = "Paused"
-            session.commit()
+            self.mid.mission.set_status("Paused")
 
             for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
                 drone_controller.pause_mission()
@@ -278,24 +270,19 @@ class MainWindow(QMainWindow):
             drone_controller.download_photos()
             self.mission_threads.pop(self.mid.mission.mission_id)[self.mid.mission.mission_id]
 
-    def simulate_drone_flight(self):
-        print("Drone started flying")
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.simulate_position_update)
-        # Update position every 1000 milliseconds (1 second)
-        self.timer.start(1000)
+    def emergency_land_clicked(self, drone_id):
+        for d_id, drone_controller in self.mission_threads[self.mid.mission.mission_id].items():
+            if d_id == drone_id:
+                drone_controller.pause_mission()
+                drone_controller.land_drone()
+                break
 
-    def simulate_position_update(self):
-
-        coords = json.loads(self.mid.mission.coordinates)
-        sw_point, ne_point = calculate_sw_ne_points(coords)
-
-        # Simulate random latitude and longitude
-        latitude = random.uniform(sw_point[0], ne_point[0])
-        longitude = random.uniform(sw_point[1], ne_point[1])
-        print("GPS coordinate: ", latitude, longitude)
-        # Emit signal with simulated position update
-        self.mid.drone_position_updated.emit(latitude, longitude)
+    def emergency_rth_clicked(self, drone_id):
+        for d_id, drone_controller in self.mission_threads[self.mid.mission.mission_id].items():
+            if d_id == drone_id:
+                drone_controller.pause_mission()
+                drone_controller.rth_drone()
+                break
 
     # Method to start the HTTP server
     def start_server(self):

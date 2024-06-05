@@ -1,20 +1,27 @@
 import json
 import folium
 import UI.Midflight.mid_design
-
+import math
 from folium import JsCode
 from folium.plugins import MousePosition, Realtime
-from PyQt6.QtCore import QSize, QDateTime, QTimer
+from PyQt6.QtCore import QSize, QDateTime, QTimer, pyqtSignal, QMutex
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel
-from UI.database import session, Mission, Drone, get_mission_drones
+from PyQt6.QtWidgets import QWidget, QListWidgetItem, QLabel, QMessageBox
+from UI.database import get_mission_by_id, get_drone_by_id
 from UI.ListItems.drone_mid import Ui_Form
-from UI.helpers import RouteDrawer, WebEnginePage, update_drone_position_on_map, update_drone_battery, update_drone_status, calculate_geographic_distance
+from UI.helpers import WebEnginePage, draw_route, update_drone_position_on_map, update_drone_battery, update_drone_status, calculate_geographic_distance
 from drone_controller import DroneController
+from shapely.geometry import Point, Polygon
+from shapely.ops import nearest_points
 
-import math 
+CRITICAL_BATTERY_LEVEL = 15
+WARNING_DISTANCE_THRESHOLD = 3     # in meters
+
 
 class Mid(QWidget):
+    emergency_rth_clicked = pyqtSignal(int)
+    emergency_land_clicked = pyqtSignal(int)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -30,20 +37,23 @@ class Mid(QWidget):
         self.mission_threads = {}
         self.timer = QTimer(self)
 
-        self.actual_length = 0
         self.total_length = 0
-        self.stop_progress = False
+        self.stop_progress = {}
+        self.progress_mutex = QMutex()
+        self.live_data_mutex = QMutex()
 
         self.ui.btn_land.setVisible(False)
         self.ui.btn_return_to_home.setVisible(False)
 
+        self.battery_popup_permission = {}
+        self.area_popup_permission = {}
 
     # Loads mission information from database into relevant fields
     def load_mission(self, mission_id):
         if mission_id == 0:
             exit(-1)
         else:
-            self.mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+            self.mission = get_mission_by_id(mission_id)
 
         # Set mission information box
         self.ui.selected_area_value.setText(str(self.mission.selected_area))
@@ -58,20 +68,30 @@ class Mid(QWidget):
         self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))
 
         # Set up the Map
-        self.setup_map(self.mission.center_lat, self.mission.center_lon, 10)
+        self.setup_map(self.mission.center_node.latitude, self.mission.center_node.longitude, 10)
 
         # Draw route
-        self.draw_route()
+        self.update_map()
 
         # Start timer for update elapsed time
         self.ui.elapsed_time_value.setText("")
         self.timer.timeout.connect(self.update_elapsed_time)
         self.timer.start(1000)  # Update every second
 
+        # Initialize alerts and progress for each drone
+        for drone in self.mission.mission_drones:
+            self.stop_progress = {drone.drone_id: False}
+            self.battery_popup_permission = {drone.drone_id: True}
+            self.area_popup_permission = {drone.drone_id: None}
+
+
+        # Calculate total length of the mission paths
+        self.calculate_total_length()
+
     # Gets all matching drones from the database, adds them to the Drone List
     def refresh_drone_list(self):
         self.ui.listWidget.clear()
-        for drone in get_mission_drones(self.mission.mission_id):
+        for drone in self.mission.mission_drones:
             self.add_drone_to_list(drone)
 
     # Adds given drone to the Drone List
@@ -110,10 +130,15 @@ class Mid(QWidget):
         self.webView.setHtml(open('./UI/Midflight/mid_map.html').read())
         self.webView.show()
 
-    def draw_route(self):
+    def update_map(self):
         if self.mission:
-            self.optimal_route_length, rotated_route_length, _ = RouteDrawer.draw_route(self.map, self.mission)
-            self.total_length = self.optimal_route_length + rotated_route_length
+            draw_route(
+                map_obj=self.map,
+                mission_paths=self.mission.mission_paths,
+                mission_boundary=json.loads(self.mission.mission_boundary),
+                gcs_node=self.mission.gcs_node,
+                draw_coverage=True
+            )
             self.save_map()
 
     def create_geojson(self):
@@ -124,7 +149,7 @@ class Mid(QWidget):
         }
 
         # Add each drone as a feature to the GeoJSON
-        for drone in get_mission_drones(self.mission.mission_id):
+        for drone in self.mission.mission_drones:
             feature = {
                 "type": "Feature",
                 "properties": {
@@ -186,8 +211,18 @@ class Mid(QWidget):
             fr.close()
             for feature in data['features']:
                 if feature['properties']['drone_id'] == int(drone_id):
-                    battery_field.setText(str(int(feature['properties'].get('battery'))))
-                    status_field.setText(feature['properties'].get('status'))
+                    battery_level = feature['properties'].get('battery')
+                    status = feature['properties'].get('status')
+
+                    if battery_level is not None:
+                        battery_field.setText(f"{int(feature['properties'].get('battery'))}%")
+                        if int(battery_level) <= CRITICAL_BATTERY_LEVEL:
+                            self.emergency_alarm("battery", int(drone_id), f"Drone {drone_id} battery level is critical!")
+                        elif int(battery_level) > CRITICAL_BATTERY_LEVEL:
+                            self.battery_popup_permission[int(drone_id)] = True
+
+                    if status is not None:
+                        status_field.setText(feature['properties'].get('status'))
 
     def update_elapsed_time(self):
         current_time = QDateTime.currentDateTime()
@@ -199,37 +234,115 @@ class Mid(QWidget):
         elapsed_time_string = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
         self.ui.elapsed_time_value.setText(elapsed_time_string)
 
-    def update_progress_bar(self, increment):
-        progress = math.ceil((self.actual_length + increment) / self.total_length * 100)
-        self.ui.progress_bar.setValue(progress)
+    def calculate_total_length(self):
+        self.total_length = 0
+        for path in self.mission.mission_paths:
+            self.total_length += path.opt_route_length
+            self.total_length += path.rot_route_length
+        self.ui.progress_value.setText(f"0m / {int(self.total_length)}m")
+
+    def update_progress_bar(self, increment, drone_id):
+        self.progress_mutex.lock()
+        try:
+            path = get_drone_by_id(drone_id).path
+            path.set_increment(increment)
+
+            total_actual_length = sum(path.actual_flown + path.increment for path in self.mission.mission_paths)
+
+            progress = math.ceil(total_actual_length / self.total_length * 100)
+            self.ui.progress_bar.setValue(progress)
+            self.ui.progress_value.setText(f"{int(total_actual_length)}m / {int(self.total_length)}m")
+        finally:
+            self.progress_mutex.unlock()
 
     def drone_position_changed(self, lat, lon, drone_id):
-        update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
-        if self.mission.last_visited_node_lat != 500 and not self.stop_progress:
-            length_increment = calculate_geographic_distance((lat, lon), (
-            self.mission.last_visited_node_lat, self.mission.last_visited_node_lon))
-            self.update_progress_bar(length_increment)
+        self.live_data_mutex.lock()
+        try:
+            update_drone_position_on_map(lat, lon, self.mission.mission_id, drone_id)
+            drone = get_drone_by_id(drone_id)
 
-    def last_visited_node_changed(self, coords):
+            # Check if the drone is within the path boundary
+            path_boundary = json.loads(drone.path.path_boundary)
+            point = Point(lat, lon)
+            polygon = Polygon(path_boundary)
+
+            nearest_point = nearest_points(polygon, point)[0]
+            distance = calculate_geographic_distance((nearest_point.x, nearest_point.y), (point.x, point.y))
+
+            if distance >= WARNING_DISTANCE_THRESHOLD and self.area_popup_permission[drone_id] is True:
+                self.emergency_alarm("area", int(drone_id), f"Drone {drone_id} is outside the scanning area more than {distance:.2f} meters!")
+                self.area_popup_permission[drone_id] = False
+            if distance < WARNING_DISTANCE_THRESHOLD:
+                self.area_popup_permission[drone_id] = True
+
+            last_node_lat = drone.path.last_visited_node.latitude
+            last_node_lon = drone.path.last_visited_node.longitude
+            if drone.path.last_visited_node.latitude != 500 and self.stop_progress[drone_id] is False:
+                length_increment = calculate_geographic_distance((lat, lon), (last_node_lat, last_node_lon))
+                self.update_progress_bar(length_increment, drone_id)
+        finally:
+            self.live_data_mutex.unlock()
+
+    def last_visited_node_changed(self, coords, drone_id):
         lat, lon = coords
+        path = get_drone_by_id(drone_id).path
 
-        if self.mission.last_visited_node_lat != 500:
-            if not self.stop_progress:
-                self.actual_length += calculate_geographic_distance(
-                    (self.mission.last_visited_node_lat, self.mission.last_visited_node_lon), (lat, lon))
-                self.update_progress_bar(0)
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ",drone_id, self.stop_progress)
+        print(path.actual_flown)
+        print("opt:", path.opt_route_length)
+        print("tot:", path.opt_route_length + path.rot_route_length)
+        last_node_lat = path.last_visited_node.latitude
+        last_node_lon = path.last_visited_node.longitude
+        if last_node_lat != 500:
+            if self.stop_progress[drone_id] is False:
+                distance = calculate_geographic_distance((last_node_lat, last_node_lon), (lat, lon))
 
-                if self.actual_length == self.optimal_route_length:
-                    self.stop_progress = True
+                actual = path.actual_flown
+                path.set_actual_flown(actual + distance)
+                self.update_progress_bar(0, drone_id)
+
+                if abs(path.actual_flown - path.opt_route_length) < 0.00001 :
+                    self.stop_progress[drone_id] = True
+                elif abs(path.actual_flown - (path.opt_route_length+path.rot_route_length)) < 0.00001 :
+                    self.stop_progress[drone_id] = True
             else:
-                self.stop_progress = False
-
+                self.stop_progress[drone_id] = False
         else:
-            self.stop_progress = False
+            self.stop_progress[drone_id] = False
 
-        self.mission.last_visited_node_lat = lat
-        self.mission.last_visited_node_lon = lon
-        session.commit()
+        print(path.actual_flown)
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", self.stop_progress) 
+
+        path.last_visited_node.latitude = lat
+        path.last_visited_node.longitude = lon
+
+    def emergency_alarm(self, alarm_type, drone_id, message):
+        if alarm_type == "area":
+            if self.area_popup_permission[drone_id] is not True:
+                return
+            self.area_popup_permission[drone_id] = False
+
+        elif alarm_type == "battery":
+            if self.battery_popup_permission[drone_id] is not True:
+                return
+            self.battery_popup_permission[drone_id] = False
+
+        def show_message_box():
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Icon.Critical)
+            msg.setText(message)
+            msg.setWindowTitle("Drone Alert")
+            land_button = msg.addButton("Land the Drone", QMessageBox.ButtonRole.ActionRole)
+            rth_button = msg.addButton("Return to Home (RTH)", QMessageBox.ButtonRole.ActionRole)
+            cancel_button = msg.addButton(QMessageBox.StandardButton.Cancel)
+            msg.exec()
+
+            if msg.clickedButton() == land_button:
+                self.emergency_land_clicked.emit(drone_id)
+            elif msg.clickedButton() == rth_button:
+                self.emergency_rth_clicked.emit(drone_id)
+
+        QTimer.singleShot(0, show_message_box)
 
     def take_off(self, vertices, flight_altitude, mission_id, gimbal_angle, route_angle, rotated_route_angle):
         if mission_id in self.mission_threads:
@@ -250,11 +363,9 @@ class Mid(QWidget):
         drone_controller_thread.update_battery.connect(self.update_live_data)
 
         self.mission_threads[mission_id] = drone_controller_thread
-        #drone_controller_thread.start()
+        # drone_controller_thread.start()
         self.has_taken_off = True
-        mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-        mission.mission_status = "Mid Flight"
-        mission.flight_start_time = QDateTime.currentDateTime().toString()
-        session.commit()
-
+        mission = get_mission_by_id(mission_id)
+        mission.set_status("Mid Flight")
+        mission.set_flight_start_time(QDateTime.currentDateTime().toString())
         return drone_controller_thread

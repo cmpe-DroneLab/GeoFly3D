@@ -57,7 +57,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Click Process button to generate orthophoto.</string>
+          <string>Follow the instructions on the right to continue.</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -88,38 +88,7 @@
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
-         <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,1,0">
-          <item row="4" column="3">
-           <widget class="QLabel" name="photos_taken_unit">
-            <property name="text">
-             <string>pcs</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2">
-           <widget class="QLabel" name="actual_mission_time_value">
-            <property name="text">
-             <string/>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QLabel" name="scanned_area_unit">
-            <property name="text">
-             <string>m²</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QLabel" name="colon_1">
-            <property name="text">
-             <string>:</string>
-            </property>
-           </widget>
-          </item>
+         <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0">
           <item row="0" column="2">
            <widget class="QLabel" name="scanned_area_value">
             <property name="text">
@@ -130,15 +99,15 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="photos_taken_label">
+          <item row="1" column="0">
+           <widget class="QLabel" name="estimated_mission_time_label">
             <property name="text">
-             <string>Photos Taken</string>
+             <string>Estimated Mission Time</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="2">
-           <widget class="QLabel" name="photos_taken_value">
+          <item row="2" column="2">
+           <widget class="QLabel" name="actual_mission_time_value">
             <property name="text">
              <string/>
             </property>
@@ -154,45 +123,10 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="scanned_area_label">
-            <property name="text">
-             <string>Scanned Area</string>
-            </property>
-           </widget>
-          </item>
           <item row="2" column="0">
            <widget class="QLabel" name="actual_mission_time_label">
             <property name="text">
              <string>Actual Mission Time</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="estimated_mission_time_label">
-            <property name="text">
-             <string>Estimated Mission Time</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLabel" name="colon_2">
-            <property name="text">
-             <string>:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLabel" name="colon_3">
-            <property name="text">
-             <string>:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QLabel" name="colon_4">
-            <property name="text">
-             <string>:</string>
             </property>
            </widget>
           </item>
@@ -206,10 +140,45 @@
             </property>
            </widget>
           </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="colon_2">
+            <property name="text">
+             <string>:</string>
+            </property>
+           </widget>
+          </item>
           <item row="1" column="3">
            <widget class="QLabel" name="estimated_mission_time_unit">
             <property name="text">
              <string>min</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLabel" name="scanned_area_unit">
+            <property name="text">
+             <string>m²</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="scanned_area_label">
+            <property name="text">
+             <string>Scanned Area</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="colon_1">
+            <property name="text">
+             <string>:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="colon_3">
+            <property name="text">
+             <string>:</string>
             </property>
            </widget>
           </item>
@@ -271,7 +240,137 @@
       </layout>
      </widget>
      <widget class="QWidget" name="layoutWidget">
-      <layout class="QVBoxLayout" name="v_lay_right"/>
+      <layout class="QVBoxLayout" name="v_lay_right" stretch="0,0,0,0,0,0,1">
+       <property name="leftMargin">
+        <number>30</number>
+       </property>
+       <property name="topMargin">
+        <number>50</number>
+       </property>
+       <property name="rightMargin">
+        <number>30</number>
+       </property>
+       <property name="bottomMargin">
+        <number>50</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="pixmap">
+          <pixmap>../Images/check.png</pixmap>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>21</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Mission Successfully Completed</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>80</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_4">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Next Steps:</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="font">
+          <font>
+           <pointsize>13</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>1) It's advised to place the images in the project folder using 2 ways:
+
+a) Either by clicking on the &quot;Download Photos&quot; button to download photos wirelessly. While downloading, neither the drone should be turned off nor the controller should be plugged out.
+
+b) Or by moving the photos into the project folder manually via the SD card or the USB connection.
+
+2) After completing the following step, click on the &quot;Process&quot; button to generate the 2D orthophotographic and 3D models.</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>
