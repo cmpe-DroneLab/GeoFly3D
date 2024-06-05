@@ -2,7 +2,7 @@ import math
 import haversine as hs
 from haversine import Unit
 from .scan_area import ScanArea
-from UI.helpers import invert_coordinates
+from UI.helpers import invert_coordinates, calculate_geographic_distance
 from .route_division import route_planning
 
 
@@ -68,8 +68,31 @@ def plan_route(coords, drone_capacities, altitude, intersection_ratio=0.8, route
             xx, yy = results.polygons[i].exterior.coords.xy
             bounds = list(zip(xx.tolist(), yy.tolist()))
 
-            paths.append((invert_coordinates(bounds), invert_coordinates(results.optimal_routes[i]), results.optimal_routes_length[i][1]
-                        , invert_coordinates(results.rotated_routes[i]), results.rotated_routes_length[i][1]))
+            optimal_route = invert_coordinates(results.optimal_routes[i])
+            rotated_route = invert_coordinates(results.rotated_routes[i])
+            first_node = optimal_route[0]
+            last_node = optimal_route[-1]
+
+            north = first_node[0] - last_node[0] > 0
+            east = first_node[1] - last_node[1] > 0
+
+            if not north and east:
+                optimal_route = optimal_route[::-1]
+            elif north and east:
+                optimal_route = optimal_route[::-1]
+            
+            dist1 = calculate_geographic_distance(optimal_route[-1], rotated_route[0])
+            dist2 = calculate_geographic_distance(
+                optimal_route[-1], rotated_route[-1])
+
+            print(dist1, dist2)
+
+            if dist2 < dist1:
+                rotated_route = rotated_route[::-1]
+            
+            paths.append((invert_coordinates(bounds), optimal_route , results.optimal_routes_length[i][1],
+                        rotated_route, results.rotated_routes_length[i][1]))
+           
     else:
         xx, yy = results.polygons.exterior.coords.xy
         bounds = list(zip(xx.tolist(), yy.tolist()))

@@ -182,19 +182,25 @@ class MainWindow(QMainWindow):
 
     # MID to POST Automatically
     def scan_finished(self, msg, mission_id):
-        mission = session.query(Mission).filter_by(mission_id=mission_id).first()
-        mission.mission_status = "Post Flight"
-        mission.flight_finish_time = QDateTime.currentDateTime().toString()
-        mission.actual_mission_time = self.mid.ui.elapsed_time_value.text()
-        session.commit()
+        if "finished" not in self.mission_threads[mission_id]:
+            self.mission_threads[mission_id]["finished"] = 1
+        else:
+            self.mission_threads[mission_id]["finished"] += 1
+        if self.mission_threads[mission_id]["finished"] == len(self.mission_threads[mission_id]) - 1:
 
-        self.post.load_mission(mission_id)
-        # self.mission_threads.clear()
-        self.mid.has_taken_off = False
-        if self.mid.timer.isActive():
-            self.mid.timer.stop()
-            self.mid.timer.disconnect()
-        self.ui.stackedWidget.setCurrentIndex(4)
+            mission = session.query(Mission).filter_by(mission_id=mission_id).first()
+            mission.mission_status = "Post Flight"
+            mission.flight_finish_time = QDateTime.currentDateTime().toString()
+            mission.actual_mission_time = self.mid.ui.elapsed_time_value.text()
+            session.commit()
+
+            self.post.load_mission(mission_id)
+
+            self.mid.has_taken_off = False
+            if self.mid.timer.isActive():
+                self.mid.timer.stop()
+                self.mid.timer.disconnect()
+            self.ui.stackedWidget.setCurrentIndex(4)
 
     # MID/POST to PRE1
     def go_to_main_clicked(self):
@@ -237,9 +243,9 @@ class MainWindow(QMainWindow):
             self.mid.ui.btn_pause_resume.setIcon(QIcon('./UI/Images/pause.png'))
             self.mid.mission.set_status("Mid Flight")
 
-            for drone_controller in self.mission_threads[self.mid.mission.mission_id].values():
-                drone_controller.start_mission(
-                    (self.mid.mission.last_visited_node_lat, self.mid.mission.last_visited_node_lon))
+            for drone_id, drone_controller in self.mission_threads[self.mid.mission.mission_id].items():
+                drone = get_drone_by_id(drone_id)
+                drone_controller.start_mission((drone.path.last_visited_node.latitude, drone.path.last_visited_node.longitude))
 
         else:
             self.mid.ui.btn_land.setVisible(True)

@@ -3,7 +3,7 @@ import sys
 import time
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot
 import subprocess
-from UI.database import Mission, get_mission_by_id
+from UI.database import session, get_mission_by_id
 
 import pexpect
 
@@ -124,6 +124,7 @@ class DroneController(QThread):
                 print(project_folder)
                 mission = get_mission_by_id(self.mission_id)
                 mission.set_project_folder(project_folder)
+                session.commit()
             elif line.startswith("("):
                 try:
                     coordinates = line.split(',')
@@ -194,12 +195,26 @@ class DroneController(QThread):
     def start_mission(self, last_visited_node):
         # self.startt = True
         # print(self.start_mission_service.publish())
-        self.start_mission_service.publish(
-            last_visited_node[0], last_visited_node[1], 0)
-        while self.start_mission_service.get_num_connections() == 0:
-            rospy.sleep(1)
+        # self.start_mission_service = rospy.Publisher(
+        # f"drone_{self.drone_id}/start_mission", Point, queue_size=10, latch=True)
+        # self.start_mission_service.publish(
+        #     last_visited_node[0], last_visited_node[1], 0)
+        # while self.start_mission_service.get_num_connections() == 0:
+        #     rospy.sleep(1)
+
+        command = ["rostopic", "pub", "-1", f"/drone_{self.drone_id}/start_mission", "geometry_msgs/Point",
+                           f'"x: {last_visited_node[0]}\ny: {last_visited_node[1]}\nz: 0"']
+        command = " ".join(command)
+        print(command)
+
+        process = pexpect.spawn(command, encoding='utf-8', timeout=300)
+
+        process.wait()
+
+
 
     def pause_mission(self):
+        self.start_mission_service.unregister()
         print(self.pause_mission_service(TriggerRequest()))
 
     def land_drone(self):

@@ -31,7 +31,9 @@ class Post(QWidget):
             self.mission = get_mission_by_id(mission_id)
 
         self.mission_id = self.mission.mission_id
-        self.project_folder = self.mission.project_folder
+        self.project_folder = ""
+        if self.mission.project_folder:
+            self.project_folder = self.mission.project_folder[:-7]
 
         # Set mission id in the header box
         self.ui.gb_mission.setTitle("Mission # " + str(self.mission.mission_id))

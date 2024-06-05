@@ -215,7 +215,7 @@ class Mid(QWidget):
                     status = feature['properties'].get('status')
 
                     if battery_level is not None:
-                        battery_field.setText(str(int(feature['properties'].get('battery'))))
+                        battery_field.setText(f"{int(feature['properties'].get('battery'))}%")
                         if int(battery_level) <= CRITICAL_BATTERY_LEVEL:
                             self.emergency_alarm("battery", int(drone_id), f"Drone {drone_id} battery level is critical!")
                         elif int(battery_level) > CRITICAL_BATTERY_LEVEL:
@@ -287,6 +287,10 @@ class Mid(QWidget):
         lat, lon = coords
         path = get_drone_by_id(drone_id).path
 
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ",drone_id, self.stop_progress)
+        print(path.actual_flown)
+        print("opt:", path.opt_route_length)
+        print("tot:", path.opt_route_length + path.rot_route_length)
         last_node_lat = path.last_visited_node.latitude
         last_node_lon = path.last_visited_node.longitude
         if last_node_lat != 500:
@@ -297,14 +301,17 @@ class Mid(QWidget):
                 path.set_actual_flown(actual + distance)
                 self.update_progress_bar(0, drone_id)
 
-                if path.actual_flown == path.opt_route_length:
+                if abs(path.actual_flown - path.opt_route_length) < 0.00001 :
                     self.stop_progress[drone_id] = True
-                elif path.actual_flown == self.total_length:
+                elif abs(path.actual_flown - (path.opt_route_length+path.rot_route_length)) < 0.00001 :
                     self.stop_progress[drone_id] = True
             else:
                 self.stop_progress[drone_id] = False
         else:
             self.stop_progress[drone_id] = False
+
+        print(path.actual_flown)
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", self.stop_progress) 
 
         path.last_visited_node.latitude = lat
         path.last_visited_node.longitude = lon
