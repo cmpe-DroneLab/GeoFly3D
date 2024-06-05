@@ -1,0 +1,2 @@
+class PauseException(Exception):
+    pass
