@@ -32,3 +32,10 @@ def check_connection(drone):
         rospy.loginfo("Connection State: " + str(drone.connection_state()))
         connection_rate.sleep()
 
+def calculate_increment(height, intersection_ratio):
+    HFOV_degree = 75.5  # Check https://www.parrot.com/en/drones/anafi/technical-specifications
+    HFOV_rad = (HFOV_degree * math.pi) / 180
+    # Horizontal increment
+    increment = math.tan(HFOV_rad / 2) * height * 2 * (
+        1 - intersection_ratio)  # Increment by variable intersection rates of the height of the taken picture
+    return abs(increment)

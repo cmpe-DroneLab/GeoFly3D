@@ -200,8 +200,6 @@ class Controller:
         assert expectation.success(), expectation.explain()
 
     def land(self):
-        if self.cancelled:
-            raise PauseException("Paused")
         print("Landing....")
         self.drone(Landing()).wait().success()
 
@@ -212,8 +210,6 @@ class Controller:
         self.drone(TakeOff()).wait().success()
 
     def rth(self):
-        if self.cancelled:
-            raise PauseException("Paused")
         print("Returning to Home...")
         self.drone(return_to_home()).wait().success()
 
@@ -235,7 +231,7 @@ class Controller:
                            ).wait().success()
 
                 while not drone_gps.has_reached_target(lat, lon) and not self.cancelled:
-                    if not self.cancelled and self.drone.get_state(moveToChanged())['status'] == MoveToChanged_Status.CANCELED:
+                    if not self.cancelled and self.drone.get_state(moveToChanged())['status'] == MoveToChanged_Status.CANCELED and not self.cancelled:
                         raise Exception
                     print("Drone has not reached the target yet. Waiting...")
                     time.sleep(2)
@@ -257,11 +253,13 @@ class Controller:
         can_follow = last_visited_node == (500, 500)
 
         for i, point in enumerate(route):
-            point = point[::-1]
+            # point = point[::-1]
 
             if not can_follow:
-                if last_visited_node == point:
+                print(point, "<<< >>>", last_visited_node)
+                if last_visited_node[0] == point[0] and last_visited_node[1] == point[1]:
                    can_follow = True
+                   print("Can follow True")
                    if i % 2 != 0:
                         continue
                 else:
@@ -310,16 +308,16 @@ class Controller:
 
         distance = calculate_geographic_distance(self.current_position, (lat, lon))
 
-        lat_vector = delta_lat / distance
-        lon_vector = delta_lon / distance
-
-        print(str((*self.current_position, 0)))
-
         if distance > 0:
-            movement_speed = random.randint(10, 15) # m/s
+
+            lat_vector = delta_lat / distance
+            lon_vector = delta_lon / distance
+            print(str((*self.current_position, 0)))
+
+            movement_speed = 5 # m/s
             depth_limit = 1000
 
-            time_step = 2
+            time_step = 1.5
 
             while not self.cancelled and distance > 0.01 and depth_limit > 0:
                 print("Drone has not reached the target yet. Waiting...")
@@ -356,11 +354,13 @@ class Controller:
         can_follow = last_visited_node == (500, 500)
 
         for i, point in enumerate(route):
-            point = point[::-1]
+            # point = point[::-1]
 
             if not can_follow:
-                if last_visited_node == point:
+                print(point, "<<< >>>", last_visited_node)
+                if last_visited_node[0] == point[0] and last_visited_node[1] == point[1]:
                    can_follow = True
+                   print("Can follow True")
                    if i % 2 != 0:
                         continue
                 else:
