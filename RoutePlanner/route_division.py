@@ -181,6 +181,9 @@ def emergency(coordinates: list,
     polygon = ScanArea(coords=nodes)
     
     longest = polygon.find_the_longest_edge()
+    m1 = (longest.coords[1][1]-longest.coords[0][1])/(longest.coords[1][0]-longest.coords[0][0])
+    angle = math.degrees(math.atan(m1)) + angle_offset
+    m1 = math.tan(math.radians(angle))
     if drone_count == 1:
         result.polygons = polygon.polygon
         result.optimal_routes, result.rotated_routes = get_route(list(result.polygons.exterior.coords),altitude,intersection_ratio,rotate_angle,angle_offset,m1)
@@ -207,19 +210,27 @@ def emergency(coordinates: list,
         end_point = [max_x,min_y]
         ref_point = start_point
     
-    m1 = (longest.coords[1][1]-longest.coords[0][1])/(longest.coords[1][0]-longest.coords[0][0])
-    angle = math.degrees(math.atan(m1)) + angle_offset
-    m1 = math.tan(math.radians(angle))
-    
-    mid_point = [(min_x+max_x)/2,(min_y+max_y)/2]
-    
+    diff_point = [(max_x-min_x)/10,(max_y-min_y)/10]
+    max_dif = [(max_x-min_x),(max_y-min_y)]
+    if(angle_offset > 0 ):
+        new_start_point= [min_x + max_dif[0]/4,min_y + max_dif[1]/4]
+        new_end_point = [max_x - max_dif[0]/4,max_y - max_dif[1]/4]
+    else:
+        new_start_point= [min_x + max_dif[0]/4,max_y - max_dif[1]/4]
+        new_end_point = [max_x - max_dif[0]/4,min_y + max_dif[1]/4]
     while_check = True
     counter = 0
+    plot([LineString([start_point,end_point]),LineString([new_start_point,new_end_point])])
     split_lines = []
     for j in range(1,len(drone_capacities),1):
-        split_point = (start_point[0] + j*(end_point[0]-start_point[0])/drone_count,
-                        start_point[1] + j*(end_point[1]-start_point[1])/drone_count)
+        split_point = (new_start_point[0]  + j*(new_end_point[0]-new_start_point[0])/drone_count,
+                       new_start_point[1]  + j*(new_end_point[1]-new_start_point[1])/drone_count)
+        if split_point[0] > max_x:
 
+            split_point = (split_point[0] - diff_point[0],split_point[1])
+        if split_point[1] > max_y:
+            split_point = (split_point[0],split_point[1]-diff_point[1])
+            
         split_point_extension0 = (split_point[0]-line_extension,split_point[1]-line_extension*m1)
         split_point_extension1 = (split_point[0]+line_extension,split_point[1]+m1*line_extension)
 
@@ -284,6 +295,9 @@ def route_planning(
     polygon = ScanArea(coords=nodes)
     
     longest = polygon.find_the_longest_edge()
+    m1 = (longest.coords[1][1]-longest.coords[0][1])/(longest.coords[1][0]-longest.coords[0][0])
+    angle = math.degrees(math.atan(m1)) + angle_offset
+    m1 = math.tan(math.radians(angle))
     if drone_count == 1:
         result.polygons = polygon.polygon
         result.optimal_routes, result.rotated_routes = get_route(list(result.polygons.exterior.coords),altitude,intersection_ratio,rotate_angle,angle_offset,m1)
@@ -310,9 +324,7 @@ def route_planning(
         end_point = [max_x,min_y]
         ref_point = start_point
     
-    m1 = (longest.coords[1][1]-longest.coords[0][1])/(longest.coords[1][0]-longest.coords[0][0])
-    angle = math.degrees(math.atan(m1)) + angle_offset
-    m1 = math.tan(math.radians(angle))
+    
     
     mid_point = [(min_x+max_x)/2,(min_y+max_y)/2]
     
@@ -373,7 +385,7 @@ def route_planning(
                 print("cannot get wanted results, those are information of last iteration :")
                 # print(route_times)
                 result.polygons = polygons
-                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit)
+                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle)
             # print("cannot get wanted results in this diagonal, now another diagonal will be tried, current results are  :")
             # print(route_times)
             
@@ -405,7 +417,7 @@ def route_planning(
                 in_counter += 1
                 if in_counter >= 100 or temp_move_ratio <= 0.0001:
                     
-                    return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit)
+                    return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle)
                 while_check = True
                 if est2 < est1:
 
@@ -418,7 +430,7 @@ def route_planning(
                             last_move = 'higher'
                         except Exception:
                             if rec_quit:
-                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit)
+                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle)
                             return route_planning(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit=True)
                     else:
                         # print(f"log: est{line_idx}: {est1} > est{line_idx+1}: {est2}, split line will move LOWER x values")
@@ -428,7 +440,7 @@ def route_planning(
                             split_line = move_lower(split_line,[start_point,end_point],temp_move_ratio,m1,line_extension)
                         except Exception:
                             if rec_quit:
-                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit)
+                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle)
                             return route_planning(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit=True)
                 else:
                     if poly2.centroid.x < poly1.centroid.x:
@@ -440,7 +452,7 @@ def route_planning(
                             split_line = move_lower(split_line,[start_point,end_point],temp_move_ratio,m1,line_extension)
                         except Exception:
                             if rec_quit:
-                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit)
+                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle)
                             return route_planning(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit=True)
                     else:
                         # print(f"log: est{line_idx}: {est1} < est{line_idx+1}: {est2}, split line will move HIGHER x values")
@@ -450,7 +462,7 @@ def route_planning(
                             split_line = move_higher(split_line,[start_point,end_point],temp_move_ratio,m1,line_extension)
                         except Exception:
                             if rec_quit:
-                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit)
+                                return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle)
                             return route_planning(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit=True)
                     
                         last_move = 'higher'
@@ -465,7 +477,10 @@ def route_planning(
                     return route_planning(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle,rec_quit=True)
                 
                 for idx,poly in enumerate(polygons):
-                    route_times[idx] = get_polygon_route_time(poly,altitude,intersection_ratio,rotate_angle,angle_offset,m1)
+                    try: 
+                        route_times[idx] = get_polygon_route_time(poly,altitude,intersection_ratio,rotate_angle,angle_offset,m1)
+                    except Exception:
+                        return emergency(coordinates,drone_capacities,altitude,intersection_ratio,angle_offset,rotate_angle)
                 poly1, poly2 = polygons[line_idx : line_idx + 2]
                 est1, est2 = route_times[line_idx : line_idx + 2]
                 # print(f"log: new estimated times : {route_times}")
